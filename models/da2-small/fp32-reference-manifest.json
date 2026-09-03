@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "repository": "onnx-community/depth-anything-v2-small",
+  "revision": "4472b7362082ad9968fee890ca0f1e5aca36b93d",
+  "path": "onnx/model.onnx",
+  "sha256": "afb6a5c28f3b6bf1618c6e43f02073ef9dfdc70e937502d51603e57b0a1df10c",
+  "bytes": 99060839,
+  "runtime": "onnxruntime-cpu",
+  "purpose": "development-only numerical oracle"
+}
