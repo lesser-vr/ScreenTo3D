@@ -1,0 +1,30 @@
+DepthSBS Third-Party Notices
+============================
+
+Depth Anything V2 Small
+-----------------------
+
+Copyright the Depth Anything V2 authors. Licensed under Apache License 2.0.
+Model source: https://huggingface.co/depth-anything/Depth-Anything-V2-Small
+ONNX integration source: https://huggingface.co/onnx-community/depth-anything-v2-small
+
+NVIDIA TensorRT
+---------------
+
+Copyright NVIDIA Corporation. TensorRT is distributed under NVIDIA's TensorRT
+Software License Agreement. See the LICENSE.txt included with this package and
+https://docs.nvidia.com/deeplearning/tensorrt/sla/index.html.
+
+FFmpeg
+------
+
+FFmpeg is free software. The bundled binary reports its exact configuration
+with `ffmpeg.exe -version`. License and source information:
+https://ffmpeg.org/legal.html and https://ffmpeg.org/download.html.
+
+Python, NumPy, OpenCV, cuda-python, and PyInstaller
+---------------------------------------------------
+
+These components retain their respective upstream licenses. Their metadata and
+license files are included within the packaged application directory where
+provided by the build tooling.

@@ -1,0 +1,37 @@
+import os
+import sys
+from pathlib import Path
+
+
+def bundle_root() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+    return Path(__file__).resolve().parents[2]
+
+
+def executable_root() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    return bundle_root()
+
+
+def resource_path(relative: str) -> Path:
+    candidates = [bundle_root() / relative, executable_root() / relative]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
+def cache_root() -> Path:
+    base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    path = base / "DepthSBS" / "engines"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def prepare_dll_search_path() -> None:
+    runtime = resource_path("runtime")
+    if runtime.is_dir():
+        os.add_dll_directory(str(runtime))
+        os.environ["PATH"] = str(runtime) + os.pathsep + os.environ.get("PATH", "")
