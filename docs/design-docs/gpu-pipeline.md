@@ -93,6 +93,26 @@ thresholds are validated.
 
 ### Stereo synthesis
 
+The Python V1.1 reference now uses source-pixel forward projection with a
+near-depth z-buffer (16-bit priority; deterministic source-index ties). The
+historical left/right direction is preserved. Disocclusions use the farther
+nearest horizontal visible neighbor; unseen background texture is approximate.
+Nearest-pixel projection can alias and is not a final high-quality GPU renderer.
+
+Depth is image-guided before projection. A conservative uniform-background
+heuristic activates only when 98% of border samples match an estimated border
+color and border-connected background covers at least 35% of the image. No
+specific chroma-key color is hardcoded. Each foreground component's boundary
+depth blends toward its component mean across a bounded rim; interior depth is
+retained. Complex backgrounds bypass this heuristic. This can flatten shallow
+detail near contours and is validated narrowly, not semantic segmentation.
+
+Temporal depth blending rejects locally changed color/depth pixels. A coarse
+scene-cut check resets normalization/history and forces inference even on a
+cadence-skipped frame; extra cut inferences are separately counted. Thresholds
+and refinement controls are mode policy fields. The cut detector is heuristic,
+not exhaustive. See `../exec-plans/active/v1-1-stereo-ghosting.md`.
+
 Start with one deterministic symmetric SBS baseline. Inputs are normalized depth,
 divergence, convergence, depth scale, and validated output geometry. V2 adds edge
 dilation, occlusion-aware handling, EMA normalization, and alternative symmetric

@@ -14,6 +14,7 @@ from .resources import resource_path
 from .trt_backend import DepthEngine
 from .telemetry import StageMetrics
 from .lifecycle import Lifecycle
+from .stereo import project_eye, guide_depth, refine_flat_background
 
 
 Progress = Callable[[dict], None]
@@ -73,32 +74,48 @@ def preprocess(frame: np.ndarray) -> np.ndarray:
 class StereoSynthesizer:
     def __init__(self, width: int, height: int, policy: ModePolicy):
         self.width, self.height, self.policy = width, height, policy
-        self.grid_x, self.grid_y = np.meshgrid(
-            np.arange(width, dtype=np.float32), np.arange(height, dtype=np.float32)
-        )
         self.smoothed_depth = self.low = self.high = None
+        self.previous_frame = None
+        self.flat_background_frames = 0
+
+    def is_scene_cut(self, frame):
+        if self.previous_frame is None:
+            return False
+        current = cv2.resize(frame, (32, 32)).astype(np.float32)
+        previous = cv2.resize(self.previous_frame, (32, 32)).astype(np.float32)
+        return float(np.mean(np.abs(current - previous))) / 255.0 > self.policy.scene_cut_threshold
 
     def render(self, frame: np.ndarray, depth: np.ndarray) -> np.ndarray:
+        if self.is_scene_cut(frame):
+            self.smoothed_depth = self.low = self.high = None
+            self.previous_frame = None
         resized = cv2.resize(depth[0], (self.width, self.height), interpolation=cv2.INTER_CUBIC)
         low, high = float(np.percentile(resized, 2.0)), float(np.percentile(resized, 98.0))
         alpha = self.policy.temporal_alpha
         self.low = low if self.low is None else alpha * low + (1.0 - alpha) * self.low
         self.high = high if self.high is None else alpha * high + (1.0 - alpha) * self.high
         normalized = np.clip((resized - self.low) / max(self.high - self.low, 1.0e-6), 0.0, 1.0)
-        self.smoothed_depth = normalized if self.smoothed_depth is None else (
-            alpha * normalized + (1.0 - alpha) * self.smoothed_depth
-        )
-        disparity = (self.smoothed_depth - self.policy.convergence) * max(
+        if self.smoothed_depth is not None and self.previous_frame is not None:
+            changed = np.max(np.abs(frame.astype(np.float32) - self.previous_frame.astype(np.float32)), axis=2) / 255.0
+            changed = cv2.dilate((changed > self.policy.temporal_color_threshold).astype(np.uint8), np.ones((7, 7), np.uint8)) != 0
+            changed |= np.abs(normalized - self.smoothed_depth) > self.policy.temporal_depth_threshold
+            normalized = np.where(changed, normalized, alpha * normalized + (1.0 - alpha) * self.smoothed_depth)
+        self.smoothed_depth = normalized
+        self.previous_frame = frame.copy()
+        aligned = guide_depth(frame, normalized, radius=self.policy.depth_guide_radius)
+        if self.policy.flat_background_refinement:
+            refined = refine_flat_background(frame, aligned,
+                tolerance=self.policy.flat_background_tolerance,
+                minimum_coverage=self.policy.flat_background_min_coverage,
+                radius=self.policy.depth_guide_radius)
+            if refined is not aligned:
+                self.flat_background_frames += 1
+            aligned = refined
+        disparity = (aligned - self.policy.convergence) * max(
             1.0, self.width * self.policy.divergence
         )
-        left = cv2.remap(
-            frame, self.grid_x + disparity * 0.5, self.grid_y,
-            cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT101,
-        )
-        right = cv2.remap(
-            frame, self.grid_x - disparity * 0.5, self.grid_y,
-            cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT101,
-        )
+        left = project_eye(frame, aligned, -disparity * 0.5)
+        right = project_eye(frame, aligned, disparity * 0.5)
         return np.concatenate((left, right), axis=1)
 
 
@@ -161,6 +178,7 @@ def convert_video(
     started, frames, last_depth = time.perf_counter(), 0, None
     metrics = StageMetrics()
     decoded_pipe_bytes = encoded_pipe_bytes = 0
+    scene_cut_resets = extra_cut_inferences = 0
     lifecycle = Lifecycle()
     try:
         _check_cancel(cancel_path)
@@ -197,7 +215,12 @@ def convert_video(
                 frame = np.frombuffer(raw, dtype=np.uint8).reshape(height, width, 3)
                 decoded_pipe_bytes += len(raw)
                 metrics.observe('decode_read', time.perf_counter() - read_started)
-                if last_depth is None or frames % policy.inference_cadence == 0:
+                cut = synthesizer.is_scene_cut(frame)
+                if cut:
+                    scene_cut_resets += 1
+                    if last_depth is not None and frames % policy.inference_cadence != 0:
+                        extra_cut_inferences += 1
+                if last_depth is None or frames % policy.inference_cadence == 0 or cut:
                     with metrics.measure('preprocess'):
                         tensor = preprocess(frame)
                     with metrics.measure('depth_inference'):
@@ -265,6 +288,10 @@ def convert_video(
                 'external_buffering_measured': False,
             },
             'zero_copy': False,
+            'scene_cut_resets': scene_cut_resets,
+            'extra_cut_inferences': extra_cut_inferences,
+            'stereo': {'algorithm': 'forward_zbuffer_cpu',
+                       'flat_background_frames': synthesizer.flat_background_frames},
             'lifecycle_seconds': dict(lifecycle.seconds),
             'probe_seconds': probe_seconds,
             'job_elapsed_seconds': time.perf_counter() - job_started,

@@ -58,6 +58,7 @@ for ($index = 0; $index -lt ($WarmupRuns + $Runs); $index++) {
         throw 'Benchmark requires resource telemetry schema 2; rebuild the package.'
     }
     $inferences = [long][Math]::Ceiling([double]$complete.frames / $complete.policy.inference_cadence)
+    $inferences += [long]$telemetry.extra_cut_inferences
     $counters = $telemetry.resources.cuda_counters
     $rgbBytes = [long]$complete.frames * [long]$sourceStream.width * [long]$sourceStream.height * 3
     if ($counters.completed_inferences -ne $inferences -or

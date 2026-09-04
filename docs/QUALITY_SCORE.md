@@ -1,5 +1,15 @@
 # Quality score
 
+## 2026-09-04 visual correctness update
+
+The table below is the historical pre-implementation baseline, not a fresh audit.
+Current implementation evidence lives in execution plans. User-reported stereo
+contour duplication led to a forward/visibility-aware CPU correction; see
+`exec-plans/active/v1-1-stereo-ghosting.md`. The supplied clip is improved in
+inspected frames, but user motion/VR review, complex-background goldens and a
+material CPU performance regression remain open. Do not label visual quality
+accepted based on frame-count/media-contract tests.
+
 Status: Initial baseline  
 Scale: 0 absent, 1 ad hoc, 2 defined, 3 implemented, 4 verified and enforced  
 Last reviewed: 2026-09-03
@@ -22,8 +32,9 @@ Last reviewed: 2026-09-03
 
 ## Current interpretation
 
-The repository has a defined intent but no implementation evidence. A score of 2
-means the expected behavior is documented, not that the product supports it.
+The initial table captured a pre-implementation state. A score of 2 meant the
+expected behavior was documented, not that the product supported it. Refer to
+current execution-plan evidence before interpreting these historical scores.
 
 V1 is not complete until build reproducibility, media correctness, depth/SBS
 correctness, performance evidence, memory safety, and CI enforcement each reach

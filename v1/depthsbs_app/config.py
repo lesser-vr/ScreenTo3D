@@ -11,6 +11,13 @@ class ModePolicy:
     convergence: float
     nvenc_preset: str
     cq: int
+    temporal_color_threshold: float = 0.04
+    temporal_depth_threshold: float = 0.08
+    scene_cut_threshold: float = 0.18
+    depth_guide_radius: int = 8
+    flat_background_refinement: bool = True
+    flat_background_tolerance: float = 0.04
+    flat_background_min_coverage: float = 0.35
 
 
 MODES = {
