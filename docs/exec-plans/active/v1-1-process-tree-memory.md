@@ -1,6 +1,6 @@
 # V1.1 process-tree memory observations
 
-Status: Synthetic process-tree slice verified; real-media validation awaits input
+Status: Synthetic and user short-clip smoke verified; long-media gate remains open
 
 Plan: extend the packaged soak harness to sample worker descendants, test
 process-tree selection with deterministic snapshots, and validate with existing
@@ -58,7 +58,9 @@ CIM/query overhead. This overhead is not excluded from benchmark runtime.
 
 ## Remaining
 
-A user-specified representative real-video path is still needed. Do not search
-unrelated user folders or substitute synthetic results for real-media coverage.
+A user-supplied 5.17-second clip passed four-mode smoke validation; see
+`v1-1-user-clip-validation.md`. Longer representative footage is still needed.
+Do not search unrelated user folders or substitute synthetic results for
+real-media coverage.
 Hour-long runs, physical device loss, unsampled/orphaned processes and concurrent
 destination safety remain open. V1.1 is not declared complete.
