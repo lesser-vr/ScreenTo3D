@@ -15,8 +15,9 @@ elapsed time remains the throughput denominator. This does not establish
 zero-copy or a product frame-rate target.
 
 Resource counters and sampled device-memory observations are now implemented;
-see `v1-1-resource-telemetry.md`. Remaining V1.1 work: startup/drain/mux
-breakdown, internal queue profiling and long-video resource validation.
+see `v1-1-resource-telemetry.md`. Startup/drain/mux breakdown and an initial
+five-minute run are verified in `v1-1-lifecycle-soak.md`. Internal queue
+profiling, repeated cleanup and longer resource validation remain open.
 
 ## Verification (2026-09-04)
 

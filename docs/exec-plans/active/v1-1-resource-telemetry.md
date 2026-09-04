@@ -31,8 +31,9 @@ The Python worker processes one frame at a time without an application work
 queue. That is a declared scheduling contract, NOT a measurement of FFmpeg,
 CUDA, OS pipe or encoder internal buffering.
 
-Remaining after this slice: startup/drain/mux timing and long-video resource
-stability tests; whole-pipeline GPU profiling and native queue instrumentation.
+Startup/drain/mux timing and a five-minute resource smoke test are now verified
+in `v1-1-lifecycle-soak.md`. Longer resource stability tests, whole-pipeline GPU
+profiling and native queue instrumentation remain open.
 
 ## Verification (2026-09-04)
 

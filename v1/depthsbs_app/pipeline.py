@@ -12,6 +12,7 @@ from .config import MODES, ModePolicy
 from .resources import resource_path
 from .trt_backend import DepthEngine
 from .telemetry import StageMetrics
+from .lifecycle import Lifecycle
 
 
 Progress = Callable[[dict], None]
@@ -114,12 +115,15 @@ def convert_video(
     input_path: Path, output_path: Path, mode: str, progress: Progress,
     cancel_path: Path | None = None,
 ) -> dict:
+    job_started = time.perf_counter()
     input_path, output_path = input_path.resolve(), output_path.resolve()
     if input_path == output_path:
         raise ValueError("Input and output paths must differ")
     if mode not in MODES:
         raise ValueError(f"Unknown mode: {mode}")
+    probe_started = time.perf_counter()
     policy, metadata = MODES[mode], probe_video(input_path)
+    probe_seconds = time.perf_counter() - probe_started
     output_path.parent.mkdir(parents=True, exist_ok=True)
     partial_path = output_path.with_suffix(output_path.suffix + ".partial.mp4")
     video_path = output_path.with_suffix(output_path.suffix + ".video-only.mp4")
@@ -130,9 +134,11 @@ def convert_video(
     started, frames, last_depth = time.perf_counter(), 0, None
     metrics = StageMetrics()
     decoded_pipe_bytes = encoded_pipe_bytes = 0
+    lifecycle = Lifecycle()
     try:
         progress({"event": "start", "mode": mode, "metadata": metadata})
         with DepthEngine(progress) as engine:
+            lifecycle.checkpoint('engine_startup')
             decode = subprocess.Popen(
                 [_tool("ffmpeg"), "-v", "error", "-i", str(input_path),
                  "-map", "0:v:0", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"],
@@ -150,6 +156,7 @@ def convert_video(
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
             synthesizer, frame_size = StereoSynthesizer(width, height, policy), width * height * 3
+            lifecycle.checkpoint('pipeline_setup')
             while True:
                 if cancel_path is not None and cancel_path.exists():
                     raise InterruptedError("Conversion cancelled")
@@ -183,15 +190,20 @@ def convert_video(
                         "event": "progress", "frame": frames, "total_frames": total,
                         "percent": min(100.0, frames * 100.0 / total) if total else None,
                     })
+            lifecycle.checkpoint('frame_loop')
             decode.stdout.close()
             decode_error = decode.stderr.read().decode("utf-8", "replace")
             if decode.wait() != 0:
                 raise RuntimeError("Decode failed: " + decode_error.strip())
+            lifecycle.checkpoint('decode_drain')
             encode.stdin.close()
             encode_error = encode.stderr.read().decode("utf-8", "replace")
             if encode.wait() != 0:
                 raise RuntimeError("NVENC encode failed: " + encode_error.strip())
+            lifecycle.checkpoint('encode_drain')
             resource_stats = engine.telemetry()
+            lifecycle.checkpoint('resource_snapshot')
+        lifecycle.checkpoint('backend_close')
         if frames == 0:
             raise RuntimeError("No video frames were decoded")
         mux = _run([
@@ -202,8 +214,10 @@ def convert_video(
         ])
         if mux.returncode != 0:
             raise RuntimeError("Audio mux failed: " + mux.stderr.strip())
+        lifecycle.checkpoint('audio_mux')
         output_path.unlink(missing_ok=True)
         partial_path.replace(output_path)
+        lifecycle.checkpoint('publish')
         elapsed = time.perf_counter() - started
         result = {
             "event": "complete", "output": str(output_path), "frames": frames,
@@ -222,6 +236,9 @@ def convert_video(
                 'external_buffering_measured': False,
             },
             'zero_copy': False,
+            'lifecycle_seconds': dict(lifecycle.seconds),
+            'probe_seconds': probe_seconds,
+            'job_elapsed_seconds': time.perf_counter() - job_started,
         }
         progress(result)
         return result
