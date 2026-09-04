@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from .resources import cache_root, prepare_dll_search_path, resource_path
+from .resource_telemetry import ResourceMetrics
 
 prepare_dll_search_path()
 import tensorrt as trt  # noqa: E402
@@ -61,6 +62,7 @@ def build_engine(model_path: Path, engine_path: Path) -> None:
 
 class DepthEngine:
     def __init__(self, progress=None):
+        self.metrics = ResourceMetrics()
         model_path = _model_path()
         if not model_path.is_file():
             raise FileNotFoundError(f"Depth model not found: {model_path}")
@@ -88,6 +90,16 @@ class DepthEngine:
         self.output = np.empty(OUTPUT_SHAPE, dtype=np.float32)
         self.context.set_tensor_address(INPUT_NAME, int(self.device_input))
         self.context.set_tensor_address(OUTPUT_NAME, int(self.device_output))
+        self._sample_memory(force=True)
+
+    def _sample_memory(self, force=False):
+        self.metrics.sample_memory(lambda: _cuda(cudart.cudaMemGetInfo()), force=force)
+
+    def telemetry(self):
+        self._sample_memory(force=True)
+        result = self.metrics.summary()
+        result['explicit_io_buffer_bytes'] = self.input_bytes + self.output_bytes
+        return result
 
     def infer(self, tensor: np.ndarray) -> np.ndarray:
         contiguous = np.ascontiguousarray(tensor, dtype=np.float32)
@@ -100,6 +112,7 @@ class DepthEngine:
             cudart.cudaMemcpyKind.cudaMemcpyHostToDevice,
             self.stream,
         ))
+        self.metrics.copy_submitted('h2d', self.input_bytes)
         if not self.context.execute_async_v3(stream_handle=int(self.stream)):
             raise RuntimeError("TensorRT inference submission failed")
         _cuda(cudart.cudaMemcpyAsync(
@@ -109,9 +122,13 @@ class DepthEngine:
             cudart.cudaMemcpyKind.cudaMemcpyDeviceToHost,
             self.stream,
         ))
+        self.metrics.copy_submitted('d2h', self.output_bytes)
         _cuda(cudart.cudaStreamSynchronize(self.stream))
+        self.metrics.counters['stream_synchronizations'] += 1
         if not np.isfinite(self.output).all():
             raise RuntimeError("depth output contains non-finite values")
+        self.metrics.counters['completed_inferences'] += 1
+        self._sample_memory()
         return self.output.copy()
 
     def close(self) -> None:

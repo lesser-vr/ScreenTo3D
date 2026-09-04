@@ -53,6 +53,24 @@ for ($index = 0; $index -lt ($WarmupRuns + $Runs); $index++) {
     $events = Get-Content $statusPath | ForEach-Object { $_ | ConvertFrom-Json }
     $complete = $events | Where-Object event -eq 'complete' | Select-Object -Last 1
     if (-not $complete) { throw "Benchmark $kind run $number has no completion event." }
+    $telemetry = $complete.telemetry
+    if (-not $telemetry -or $telemetry.schema_version -ne 2) {
+        throw 'Benchmark requires resource telemetry schema 2; rebuild the package.'
+    }
+    $inferences = [long][Math]::Ceiling([double]$complete.frames / $complete.policy.inference_cadence)
+    $counters = $telemetry.resources.cuda_counters
+    $rgbBytes = [long]$complete.frames * [long]$sourceStream.width * [long]$sourceStream.height * 3
+    if ($counters.completed_inferences -ne $inferences -or
+        $counters.h2d_submissions -ne $inferences -or
+        $counters.d2h_submissions -ne $inferences -or
+        $counters.stream_synchronizations -ne $inferences -or
+        $counters.h2d_submitted_bytes -ne ($inferences * 3 * 518 * 518 * 4) -or
+        $counters.d2h_submitted_bytes -ne ($inferences * 518 * 518 * 4) -or
+        $telemetry.host_pipe_payload_bytes.decoded_rgb -ne $rgbBytes -or
+        $telemetry.host_pipe_payload_bytes.encoded_sbs_rgb -ne ($rgbBytes * 2) -or
+        $telemetry.zero_copy -ne $false) {
+        throw "Resource telemetry contract failed for $kind run $number."
+    }
     $outputProbe = Read-Probe $outputPath
     $outputStream = Find-Video $outputProbe
     if ([int]$outputStream.width -ne ([int]$sourceStream.width * 2) -or

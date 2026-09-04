@@ -129,6 +129,7 @@ def convert_video(
     decode = encode = None
     started, frames, last_depth = time.perf_counter(), 0, None
     metrics = StageMetrics()
+    decoded_pipe_bytes = encoded_pipe_bytes = 0
     try:
         progress({"event": "start", "mode": mode, "metadata": metadata})
         with DepthEngine(progress) as engine:
@@ -160,6 +161,7 @@ def convert_video(
                 if len(raw) != frame_size:
                     raise RuntimeError("Decoder returned a truncated frame")
                 frame = np.frombuffer(raw, dtype=np.uint8).reshape(height, width, 3)
+                decoded_pipe_bytes += len(raw)
                 metrics.observe('decode_read', time.perf_counter() - read_started)
                 if last_depth is None or frames % policy.inference_cadence == 0:
                     with metrics.measure('preprocess'):
@@ -169,7 +171,10 @@ def convert_video(
                 with metrics.measure('temporal_stereo'):
                     rendered = synthesizer.render(frame, last_depth).tobytes()
                 with metrics.measure('encode_write'):
-                    encode.stdin.write(rendered)
+                    written = encode.stdin.write(rendered)
+                    if written != len(rendered):
+                        raise RuntimeError('Encoder pipe returned a short write')
+                    encoded_pipe_bytes += written
                 metrics.observe('frame_total', time.perf_counter() - frame_started)
                 frames += 1
                 if frames == 1 or frames % 10 == 0:
@@ -186,6 +191,7 @@ def convert_video(
             encode_error = encode.stderr.read().decode("utf-8", "replace")
             if encode.wait() != 0:
                 raise RuntimeError("NVENC encode failed: " + encode_error.strip())
+            resource_stats = engine.telemetry()
         if frames == 0:
             raise RuntimeError("No video frames were decoded")
         mux = _run([
@@ -205,8 +211,17 @@ def convert_video(
             "mode": mode, "policy": policy.__dict__,
         }
         result['telemetry'] = {
-            'schema_version': 1, 'sample_capacity': metrics.capacity,
+            'schema_version': 2, 'sample_capacity': metrics.capacity,
             'percentile_scope': 'trailing_window', 'stages': metrics.summary(),
+            'resources': resource_stats,
+            'host_pipe_payload_bytes': {
+                'decoded_rgb': decoded_pipe_bytes, 'encoded_sbs_rgb': encoded_pipe_bytes,
+            },
+            'scheduling_contract': {
+                'worker_active_frame_limit': 1, 'application_work_queue_capacity': 0,
+                'external_buffering_measured': False,
+            },
+            'zero_copy': False,
         }
         progress(result)
         return result

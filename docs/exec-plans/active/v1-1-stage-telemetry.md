@@ -14,8 +14,9 @@ Frame total excludes startup, encoder drain and audio mux; existing end-to-end
 elapsed time remains the throughput denominator. This does not establish
 zero-copy or a product frame-rate target.
 
-Remaining V1.1 work: startup/drain/mux breakdown, copy and synchronization
-counters, queue and VRAM instrumentation, and long-video validation.
+Resource counters and sampled device-memory observations are now implemented;
+see `v1-1-resource-telemetry.md`. Remaining V1.1 work: startup/drain/mux
+breakdown, internal queue profiling and long-video resource validation.
 
 ## Verification (2026-09-04)
 

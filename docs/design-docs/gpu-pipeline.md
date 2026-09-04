@@ -1,5 +1,17 @@
 # GPU pipeline design
 
+## Python V1 resource observations
+
+The packaged Python path now reports explicit backend CUDA copy submission
+bytes and successful stream synchronization counts. Device-wide memory samples
+use cudaMemGetInfo with a one-second interval, plus initialization/finalization
+observations; probe failures are reported without failing conversion. These
+are not process-specific peak VRAM measurements or profiler bus traffic.
+Host pipe payloads and the single-frame worker scheduling contract are labeled
+separately. Internal FFmpeg, TensorRT and NVENC buffering/transfers remain
+unmeasured. This path explicitly reports zero_copy=false. See
+`../exec-plans/active/v1-1-resource-telemetry.md` for scope and validation.
+
 Status: Proposed  
 Owner: Pipeline  
 Last reviewed: 2026-09-03
