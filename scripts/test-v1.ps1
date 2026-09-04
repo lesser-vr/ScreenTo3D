@@ -2,6 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
+& (Join-Path $PSScriptRoot 'test-process-tree-memory.ps1')
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $dependencies = Join-Path $repoRoot 'out\v1-python-deps'
 if (-not (Test-Path $dependencies)) { throw 'V1 Python dependencies are missing.' }

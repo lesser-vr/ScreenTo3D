@@ -63,6 +63,15 @@ input, encoder initialization failure, and simulated OOM are required test cases
 
 ## Observability
 
+The V1 soak harness now samples the launched worker and its currently visible
+descendants using Win32_Process parent/creation identities. Per-process rows
+and instantaneous private-memory totals are streamed to CSV. PID reuse is
+checked with a one-microsecond timestamp tolerance (CIM precision); missing
+roots and failed observations are recorded separately, not as zero memory.
+Short-lived or orphaned children can be missed. Sum of working sets must not be
+interpreted as physical-memory usage because pages may be shared. See
+`exec-plans/active/v1-1-process-tree-memory.md` for verification and limits.
+
 Each job gets a random correlation ID. Structured events include state changes,
 resolved plan, capability summary, stage errors, copy/sync counters, queue
 high-water marks, memory high-water marks, scene-cut resets, and final outcome.

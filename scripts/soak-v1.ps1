@@ -7,6 +7,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'process-tree-memory.ps1')
 $sourceVideo = (Resolve-Path -LiteralPath $SourcePath).Path
 $package = Join-Path $repoRoot 'out/release/DepthSBS'
 $exe = Join-Path $package 'DepthSBS.exe'
@@ -18,6 +19,12 @@ New-Item -ItemType Directory -Path $runRoot -Force | Out-Null
 $statusPath = Join-Path $runRoot 'events.jsonl'
 $outputPath = Join-Path $runRoot 'output.mp4'
 $csvPath = Join-Path $runRoot 'worker-memory.csv'
+$treeCsvPath = Join-Path $runRoot 'process-tree-memory.csv'
+$treeTotalsPath = Join-Path $runRoot 'process-tree-totals.csv'
+$treeWriter = $treeTotalsWriter = $null
+$treeSamples = $treeErrors = $treeMissingRoot = $treePeakProcesses = $treePeakDescendants = 0
+$treePeakPrivate = $treeLastPrivate = $treePeakChildPrivate = 0L
+$treeBaselinePrivate = $null
 function Read-Probe([string]$Path) {
     $raw = & $probe -v error -show_streams -show_format -of json $Path
     if ($LASTEXITCODE -ne 0) { throw 'ffprobe failed.' }
@@ -25,7 +32,7 @@ function Read-Probe([string]$Path) {
 }
 $inputProbe = Read-Probe $sourceVideo
 $inputVideo = $inputProbe.streams | Where-Object codec_type -eq video | Select-Object -First 1
-$writer = [IO.StreamWriter]::new($csvPath, $false)
+$writer = $null
 $process = $null
 $samples = 0
 $peakPrivate = 0L
@@ -33,6 +40,11 @@ $baselinePrivate = $null
 $lastPrivate = $null
 $timer = [Diagnostics.Stopwatch]::StartNew()
 try {
+    $writer = [IO.StreamWriter]::new($csvPath, $false)
+    $treeWriter = [IO.StreamWriter]::new($treeCsvPath, $false)
+    $treeTotalsWriter = [IO.StreamWriter]::new($treeTotalsPath, $false)
+    $treeWriter.WriteLine('sample_id,elapsed_seconds,pid,parent_pid,name,created_utc,private_bytes,working_set_bytes')
+    $treeTotalsWriter.WriteLine('sample_id,elapsed_seconds,state,private_bytes,descendant_private_bytes,process_count,error_kind')
     $writer.WriteLine('elapsed_seconds,private_bytes,working_set_bytes')
     $arguments = "--worker --input `"$sourceVideo`" --output `"$outputPath`" --mode $Mode --status-file `"$statusPath`""
     $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru -WindowStyle Hidden
@@ -48,13 +60,54 @@ try {
         $writer.WriteLine([string]::Format([Globalization.CultureInfo]::InvariantCulture,
             '{0:F3},{1},{2}', $seconds, $lastPrivate, $workingSet))
         $writer.Flush()
+        $snapshotSeconds = $timer.Elapsed.TotalSeconds.ToString('F3', [Globalization.CultureInfo]::InvariantCulture)
+        $snapshotId = $samples + 1
+        try {
+            $rows = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CreationDate,PrivatePageCount,WorkingSetSize -ErrorAction Stop)
+            $tree = @(Select-WorkerProcessTree -Rows $rows -RootId $process.Id -RootStartedUtc $process.StartTime.ToUniversalTime())
+            if ($tree.Count -eq 0) {
+                $treeMissingRoot++
+                $treeTotalsWriter.WriteLine("$snapshotId,$snapshotSeconds,missing_root,,,,")
+            } else {
+                $treeTotal = 0L
+                $childTotal = 0L
+                foreach ($member in $tree) {
+                    if ($null -eq $member.PrivatePageCount -or $null -eq $member.WorkingSetSize) { throw 'Memory values unavailable' }
+                    $treeTotal += [long]$member.PrivatePageCount
+                    if ([int]$member.ProcessId -ne $process.Id) { $childTotal += [long]$member.PrivatePageCount }
+                    $record = [pscustomobject][ordered]@{
+                        sample_id = $snapshotId
+                        elapsed_seconds = $snapshotSeconds
+                        pid = $member.ProcessId; parent_pid = $member.ParentProcessId; name = $member.Name
+                        created_utc = $member.CreationDate.ToUniversalTime().ToString('o')
+                        private_bytes = $member.PrivatePageCount; working_set_bytes = $member.WorkingSetSize
+                    }
+                    $treeWriter.WriteLine(($record | ConvertTo-Csv -NoTypeInformation | Select-Object -Skip 1))
+                }
+                $treeSamples++
+                $treeLastPrivate = $treeTotal
+                $treePeakPrivate = [Math]::Max($treePeakPrivate, $treeTotal)
+                $treePeakChildPrivate = [Math]::Max($treePeakChildPrivate, $childTotal)
+                $treePeakProcesses = [Math]::Max($treePeakProcesses, $tree.Count)
+                $treePeakDescendants = [Math]::Max($treePeakDescendants, $tree.Count - 1)
+                if ($null -eq $treeBaselinePrivate -and $timer.Elapsed.TotalSeconds -ge 10) { $treeBaselinePrivate = $treeTotal }
+                $treeTotalsWriter.WriteLine("$snapshotId,$snapshotSeconds,observed,$treeTotal,$childTotal,$($tree.Count),")
+            }
+            $treeWriter.Flush()
+        } catch {
+            $treeErrors++
+            $treeTotalsWriter.WriteLine("$snapshotId,$snapshotSeconds,error,,,,$($_.Exception.GetType().Name)")
+        }
+        $treeTotalsWriter.Flush()
         $samples++
         Start-Sleep -Milliseconds 1000
     }
     $process.WaitForExit()
     if ($process.ExitCode -ne 0) { throw "Worker failed: $($process.ExitCode)" }
 } finally {
-    $writer.Dispose()
+    foreach ($streamWriter in @($writer, $treeWriter, $treeTotalsWriter)) {
+        if ($null -ne $streamWriter) { $streamWriter.Dispose() }
+    }
     if ($null -ne $process -and -not $process.HasExited) {
         & taskkill /PID $process.Id /T /F | Out-Null
     }
@@ -89,7 +142,7 @@ foreach ($stage in $complete.telemetry.stages.PSObject.Properties) {
     }
 }
 $artifact = [ordered]@{
-    schema_version = 1
+    schema_version = 2
     source_commit = (& git -C $repoRoot rev-parse HEAD).Trim()
     source_dirty = [bool](& git -C $repoRoot status --porcelain)
     package = Get-Content (Join-Path $package 'build-manifest.json') -Raw | ConvertFrom-Json
@@ -97,6 +150,21 @@ $artifact = [ordered]@{
     input_probe = $inputProbe
     output_probe = $outputProbe
     completion = $complete
+    process_tree_memory = [ordered]@{
+        scope = 'root_and_descendants_present_in_snapshot'
+        source = 'Win32_Process_PrivatePageCount_WorkingSetSize'
+        sample_count = $treeSamples; observation_errors = $treeErrors; missing_root_snapshots = $treeMissingRoot
+        sampled_max_process_count = $treePeakProcesses; sampled_max_descendant_count = $treePeakDescendants
+        sampled_max_private_bytes = $(if ($treeSamples) { $treePeakPrivate } else { $null })
+        sampled_max_descendant_private_bytes = $(if ($treeSamples) { $treePeakChildPrivate } else { $null })
+        first_post_10s_private_bytes = $treeBaselinePrivate
+        last_private_bytes = $(if ($treeSamples) { $treeLastPrivate } else { $null })
+        leak_verdict = 'not_established_by_single_run'
+        csv = $treeCsvPath
+        totals_csv = $treeTotalsPath
+        timestamp_tolerance_microseconds = 1
+        coverage = $(if (-not $treeSamples) { 'unavailable' } elseif ($treeErrors -or $treeMissingRoot) { 'partial' } else { 'sampled_not_exhaustive' })
+    }
     worker_memory = [ordered]@{
         scope = 'worker_process_only_not_ffmpeg_children'
         sample_count = $samples

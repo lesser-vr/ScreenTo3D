@@ -10,8 +10,10 @@ references, not unrelated Python garbage collection.
 `probe_seconds` is outside the legacy throughput denominator;
 `job_elapsed_seconds` includes probe/setup but not executable launch or the
 completion callback/final temporary-file cleanup. Neither is an isolated GPU
-timing. `scripts/soak-v1.ps1` records worker private memory/working set in CSV;
-its observations exclude child processes and do not establish leak freedom.
+timing. `scripts/soak-v1.ps1` retains worker-only memory CSV and additionally
+records currently visible descendants in process-tree CSVs and aggregate
+private-byte totals. Observations can miss short-lived or orphaned children
+and do not establish leak freedom.
 
 The packaged Python path now reports explicit backend CUDA copy submission
 bytes and successful stream synchronization counts. Device-wide memory samples

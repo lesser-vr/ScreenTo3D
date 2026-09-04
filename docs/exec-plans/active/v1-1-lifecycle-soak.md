@@ -65,5 +65,6 @@ artifacts; no success result is produced. Retention is manual.
 ## Next gates
 
 Repeated open/cancel/failure cleanup is now covered by `v1-1-cleanup.md`.
-Hour-long representative inputs, FFmpeg child memory tracking, physical device
+FFmpeg child memory sampling is verified separately in
+`v1-1-process-tree-memory.md`. Hour-long representative inputs, physical device
 loss and GPU traces remain unverified. Keep V1.1 active.
