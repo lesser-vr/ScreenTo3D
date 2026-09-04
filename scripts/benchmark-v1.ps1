@@ -69,6 +69,7 @@ for ($index = 0; $index -lt ($WarmupRuns + $Runs); $index++) {
         frames = [int]$complete.frames
         output_bytes = (Get-Item $outputPath).Length
         policy = $complete.policy
+        telemetry = $complete.telemetry
         status_file = $statusPath
         output_file = $outputPath
     }

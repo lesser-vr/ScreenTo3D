@@ -11,6 +11,7 @@ import numpy as np
 from .config import MODES, ModePolicy
 from .resources import resource_path
 from .trt_backend import DepthEngine
+from .telemetry import StageMetrics
 
 
 Progress = Callable[[dict], None]
@@ -127,6 +128,7 @@ def convert_video(
     width, height = metadata["width"], metadata["height"]
     decode = encode = None
     started, frames, last_depth = time.perf_counter(), 0, None
+    metrics = StageMetrics()
     try:
         progress({"event": "start", "mode": mode, "metadata": metadata})
         with DepthEngine(progress) as engine:
@@ -150,15 +152,25 @@ def convert_video(
             while True:
                 if cancel_path is not None and cancel_path.exists():
                     raise InterruptedError("Conversion cancelled")
+                frame_started = time.perf_counter()
+                read_started = time.perf_counter()
                 raw = _read_frame(decode.stdout, frame_size)
                 if not raw:
                     break
                 if len(raw) != frame_size:
                     raise RuntimeError("Decoder returned a truncated frame")
                 frame = np.frombuffer(raw, dtype=np.uint8).reshape(height, width, 3)
+                metrics.observe('decode_read', time.perf_counter() - read_started)
                 if last_depth is None or frames % policy.inference_cadence == 0:
-                    last_depth = engine.infer(preprocess(frame))
-                encode.stdin.write(synthesizer.render(frame, last_depth).tobytes())
+                    with metrics.measure('preprocess'):
+                        tensor = preprocess(frame)
+                    with metrics.measure('depth_inference'):
+                        last_depth = engine.infer(tensor)
+                with metrics.measure('temporal_stereo'):
+                    rendered = synthesizer.render(frame, last_depth).tobytes()
+                with metrics.measure('encode_write'):
+                    encode.stdin.write(rendered)
+                metrics.observe('frame_total', time.perf_counter() - frame_started)
                 frames += 1
                 if frames == 1 or frames % 10 == 0:
                     total = metadata["total_frames"]
@@ -191,6 +203,10 @@ def convert_video(
             "event": "complete", "output": str(output_path), "frames": frames,
             "elapsed_seconds": elapsed, "processing_fps": frames / elapsed,
             "mode": mode, "policy": policy.__dict__,
+        }
+        result['telemetry'] = {
+            'schema_version': 1, 'sample_capacity': metrics.capacity,
+            'percentile_scope': 'trailing_window', 'stages': metrics.summary(),
         }
         progress(result)
         return result

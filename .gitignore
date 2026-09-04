@@ -6,3 +6,5 @@
 *.log
 *.tmp
 *.partial
+__pycache__/
+*.py[cod]
