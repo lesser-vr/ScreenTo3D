@@ -39,6 +39,20 @@ and validation. Cleanup must be idempotent.
 
 ## Resource guarantees
 
+The Python V1 backend now closes partially initialized allocations if startup
+fails, retains runtime/context ownership until explicit close, and attempts
+every owned release even if one fails. Pending work is synchronized before
+release on an inference error; normal completed inference adds no cleanup sync.
+Release failures are surfaced and handles are not blindly retried because
+driver-side ownership may be uncertain. This is not device-loss recovery.
+
+Pipeline cleanup explicitly closes process pipes and preserves the primary
+exception with cleanup notes. Completion is emitted only after cleanup succeeds.
+Cancellation checks run before engine startup, around drain/mux, and before
+publication; blocking native calls remain cooperative cancellation boundaries.
+Atomic replacement no longer unlinks the prior output first, so a failed
+replacement preserves it. See `exec-plans/active/v1-1-cleanup.md` for evidence.
+
 All long-lived GPU resources use explicit ownership and bounded pools. Queue
 capacity is fixed by the processing plan. Cancellation stops new submissions,
 waits or aborts outstanding work through documented APIs, flushes only when safe,

@@ -5,7 +5,8 @@
 Completion telemetry also includes non-overlapping `lifecycle_seconds` for
 engine startup, pipeline setup, frame loop, decode/encode drain, resource
 snapshot, backend close, audio mux and publish. Backend close measures the
-explicit close method, not Python garbage collection of TensorRT objects.
+explicit close method including release of owned TensorRT context/runtime
+references, not unrelated Python garbage collection.
 `probe_seconds` is outside the legacy throughput denominator;
 `job_elapsed_seconds` includes probe/setup but not executable launch or the
 completion callback/final temporary-file cleanup. Neither is an isolated GPU

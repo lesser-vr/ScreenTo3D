@@ -28,10 +28,15 @@ def run_worker(arguments) -> int:
             arguments.input, arguments.output, arguments.mode, emit, arguments.cancel_file
         )
         return 0
-    except InterruptedError:
+    except InterruptedError as error:
+        if getattr(error, '__notes__', None):
+            emit({'event': 'error', 'message': 'Cancellation cleanup failed',
+                  'notes': error.__notes__})
+            return 1
         return 2
     except BaseException as error:
-        emit({"event": "error", "message": str(error), "type": type(error).__name__})
+        emit({"event": "error", "message": str(error), "type": type(error).__name__,
+              'notes': getattr(error, '__notes__', [])})
         if sys.stderr is not None:
             traceback.print_exc(file=sys.stderr)
         return 1

@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Callable
@@ -111,6 +112,32 @@ def _read_frame(stream, size: int) -> bytes:
     return bytes(chunks)
 
 
+def _check_cancel(cancel_path):
+    if cancel_path is not None and cancel_path.exists():
+        raise InterruptedError('Conversion cancelled')
+
+
+def _cleanup_processes(processes):
+    errors = []
+    for process in processes:
+        if process is None:
+            continue
+        try:
+            if process.poll() is None:
+                process.kill()
+            process.wait()
+        except Exception as error:
+            errors.append(error)
+        for name in ('stdin', 'stdout', 'stderr'):
+            stream = getattr(process, name, None)
+            if stream is not None:
+                try:
+                    stream.close()
+                except Exception as error:
+                    errors.append(error)
+    return errors
+
+
 def convert_video(
     input_path: Path, output_path: Path, mode: str, progress: Progress,
     cancel_path: Path | None = None,
@@ -136,6 +163,7 @@ def convert_video(
     decoded_pipe_bytes = encoded_pipe_bytes = 0
     lifecycle = Lifecycle()
     try:
+        _check_cancel(cancel_path)
         progress({"event": "start", "mode": mode, "metadata": metadata})
         with DepthEngine(progress) as engine:
             lifecycle.checkpoint('engine_startup')
@@ -158,8 +186,7 @@ def convert_video(
             synthesizer, frame_size = StereoSynthesizer(width, height, policy), width * height * 3
             lifecycle.checkpoint('pipeline_setup')
             while True:
-                if cancel_path is not None and cancel_path.exists():
-                    raise InterruptedError("Conversion cancelled")
+                _check_cancel(cancel_path)
                 frame_started = time.perf_counter()
                 read_started = time.perf_counter()
                 raw = _read_frame(decode.stdout, frame_size)
@@ -191,6 +218,7 @@ def convert_video(
                         "percent": min(100.0, frames * 100.0 / total) if total else None,
                     })
             lifecycle.checkpoint('frame_loop')
+            _check_cancel(cancel_path)
             decode.stdout.close()
             decode_error = decode.stderr.read().decode("utf-8", "replace")
             if decode.wait() != 0:
@@ -206,6 +234,7 @@ def convert_video(
         lifecycle.checkpoint('backend_close')
         if frames == 0:
             raise RuntimeError("No video frames were decoded")
+        _check_cancel(cancel_path)
         mux = _run([
             _tool("ffmpeg"), "-y", "-v", "error", "-i", str(video_path),
             "-i", str(input_path), "-map", "0:v:0", "-map", "1:a?",
@@ -215,7 +244,7 @@ def convert_video(
         if mux.returncode != 0:
             raise RuntimeError("Audio mux failed: " + mux.stderr.strip())
         lifecycle.checkpoint('audio_mux')
-        output_path.unlink(missing_ok=True)
+        _check_cancel(cancel_path)
         partial_path.replace(output_path)
         lifecycle.checkpoint('publish')
         elapsed = time.perf_counter() - started
@@ -240,19 +269,25 @@ def convert_video(
             'probe_seconds': probe_seconds,
             'job_elapsed_seconds': time.perf_counter() - job_started,
         }
-        progress(result)
-        return result
     except InterruptedError:
         progress({"event": "cancelled", "frames": frames})
         raise
     except BaseException:
         raise
     finally:
-        for process in (decode, encode):
-            if process is not None and process.poll() is None:
-                process.kill()
-                process.wait()
-        partial_path.unlink(missing_ok=True)
-        video_path.unlink(missing_ok=True)
-        if cancel_path is not None:
-            cancel_path.unlink(missing_ok=True)
+        primary = sys.exception()
+        cleanup_errors = _cleanup_processes((decode, encode))
+        for path in (partial_path, video_path, cancel_path):
+            if path is not None:
+                try:
+                    path.unlink(missing_ok=True)
+                except Exception as error:
+                    cleanup_errors.append(error)
+        if cleanup_errors:
+            cleanup = ExceptionGroup('Pipeline cleanup failed', cleanup_errors)
+            if primary is not None:
+                primary.add_note(repr(cleanup))
+            else:
+                raise cleanup
+    progress(result)
+    return result

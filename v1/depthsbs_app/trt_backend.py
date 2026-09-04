@@ -63,6 +63,19 @@ def build_engine(model_path: Path, engine_path: Path) -> None:
 class DepthEngine:
     def __init__(self, progress=None):
         self.metrics = ResourceMetrics()
+        self.device_input = self.device_output = self.stream = None
+        self.runtime = self.engine = self.context = None
+        self.pending_work = False
+        try:
+            self._initialize(progress)
+        except BaseException as primary:
+            try:
+                self.close()
+            except Exception as cleanup:
+                primary.add_note(f'Backend cleanup also failed: {cleanup!r}')
+            raise
+
+    def _initialize(self, progress):
         model_path = _model_path()
         if not model_path.is_file():
             raise FileNotFoundError(f"Depth model not found: {model_path}")
@@ -71,15 +84,17 @@ class DepthEngine:
             if progress:
                 progress({"event": "engine_build", "message": "Optimizing depth engine for this GPU"})
             build_engine(model_path, engine_path)
-        runtime = trt.Runtime(LOGGER)
-        self.engine = runtime.deserialize_cuda_engine(engine_path.read_bytes())
+        self.runtime = trt.Runtime(LOGGER)
+        self.engine = self.runtime.deserialize_cuda_engine(engine_path.read_bytes())
         if self.engine is None:
             engine_path.unlink(missing_ok=True)
             build_engine(model_path, engine_path)
-            self.engine = runtime.deserialize_cuda_engine(engine_path.read_bytes())
+            self.engine = self.runtime.deserialize_cuda_engine(engine_path.read_bytes())
         if self.engine is None:
             raise RuntimeError("TensorRT engine deserialization failed")
         self.context = self.engine.create_execution_context()
+        if self.context is None:
+            raise RuntimeError('TensorRT execution context creation failed')
         if not self.context.set_input_shape(INPUT_NAME, INPUT_SHAPE):
             raise RuntimeError("TensorRT input shape rejected")
         self.input_bytes = int(np.prod(INPUT_SHAPE) * np.dtype(np.float32).itemsize)
@@ -88,8 +103,10 @@ class DepthEngine:
         self.device_output = _cuda(cudart.cudaMalloc(self.output_bytes))
         self.stream = _cuda(cudart.cudaStreamCreate())
         self.output = np.empty(OUTPUT_SHAPE, dtype=np.float32)
-        self.context.set_tensor_address(INPUT_NAME, int(self.device_input))
-        self.context.set_tensor_address(OUTPUT_NAME, int(self.device_output))
+        if not self.context.set_tensor_address(INPUT_NAME, int(self.device_input)):
+            raise RuntimeError('TensorRT input binding failed')
+        if not self.context.set_tensor_address(OUTPUT_NAME, int(self.device_output)):
+            raise RuntimeError('TensorRT output binding failed')
         self._sample_memory(force=True)
 
     def _sample_memory(self, force=False):
@@ -113,6 +130,7 @@ class DepthEngine:
             self.stream,
         ))
         self.metrics.copy_submitted('h2d', self.input_bytes)
+        self.pending_work = True
         if not self.context.execute_async_v3(stream_handle=int(self.stream)):
             raise RuntimeError("TensorRT inference submission failed")
         _cuda(cudart.cudaMemcpyAsync(
@@ -124,6 +142,7 @@ class DepthEngine:
         ))
         self.metrics.copy_submitted('d2h', self.output_bytes)
         _cuda(cudart.cudaStreamSynchronize(self.stream))
+        self.pending_work = False
         self.metrics.counters['stream_synchronizations'] += 1
         if not np.isfinite(self.output).all():
             raise RuntimeError("depth output contains non-finite values")
@@ -132,21 +151,39 @@ class DepthEngine:
         return self.output.copy()
 
     def close(self) -> None:
-        if getattr(self, "device_input", None) is not None:
-            _cuda(cudart.cudaFree(self.device_input))
-            self.device_input = None
-        if getattr(self, "device_output", None) is not None:
-            _cuda(cudart.cudaFree(self.device_output))
-            self.device_output = None
-        if getattr(self, "stream", None) is not None:
-            _cuda(cudart.cudaStreamDestroy(self.stream))
-            self.stream = None
+        errors = []
+        if getattr(self, 'pending_work', False) and self.stream is not None:
+            try:
+                _cuda(cudart.cudaStreamSynchronize(self.stream))
+            except Exception as error:
+                errors.append(error)
+            self.pending_work = False
+        self.context = None
+        for name, release in (('device_input', cudart.cudaFree),
+                              ('device_output', cudart.cudaFree),
+                              ('stream', cudart.cudaStreamDestroy)):
+            handle = getattr(self, name, None)
+            if handle is not None:
+                # A failed driver call can leave ownership uncertain; never double-free.
+                setattr(self, name, None)
+                try:
+                    _cuda(release(handle))
+                except Exception as error:
+                    errors.append(error)
+        self.engine = self.runtime = None
+        if errors:
+            raise ExceptionGroup('Backend cleanup failed', errors)
 
     def __enter__(self):
         return self
 
-    def __exit__(self, *_):
-        self.close()
+    def __exit__(self, error_type, primary, traceback):
+        try:
+            self.close()
+        except Exception as cleanup:
+            if primary is None:
+                raise
+            primary.add_note(f'Backend cleanup also failed: {cleanup!r}')
 
 
 def diagnostics() -> dict:
