@@ -142,14 +142,27 @@ failure/cleanup cycles passed. The integrated oVDA product wrapper separately
 matched exact SBS on 12/12 public frames, completed all 12 device tokens, left no
 pending token and reports 99,532,800 depth-readback bytes avoided.
 
-A pre-commit actual-GUI run exercised the integrated 1920x1080-per-eye host-output
-path for five six-second windows. Median capture/processed/output rates were
-62.33/21.66/21.66 fps versus 62.52/7.77/7.78 for the preceding clean host-depth
-run. Fifteen review grabs had unique hashes; sampled first/middle/last frames
-showed advancing Floorball content, plausible eye order/aspect and no black or
-frozen output. Because this integration run truthfully records `dirty: true`, its
-rate is a strong implementation signal but not the final clean-worktree benchmark.
-The 2100x975 grabs are downscaled window captures, not 1:1 or continuous VR review.
+The final actual-GUI run used clean commit `66ab8f0`, the same public source and
+five six-second windows at each geometry. It recorded the selected
+`model-device-depth-gpu-stereo-host-output` path and the pinned product DLL hash:
+
+| Per-eye input / Full SBS | Capture | Processed | Output | Sampled depth / SBS / total |
+|---|---:|---:|---:|---:|
+| 1920x1080 / 3840x1080 | 62.49 | 21.35 | 21.49 fps | 37.00 / 8.48 / 46.54 ms |
+| 3840x2160 / 7680x2160 | 62.66 | 7.27 | 7.28 fps | 90.70 / 38.55 / 136.23 ms |
+
+Against the preceding clean host-depth path this is about 2.75x processed and
+2.76x output at 1080p, and 2.94x for both at eye-4K. The stage values are medians
+of 120 sampled latest-frame snapshots per geometry, not all-frame distributions
+or physical latency. The benchmark stopped cleanly, had no pending mailbox frame,
+left no FFmpeg process and the GPU returned to 0% utilization.
+
+All 30 review grabs had unique hashes. Sampled first/middle/last frames at both
+geometries showed advancing Floorball content, plausible eye order/aspect and no
+black or frozen output. The 2100x975 grabs are downscaled window captures, not
+1:1 7680x2160 review, continuous playback or VR acceptance. The earlier
+`out/model-performance-1080-ovda-device-20260908` pre-commit run is retained but
+superseded because it truthfully records `dirty: true`.
 
 Artifacts:
 
@@ -159,6 +172,7 @@ Artifacts:
 - `out/live-gpu-quality/product-source-entry-20260908`
 - `out/live-gpu-quality/product-source-entry-failures-20260908.json`
 - `out/model-performance-1080-ovda-device-20260908`
+- `out/model-performance-ovda-device-clean-20260908`
 
 <a id="record-result-eye-4k60-monitor-on"></a>
 ## eye-4k60-monitor-on
