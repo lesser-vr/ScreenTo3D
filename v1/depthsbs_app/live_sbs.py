@@ -139,12 +139,13 @@ def sbs_worker(
         if type(gpu_candidate) is not bool:
             raise ValueError("Invalid GPU path snapshot")
         native = texture_mailbox is not None
-        if selected_model != "da2-small" and gpu_candidate:
+        if selected_model not in ("da2-small", "ovda-small-c16") and gpu_candidate:
             raise ValueError(
-                "The fused live GPU path currently supports Performance / DA2 Small only"
+                "The live GPU path does not support the selected depth model"
             )
         if native and (
             not gpu_candidate
+            or selected_model != "da2-small"
             or type(session) is not int
             or session <= 0
             or output.pixels is not None
@@ -262,9 +263,14 @@ def sbs_worker(
                         wait_texture(lambda: texture_mailbox.state() == RETIRED)
                     projection_scope.close()
                     if gpu_candidate:
-                        from .live_gpu_candidate import LiveGpuCandidate
+                        if selected_model == "ovda-small-c16":
+                            from .live_source_gpu_candidate import (
+                                LiveSourceGpuCandidate as gpu_factory,
+                            )
+                        else:
+                            from .live_gpu_candidate import LiveGpuCandidate
 
-                        gpu_factory = LiveGpuCandidate
+                            gpu_factory = LiveGpuCandidate
                         if native:
                             from .live_gpu_texture import LiveGpuTexture
 

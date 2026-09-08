@@ -60,7 +60,7 @@ def input_shape(metadata):
     return profile_shape(width, height)
 
 
-def runtime_class():
+def runtime_class(device_depth=False):
     # A fixed repo-relative optional package, not a plugin path supplied by users.
     root = Path(__file__).resolve().parents[2] / 'experiments' / 'ovda'
     if getattr(sys, 'frozen', False) or not (root / '__init__.py').is_file():
@@ -72,13 +72,17 @@ def runtime_class():
         sys.modules[name] = module
         spec.loader.exec_module(module)
     try:
+        if device_depth:
+            from _depthsbs_ovda.device_depth import OvdaDeviceTrt
+
+            return OvdaDeviceTrt
         from _depthsbs_ovda.trt_engine import OvdaTrt
     except ImportError as error:
         raise RuntimeError('oVDA dependencies missing; use the prepared scripts/run-ovda.ps1 environment') from error
     return OvdaTrt
 
 
-def binding(directory, runtime_dir, noncommercial=False):
+def binding(directory, runtime_dir, noncommercial=False, *, device_depth=False):
     from .depth_backend import BackendBinding, BackendSpec
     if noncommercial is not True:
         raise ValueError(LICENSE_NOTICE + ' Confirm non-commercial use before conversion.')
@@ -98,5 +102,5 @@ def binding(directory, runtime_dir, noncommercial=False):
             raise ValueError('Select oVDA profile with input preflight before engine creation')
         if progress:
             progress(dict(event='ovda_profile', input_shape=[1, 1, 3, *selected], license='NC-SA-UHDV1.0'))
-        return runtime_class()(progress, directory=installed[selected], runtime_dir=runtime_dir, profile=selected)
+        return runtime_class(device_depth)(progress, directory=installed[selected], runtime_dir=runtime_dir, profile=selected)
     return BackendBinding(BackendSpec('ovda-small-c16', 'tensorrt-fp32', True, True), factory, lambda frame: frame, validate)

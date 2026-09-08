@@ -4,7 +4,7 @@ from .live_gpu_candidate import LiveGpuCandidate, DLL_SHA256
 from .live_texture_pool import LiveTexturePool
 
 BORROWED_LAYOUT_SHA256 = (
-    "946225fb6abaff0f9e94bea212995bb073da97fb461d5ff062886a388fae4448"
+    "ad0871cce22011926b0948a59368ae1f71d9727962160110bdea7974f5e296eb"
 )
 
 

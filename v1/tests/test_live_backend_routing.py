@@ -1,6 +1,7 @@
 import unittest
+from unittest.mock import Mock, patch
 
-from depthsbs_app.live_backend import choices, default_model, validate_snapshot
+from depthsbs_app.live_backend import binding, choices, default_model, validate_snapshot
 
 
 class LiveBackendRoutingTests(unittest.TestCase):
@@ -46,6 +47,24 @@ class LiveBackendRoutingTests(unittest.TestCase):
                 validate_snapshot(
                     self.snapshot("da2-base", **{key: ""}), "balanced"
                 )
+
+    def test_live_ovda_requests_owned_device_depth_engine(self):
+        backend = Mock()
+        backend.spec.model_id = "ovda-small-c16"
+        backend.input_validator = Mock()
+        with patch("depthsbs_app.ovda.binding", return_value=backend) as create:
+            result = binding(
+                self.snapshot("ovda-small-c16", noncommercial=True),
+                "video-quality",
+                {"width": 1920, "height": 1080},
+                Mock(),
+                Mock(),
+            )
+        self.assertIs(result, backend)
+        self.assertTrue(create.call_args.kwargs["device_depth"])
+        backend.input_validator.assert_called_once_with(
+            {"width": 1920, "height": 1080}
+        )
 
 
 if __name__ == "__main__":

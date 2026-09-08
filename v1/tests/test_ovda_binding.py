@@ -44,12 +44,19 @@ class OvdaTests(unittest.TestCase):
                         backend.engine_factory(None)
                     backend.input_validator(dict(width=1056, height=608))
                     backend.engine_factory(None)
+                    loader.assert_called_with(False)
                     self.assertEqual(loader.return_value.call_args.kwargs['profile'], (518, 896))
                     # Bad preflight invalidates the prior successful selection.
                     with self.assertRaises(ValueError):
                         backend.input_validator(dict(width=640, height=480))
                     with self.assertRaisesRegex(ValueError, 'preflight'):
                         backend.engine_factory(None)
+                    device_backend = ovda.binding(
+                        root, root, True, device_depth=True
+                    )
+                    device_backend.input_validator(dict(width=1056, height=608))
+                    device_backend.engine_factory(None)
+                    loader.assert_called_with(True)
                 child = root / '518x924-fp32'
                 self.assertEqual(list(ovda.profiles(child)), [(518, 924)])
                 data = (child / 'model.plan').read_bytes()

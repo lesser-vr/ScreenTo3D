@@ -67,6 +67,7 @@ def binding(snapshot, mode, metadata, da2_engine_factory, da2_prepare):
             Path(selected["engine"]),
             Path(selected["runtime"]),
             selected["noncommercial"],
+            device_depth=True,
         )
     else:  # validate_snapshot owns the public model set.
         raise ValueError("지원하지 않는 실시간 깊이 모델입니다.")

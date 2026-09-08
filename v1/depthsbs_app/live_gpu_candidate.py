@@ -11,7 +11,7 @@ from .desktop_jobs import ROOT
 from .stereo import refine_flat_background
 from .live_scene_history import LiveSceneHistory
 
-DLL_SHA256 = "946225fb6abaff0f9e94bea212995bb073da97fb461d5ff062886a388fae4448"
+DLL_SHA256 = "ad0871cce22011926b0948a59368ae1f71d9727962160110bdea7974f5e296eb"
 DLL_PATH = ROOT / "out/live-depth-parallel/live_depth.dll"
 DEFAULT_RESOLVE = "parallel"
 
@@ -25,7 +25,7 @@ class LiveGpuCandidate:
         self.resolve_impl = os.environ.get("DEPTHSBS_LIVE_RESOLVE", DEFAULT_RESOLVE)
         if self.resolve_impl not in ("serial", "parallel"):
             raise ValueError("DEPTHSBS_LIVE_RESOLVE must be serial or parallel")
-        engine._device_check()
+        self._engine_check(engine)
         from .trt_backend import _cuda, cudart
 
         properties = _cuda(
@@ -69,7 +69,7 @@ class LiveGpuCandidate:
         self.handle = ct.c_void_p()
         self._check(
             self.dll.live_create(
-                ct.byref(self.handle), width, height, int(engine.stream)
+                ct.byref(self.handle), width, height, self._stream(engine)
             )
         )
         self._check(
@@ -95,7 +95,7 @@ class LiveGpuCandidate:
         self.small_rgb = cv2.resize(frame, (518, 518), interpolation=cv2.INTER_CUBIC)
 
         def prepare(pointer, stream):
-            if stream != int(self.engine.stream):
+            if stream != self._stream(self.engine):
                 raise ValueError("Unexpected input stream")
             self._check(
                 self.dll.live_prepare(self.handle, self.small_rgb.ctypes.data, pointer)
@@ -116,7 +116,21 @@ class LiveGpuCandidate:
             raise RuntimeError("GPU candidate closed")
         if self.failed:
             raise RuntimeError("GPU candidate failed; create a new session")
-        self.engine._device_check()
+        self._engine_check(self.engine)
+
+    @staticmethod
+    def _engine_check(engine):
+        check = getattr(engine, "_device_check", None)
+        if check is None:
+            check = getattr(engine, "check", None)
+        if not callable(check):
+            raise TypeError("GPU depth engine must expose an owner/device check")
+        check()
+
+    @staticmethod
+    def _stream(engine):
+        stream = engine.stream
+        return int(getattr(stream, "cuda_stream", stream))
 
     def reset(self):
         self._owner()
@@ -162,26 +176,12 @@ class LiveGpuCandidate:
             else None
         )
         started = time.perf_counter_ns()
-        self._check(
-            self.dll.live_post(
-                self.handle,
-                frame.ctypes.data,
-                depth.pointer,
-                self.policy.depth_guide_radius,
-                self.policy.temporal_alpha,
-                self.policy.temporal_color_threshold,
-                self.policy.temporal_depth_threshold,
-                int(reset),
-                aligned.ctypes.data if aligned is not None else None,
-                self.policy.temporal_depth_transition,
-            )
-        )
-        self.h2d += frame.nbytes
+        self._post(frame, depth, aligned, reset)
         refined = None
         if aligned is not None:
             from .trt_backend import _cuda, cudart
 
-            _cuda(cudart.cudaStreamSynchronize(self.engine.stream))
+            _cuda(cudart.cudaStreamSynchronize(self._stream(self.engine)))
             self.syncs += 1
             self.d2h += aligned.nbytes
             if not np.isfinite(aligned).all():
@@ -223,6 +223,23 @@ class LiveGpuCandidate:
         )
         result = self._pack_result(projected)
         return (result, aligned) if diagnostic else result
+
+    def _post(self, frame, depth, aligned, reset):
+        self._check(
+            self.dll.live_post(
+                self.handle,
+                frame.ctypes.data,
+                depth.pointer,
+                self.policy.depth_guide_radius,
+                self.policy.temporal_alpha,
+                self.policy.temporal_color_threshold,
+                self.policy.temporal_depth_threshold,
+                int(reset),
+                aligned.ctypes.data if aligned is not None else None,
+                self.policy.temporal_depth_transition,
+            )
+        )
+        self.h2d += frame.nbytes
 
     def _project(self, frame, refined):
         """Default host output; texture delivery overrides only this boundary."""

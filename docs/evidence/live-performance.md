@@ -27,6 +27,8 @@ general requirement to ask before tests.
 - [pinned-input-rejected](#record-result-pinned-input-rejected)
 - [retained-capture-promoted](#record-result-retained-capture-promoted)
 - [model-defined-live-routing](#record-result-model-defined-live-routing)
+- [model-defined-live-performance](#record-result-model-defined-live-performance)
+- [ovda-device-live-promoted](#record-result-ovda-device-live-promoted)
 - [live-gpu-idle-recheck](#record-result-live-gpu-idle-recheck)
 - [live-gpu-speed-results](#record-result-live-gpu-speed-results)
 - [live-guarded-baseline](#record-result-live-guarded-baseline)
@@ -40,6 +42,123 @@ general requirement to ask before tests.
 - [live-gpu-speed](#record-plan-live-gpu-speed)
 - [live-gui-promotion-output](#record-plan-live-gui-promotion-output)
 - [live-modes-performance](#record-plan-live-modes-performance)
+
+<a id="record-result-model-defined-live-performance"></a>
+## model-defined-live-performance
+
+Checkpoint date: 2026-09-08, source commit `d5efff6`. The accepted runs used a
+clean worktree, RTX 5090, driver 616.64, TensorRT 11.2.1.2, the current retained
+WGC capture path and `model-host-depth-cuda-stereo`. The source process decoded
+the pinned CC BY 4.0 UVG-VCM FloorballGame excerpt and painted at about 62.5 fps.
+For the 4K rows that 1920x1080 public content was resized by the source window to
+3840x2160; it is not native-4K source detail.
+
+Each model discarded six seconds of warmup, then recorded five six-second
+windows. Input geometry was either 1920x1080 or 3840x2160 per eye; corresponding
+Full SBS processing geometry was 3840x1080 or 7680x2160. `output` below is the
+host callback submission proxy, not physical scanout or distinct native texture
+IDs. Capture, processing and output rates are medians across the five windows.
+
+| Per-eye input | Product model | Capture | Processed | Output |
+|---|---|---:|---:|---:|
+| 1920x1080 | Balanced / DA2 Base | 62.39 | 7.94 | 7.94 fps |
+| 1920x1080 | Video Quality / VDA Small | 62.83 | 8.43 | 8.43 fps |
+| 1920x1080 | Video Quality / oVDA c16 | 62.52 | 7.77 | 7.78 fps |
+| 3840x2160 | Balanced / DA2 Base | 63.11 | 2.48 | 2.48 fps |
+| 3840x2160 | Video Quality / VDA Small | 64.32 | 2.64 | 2.64 fps |
+| 3840x2160 | Video Quality / oVDA c16 | 64.04 | 2.48 | 2.48 fps |
+
+The worker exposes the most recent stage duration; the harness sampled that
+snapshot every 250 ms. Medians below therefore describe sampled latest-frame
+durations, not CUDA utilization or an all-frame latency distribution.
+
+| Per-eye input | Model | Depth inference | SBS | Worker total |
+|---|---|---:|---:|---:|
+| 1920x1080 | DA2 Base | 47.54 | 76.43 | 126.36 ms |
+| 1920x1080 | VDA Small | 41.27 | 75.82 | 118.90 ms |
+| 1920x1080 | oVDA c16 | 49.43 | 75.41 | 127.22 ms |
+| 3840x2160 | DA2 Base | 106.73 | 289.66 | 407.00 ms |
+| 3840x2160 | VDA Small | 92.98 | 288.00 | 391.18 ms |
+| 3840x2160 | oVDA c16 | 116.65 | 288.65 | 415.13 ms |
+
+Device-wide GPU utilization medians during the measured windows were 29/24/26%
+at 1080p and 22.5/24.5/18.5% at 4K for DA2 Base/VDA/oVDA respectively. Together
+with the stage split, this selects the non-Small host-depth/SBS/output boundary
+for the next bounded optimization experiment; it is not proof that any single
+copy alone explains the complete gap.
+
+All three models saved 15/15 unique review-frame hashes at each resolution.
+Selected frames were visually inspected and showed advancing Floorball content,
+plausible eye order/aspect and no black/frozen output. The grabs were downscaled
+output-window images, not 1:1 7680x2160 review, continuous playback, matched
+quality comparison or VR acceptance. Source-paint-to-grab P50 was 193-195 ms at
+1080p and 655-671 ms at 4K; this diagnostic includes sampling delay and is not
+photon latency. Overload replacement passed, each session stopped, no FFmpeg
+process remained and the GPU returned to 0%; this is not a long-run leak test.
+
+Accepted evidence:
+
+- `out/model-performance-1080-da2base-vda-20260908-v3`
+- `out/model-performance-1080-ovda-20260908`
+- `out/model-performance-4k-da2base-vda-20260908`
+- `out/model-performance-4k-ovda-20260908`
+
+The initial 1080p folder without a suffix is excluded because the original
+single review directory collided on the second mode. The `-v2` rerun completed
+but is superseded because it truthfully recorded the pending harness fix as a
+dirty worktree. Commit `d5efff6` scopes review directories by size and mode; the
+four accepted directories all record `dirty: false`.
+
+<a id="record-result-ovda-device-live-promoted"></a>
+## ovda-device-live-promoted
+
+Checkpoint date: 2026-09-08. A fresh public FloorballGame component rerun kept
+oVDA's source-resolution depth on its owning CUDA stream. Host-depth/host-SBS,
+device-depth/host-SBS and a separately isolated two-slot shared-texture consumer
+matched exact SBS pixels on 12/12 diagnostic frames. Three order-alternated
+measured runs gave these medians:
+
+| Boundary | Rate | Change |
+|---|---:|---:|
+| Host depth -> host SBS | 27.842 fps | baseline |
+| Device depth -> host SBS | 29.337 fps | +5.37% |
+| Buffered device depth -> host SBS | 29.590 fps | +0.86% from device depth |
+| Device depth -> shared texture | 30.305 fps | +2.87% from matched device/host SBS |
+
+The fixed-buffer variant was not selected: its additional gain was small and the
+previous allocation experiment already showed the duplicated cache cost. Shared
+texture remains deferred because this pass does not yet integrate its D3D11
+consumer into the non-Small live worker. The selected product change uses the
+single-pending owned device token, same-stream CUDA postprocessing and host SBS
+output. It fails on foreign/expired tokens and retains the existing explicit oVDA
+license confirmation and trusted engine checks.
+
+The rebuilt local product DLL is SHA-256
+`ad0871cce22011926b0948a59368ae1f71d9727962160110bdea7974f5e296eb`.
+The new entry point does not change the existing DA2 path: 18 public/generated
+mode-scene comparisons passed their declared numerical limits, native runtime
+readback was exact, serial/parallel output stayed exact, and five injected
+failure/cleanup cycles passed. The integrated oVDA product wrapper separately
+matched exact SBS on 12/12 public frames, completed all 12 device tokens, left no
+pending token and reports 99,532,800 depth-readback bytes avoided.
+
+A pre-commit actual-GUI run exercised the integrated 1920x1080-per-eye host-output
+path for five six-second windows. Median capture/processed/output rates were
+62.33/21.66/21.66 fps versus 62.52/7.77/7.78 for the preceding clean host-depth
+run. Fifteen review grabs had unique hashes; sampled first/middle/last frames
+showed advancing Floorball content, plausible eye order/aspect and no black or
+frozen output. Because this integration run truthfully records `dirty: true`, its
+rate is a strong implementation signal but not the final clean-worktree benchmark.
+The 2100x975 grabs are downscaled window captures, not 1:1 or continuous VR review.
+
+Artifacts:
+
+- `out/ovda-device-post/public-floorball-20260908/report.json`
+- `out/ovda-device-texture/public-floorball-20260908/report.json`
+- `out/ovda-live-product/public-floorball-20260908/report.json`
+- `out/live-gpu-quality/product-source-entry-20260908`
+- `out/live-gpu-quality/product-source-entry-failures-20260908.json`
+- `out/model-performance-1080-ovda-device-20260908`
 
 <a id="record-result-eye-4k60-monitor-on"></a>
 ## eye-4k60-monitor-on

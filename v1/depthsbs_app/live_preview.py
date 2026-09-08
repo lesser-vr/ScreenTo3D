@@ -504,7 +504,9 @@ class LivePreview(QObject):
                     self.processing_stats,
                     self.strength,
                     self.mode,
-                    self.gpu_candidate if self.live_model == "da2-small" else False,
+                    self.gpu_candidate
+                    if self.live_model in ("da2-small", "ovda-small-c16")
+                    else False,
                     *(
                         [self.texture_mailbox, self.session + 1]
                         if self.nativeEnabled
@@ -732,6 +734,10 @@ class LivePreview(QObject):
 
     def report(self):
         fused_live = self.live_model == "da2-small" and self.gpu_candidate
+        source_device_live = (
+            self.live_model == "ovda-small-c16" and self.gpu_candidate
+        )
+        gpu_live = fused_live or source_device_live
         plan = (
             LIVE_MODES[self.mode].describe(self.strength, self.live_model)
             if self.sbs
@@ -767,14 +773,20 @@ class LivePreview(QObject):
             if self.nativeEnabled
             else "gpu-candidate"
             if self.sbs and fused_live
+            else "model-device-depth-gpu-stereo-host-output"
+            if self.sbs and source_device_live
             else "model-host-depth-cuda-stereo"
             if self.sbs and self.live_model != "da2-small"
             else "reference-host-bridge",
             presentation_target_hz=self.cadence.hz,
             presentation_poll_ms=self.timer.interval(),
-            stage_timing_scope="candidate depth is submission; stereo includes pending GPU work"
-            if fused_live
-            else "synchronous host stages",
+            stage_timing_scope=(
+                "candidate depth is submission; stereo includes pending GPU work"
+                if fused_live
+                else "synchronous model inference; stereo includes GPU post/projection completion"
+                if source_device_live
+                else "synchronous host stages"
+            ),
             processing_stats=self._stats(),
             projection_stage_ms={
                 name: self._stats()[index] / 1e6
@@ -790,7 +802,7 @@ class LivePreview(QObject):
                     24,
                 )
             }
-            if fused_live
+            if gpu_live
             else None,
             host_bridge_timing_scope="input ownership through shared output publication; excludes source wait and Qt",
             host_bridge_ms={
@@ -843,7 +855,7 @@ class LivePreview(QObject):
                 else "native GPU readback + shared output BGRA copy + owned QImage copy + Qt upload"
                 + (
                     "; uint8 resized input H2D + RGB H2D + same-stream device depth/postprocess/projection + RGB D2H; eligible flat backgrounds use explicit aligned-depth D2H/H2D"
-                    if self.sbs and fused_live
+                    if self.sbs and gpu_live
                     else "; TensorRT H2D/D2H + CUDA projection H2D/D2H + RGB/BGRA host conversion + owned input copy"
                     if self.sbs
                     else ""

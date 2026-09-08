@@ -121,7 +121,7 @@ The final candidate DLL SHA-256
 `f67fc53ccaa37a29474ba90bac80d3cb2bff12e8c685a24df9f7382db0c00fa7`
 repeated the 99/99 quality pass and all native gates. A separately linked product
 DLL, SHA-256
-`946225fb6abaff0f9e94bea212995bb073da97fb461d5ff062886a388fae4448`,
+`ad0871cce22011926b0948a59368ae1f71d9727962160110bdea7974f5e296eb`,
 matched that candidate exactly in all 99 depth, RGB and temporal comparisons and
 passed five real-GPU failure/cleanup cycles. A default-path Floorball 4K DA2 Small
 using the legacy Balanced policy loaded that exact product hash and produced 52.43
@@ -173,6 +173,29 @@ submission fps. This establishes routing and execution only, not comparative or
 sustained performance, visual quality, 4K, oVDA or Offline Quality acceptance.
 See the
 [model-routing record](evidence/live-performance.md#record-result-model-defined-live-routing).
+
+Clean-worktree repeated live measurements now cover all three non-Small live
+choices on the public FloorballGame source. At 1920x1080 per eye, median
+processed/output submission rates were 7.94/7.94 fps for DA2 Base, 8.43/8.43 for
+VDA and 7.77/7.78 for oVDA. At 3840x2160 per eye with 7680x2160 Full SBS, they
+were 2.48/2.48, 2.64/2.64 and 2.48/2.48 fps. Capture remained above 62 fps. The
+4K sampled latest-stage medians put depth at 93-117 ms and SBS at about 288-290
+ms, selecting the host-depth/SBS/output boundary for the next optimization
+experiment. These are five short six-second windows on one resized public source,
+not sustained 60 fps or a quality comparison. See the
+[model performance record](evidence/live-performance.md#record-result-model-defined-live-performance).
+
+The source desktop now keeps explicitly selected oVDA live depth on the model's
+owned CUDA stream through temporal/guided postprocessing and stereo, then returns
+the SBS image through the existing host output. Public component parity was exact
+on 12/12 frames and the integrated wrapper completed 12/12 owned tokens without a
+pending result. A pre-commit five-window actual-GUI run raised 1920x1080-per-eye
+median processed/output submission from 7.77/7.78 to 21.66/21.66 fps; its
+`dirty: true` record is implementation evidence, not the final clean benchmark.
+The path remains host RGB input/host SBS output and `zero_copy=false`; 4K, shared
+texture integration, sustained performance and continuous visual/VR acceptance
+remain open. See the
+[device-live record](evidence/live-performance.md#record-result-ovda-device-live-promoted).
 
 The file-only Offline Quality path now uses VDA Small inference plus a scene-local
 centered five-frame processor. A final-code public 1080p60 FloorballGame conversion
@@ -231,9 +254,9 @@ yet been supplied, so this closes comparison setup ambiguity, not the quality ga
 
 | Claim | Evidence still needed |
 |---|---|
-| Product mode contract | Mode routing, mismatch rejection, a license-confirmed public oVDA file/lifecycle run, and the dedicated bounded Offline/VDA processor are implemented in the source desktop. Offline is intentionally file-only; a current actual-GUI live oVDA run, matched visual quality and broader performance are still open |
+| Product mode contract | Mode routing, mismatch rejection, a license-confirmed public oVDA file/lifecycle run, the dedicated bounded Offline/VDA processor and short repeated actual-GUI live runs for all three non-Small choices are implemented. Offline is intentionally file-only; matched visual quality, broader content and sustained performance remain open |
 | Better depth than the user's baseline | Matched spatial/temporal/binocular review against Small + LSFG, including games and video |
-| Eye-4K final 60 fps | Existing near-59 fps runs use DA2 Small with legacy policy labels and therefore do not establish Balanced/Video Quality model performance. The rejected pinned-input output median was 59.93 fps and maximum 60.13 fps, not a sustained/median 60 result. Correct model paths, 1:1 fullscreen/physical-display behavior, applicable FG, broader content and sustained acceptance remain |
+| Eye-4K final 60 fps | Baseline model-defined DA2 Base/VDA/oVDA host-output paths measured only 2.48/2.64/2.48 fps median at 3840x2160 per eye and 7680x2160 Full SBS. oVDA device depth/GPU SBS is now integrated at 1080p but not yet measured clean at eye-4K; VDA remains host-depth. Earlier near-59 fps runs use native-texture DA2 Small with legacy policy labels. Non-Small native output, 1:1 fullscreen/physical-display behavior, applicable FG, broader content and sustained acceptance remain |
 | Native-texture default suitability | Guided-filter promotion is complete, but the native-texture transport itself remains experimental; continuous actual-UI playback/VR review and broader acceptance remain |
 | Broad content and VR comfort | Continuous playback and the applicable display/headset evaluation; scalar parity or stills alone are insufficient |
 | Long-session reliability / real device loss | Actual long-duration/device scenarios for that claim; short or injected tests do not establish it |

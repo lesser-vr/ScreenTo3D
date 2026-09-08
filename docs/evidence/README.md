@@ -9,7 +9,7 @@ Read only the records relevant to the current question.
 | Topic | Records |
 |---|---:|
 | [Capture and source isolation](capture.md) | 5 |
-| [Live performance and measurement conditions](live-performance.md) | 13 |
+| [Live performance and measurement conditions](live-performance.md) | 15 |
 | [Host and native presentation](presentation.md) | 10 |
 | [Live stereo and numerical parity](stereo.md) | 8 |
 | [Matched model and content comparisons](model-comparisons.md) | 6 |
