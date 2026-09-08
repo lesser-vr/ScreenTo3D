@@ -7,7 +7,7 @@ acceptance in [implementation status](implementation-status.md).
 
 | Work area | Useful next outcome |
 |---|---|
-| Model-defined modes | oVDA is clean-measured and VDA device depth/GPU SBS is integrated with public parity; next clean-measure VDA at 1080p/eye-4K, then evaluate non-Small native output |
+| Model-defined modes | VDA and oVDA device depth/GPU SBS are integrated and clean-measured at 1080p/eye-4K; next evaluate non-Small native output or model/cache cost against the remaining gap |
 | Depth and FG quality | Compare viable models/postprocessing/FG against Small + LSFG on matched games and videos; record input/eye/output geometry and real latency |
 | GPU data path | Reduce capture/input transfers, unnecessary preview work or synchronization where profiling predicts a benefit; retain correct resource ownership |
 | Simpler operation | Improve source/output selection and game/video workflows from the existing desktop shell |

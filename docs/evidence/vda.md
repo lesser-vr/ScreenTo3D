@@ -111,9 +111,26 @@ Historical evidence by recorded checkpoint. Current support is in
 > completed all 12 owned device tokens, left no pending token and recorded zero
 > depth downloads / 99,532,800 bytes avoided. Evidence:
 > `out/vda-live-product/public-floorball-20260908/report.json`. The repository's
-> discovery suite passed 257/257 tests in the prepared torch environment. This is
-> functional/parity evidence; a clean-commit actual-GUI performance and sampled
-> visual result is still required before replacing the earlier live baseline.
+> discovery suite passed 257/257 tests in the prepared torch environment.
+
+> The final actual-GUI run used clean commit `7434955`, five six-second windows
+> per geometry, the retained WGC path and host output. It selected
+> `model-device-depth-gpu-stereo-host-output` and recorded:
+>
+> | Per-eye input / Full SBS | Capture | Processed | Output | Sampled depth / SBS / total |
+> |---|---:|---:|---:|---:|
+> | 1920x1080 / 3840x1080 | 62.52 | 23.99 | 23.99 fps | 32.51 / 8.08 / 41.77 ms |
+> | 3840x2160 / 7680x2160 | 62.57 | 8.61 | 8.75 fps | 70.57 / 37.85 / 115.10 ms |
+>
+> This is about 2.85x the preceding clean 8.43 fps 1080p host-depth path and
+> 3.25x the 2.64 fps eye-4K path. Stage values are medians of 120 sampled
+> latest-frame snapshots per geometry, not all-frame distributions or physical
+> latency. All 30 review grabs had unique hashes. Sampled first/middle/last frames
+> at both geometries showed advancing content, plausible eye order/aspect and no
+> black or frozen output. The 2100x975 grabs are downscaled window captures, not
+> 1:1 7680x2160 or continuous/VR review. The run stopped with no pending mailbox
+> frame or FFmpeg process and GPU utilization returned to 0%; it is not a long
+> soak. Evidence: `out/model-performance-vda-device-clean-20260908`.
 
 <a id="record-result-streaming-model-candidate"></a>
 ## streaming-model-candidate
