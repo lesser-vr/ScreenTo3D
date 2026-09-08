@@ -66,6 +66,23 @@ class LiveBackendRoutingTests(unittest.TestCase):
             {"width": 1920, "height": 1080}
         )
 
+    def test_live_vda_requests_owned_device_depth_engine(self):
+        backend = Mock()
+        backend.spec.model_id = "vda-small"
+        backend.input_validator = Mock()
+        with patch(
+            "depthsbs_app.depth_backend.vda_binding", return_value=backend
+        ) as create:
+            result = binding(
+                self.snapshot("vda-small"),
+                "video-quality",
+                {"width": 1920, "height": 1080},
+                Mock(),
+                Mock(),
+            )
+        self.assertIs(result, backend)
+        self.assertTrue(create.call_args.kwargs["device_depth"])
+
 
 if __name__ == "__main__":
     unittest.main()

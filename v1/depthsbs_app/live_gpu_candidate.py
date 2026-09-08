@@ -123,6 +123,8 @@ class LiveGpuCandidate:
         check = getattr(engine, "_device_check", None)
         if check is None:
             check = getattr(engine, "check", None)
+        if check is None:
+            check = getattr(engine, "_check", None)
         if not callable(check):
             raise TypeError("GPU depth engine must expose an owner/device check")
         check()

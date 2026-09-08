@@ -20,8 +20,8 @@ Live: selected WGC source -> retained mapped latest-frame slot (SBS)
       -> owned RGB/model input
       -> immutable model-defined binding
          -> DA2 Small fused live path (Performance)
-         OR explicit oVDA source-resolution device-depth path
-         OR DA2 Base / VDA host-depth path
+         OR VDA / explicit oVDA source-resolution device-depth path
+         OR DA2 Base host-depth path
       -> depth postprocessing / stereo
       -> host mailbox + owned QImage -> Qt output
       OR Performance-only experimental native texture pool -> Qt/D3D11 private textures
@@ -29,9 +29,9 @@ Live: selected WGC source -> retained mapped latest-frame slot (SBS)
 
 C++ CMake core provides capability/mode foundations. It is not the complete native
 NVDEC/CUDA/NVENC pipeline originally proposed. Native output does not eliminate
-host capture/input transfers. The oVDA live device-depth path still returns SBS
-through host output; VDA device experiments are not automatically available as a
-live GUI backend. Processing-backend default and delivery-path
+host capture/input transfers. The VDA/oVDA live device-depth paths still return
+SBS through host output; their shared-texture experiments are not automatically
+available as live GUI backends. Processing-backend default and delivery-path
 default are separate decisions.
 
 ## Components and ownership

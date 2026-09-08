@@ -6,6 +6,7 @@ Historical evidence by recorded checkpoint. Current support is in
 ## Records
 
 - [offline-centered-window-2026-09-08](#record-result-offline-centered-window-2026-09-08)
+- [vda-device-live-promoted-2026-09-08](#record-result-vda-device-live-promoted-2026-09-08)
 - [streaming-model-candidate](#record-result-streaming-model-candidate)
 - [vda-device-boundary-2026-09-06](#record-result-vda-device-boundary-2026-09-06)
 - [vda-lifecycle](#record-plan-vda-lifecycle)
@@ -87,6 +88,32 @@ Historical evidence by recorded checkpoint. Current support is in
 > .\scripts\evaluate-offline-vda.ps1 -Clip OfficeWalk -CutClip ParkingGarage `
 >   -OutputReport out\new-offline-cut-proxy.json
 > ```
+
+<a id="record-result-vda-device-live-promoted-2026-09-08"></a>
+## vda-device-live-promoted-2026-09-08
+
+> Date: 2026-09-08. The prior isolated candidate below was rerun on the pinned
+> public FloorballGame source before product integration. Raw depth, host SBS and
+> shared-texture SBS were exact on 12/12 frames; pending reuse and completed-token
+> expiry were rejected 12/12. Three-run medians were 26.795 fps for host depth /
+> host SBS, 29.016 for device depth / host SBS (+8.29%), and 30.478 for device
+> depth / shared texture (+5.04% from device host output, +13.75% combined).
+> Evidence: `out/vda-device-pipeline/public-floorball-20260908/report.json`.
+
+> The single-pending device token is now owned by `depthsbs_app.vda_device` and
+> selected only for live VDA sessions. File and Offline bindings retain the host
+> engine. The live worker uses the same source-resolution GPU post/SBS consumer
+> as oVDA and retains host RGB input/host SBS output; native shared texture remains
+> deferred. Trusted manifests, exact cache assembly, the 42-entry history bound,
+> stateful every-frame policy and explicit reset/failure behavior are unchanged.
+
+> The integrated product wrapper matched exact SBS on 12/12 public frames,
+> completed all 12 owned device tokens, left no pending token and recorded zero
+> depth downloads / 99,532,800 bytes avoided. Evidence:
+> `out/vda-live-product/public-floorball-20260908/report.json`. The repository's
+> discovery suite passed 257/257 tests in the prepared torch environment. This is
+> functional/parity evidence; a clean-commit actual-GUI performance and sampled
+> visual result is still required before replacing the earlier live baseline.
 
 <a id="record-result-streaming-model-candidate"></a>
 ## streaming-model-candidate

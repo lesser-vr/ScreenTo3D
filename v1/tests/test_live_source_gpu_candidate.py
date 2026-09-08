@@ -37,6 +37,12 @@ class LiveSourceGpuCandidateTests(unittest.TestCase):
             candidate.infer(np.zeros((180, 320, 3), np.uint8))
         candidate.engine.infer_device.assert_not_called()
 
+    def test_vda_input_shape_is_counted(self):
+        candidate = self.candidate()
+        candidate.engine.profile = None
+        candidate.engine.input_shape = (1, 1, 3, 518, 924)
+        self.assertEqual(candidate._input_bytes(), 3 * 518 * 924 * 4)
+
 
 if __name__ == "__main__":
     unittest.main()

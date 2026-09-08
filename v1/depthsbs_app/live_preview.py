@@ -505,7 +505,11 @@ class LivePreview(QObject):
                     self.strength,
                     self.mode,
                     self.gpu_candidate
-                    if self.live_model in ("da2-small", "ovda-small-c16")
+                    if self.live_model in (
+                        "da2-small",
+                        "vda-small",
+                        "ovda-small-c16",
+                    )
                     else False,
                     *(
                         [self.texture_mailbox, self.session + 1]
@@ -734,9 +738,10 @@ class LivePreview(QObject):
 
     def report(self):
         fused_live = self.live_model == "da2-small" and self.gpu_candidate
-        source_device_live = (
-            self.live_model == "ovda-small-c16" and self.gpu_candidate
-        )
+        source_device_live = self.live_model in (
+            "vda-small",
+            "ovda-small-c16",
+        ) and self.gpu_candidate
         gpu_live = fused_live or source_device_live
         plan = (
             LIVE_MODES[self.mode].describe(self.strength, self.live_model)

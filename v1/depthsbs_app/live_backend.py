@@ -59,7 +59,11 @@ def binding(snapshot, mode, metadata, da2_engine_factory, da2_prepare):
     elif model == "vda-small":
         from .depth_backend import vda_binding
 
-        result = vda_binding(Path(selected["engine"]), Path(selected["runtime"]))
+        result = vda_binding(
+            Path(selected["engine"]),
+            Path(selected["runtime"]),
+            device_depth=True,
+        )
     elif model == "ovda-small-c16":
         from .ovda import binding as create
 

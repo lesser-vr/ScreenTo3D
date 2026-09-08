@@ -27,19 +27,31 @@ class LiveSourceGpuCandidate(LiveGpuCandidate):
     def infer(self, frame):
         self._owner()
         self._validate_frame(frame)
-        profile = getattr(self.engine, "profile", None)
-        if (
-            not isinstance(profile, tuple)
-            or len(profile) != 2
-            or not all(type(value) is int and value > 0 for value in profile)
-        ):
-            raise ValueError("Source-depth engine profile is unavailable")
+        input_bytes = self._input_bytes()
         depth = self.engine.infer_device(frame)
         depth.validate()
         if depth.owner is not self.engine or depth.stream != self._stream(self.engine):
             raise ValueError("Depth belongs to another engine or CUDA stream")
-        self.h2d += 3 * profile[0] * profile[1] * 4
+        self.h2d += input_bytes
         return depth
+
+    def _input_bytes(self):
+        profile = getattr(self.engine, "profile", None)
+        if (
+            isinstance(profile, tuple)
+            and len(profile) == 2
+            and all(type(value) is int and value > 0 for value in profile)
+        ):
+            return 3 * profile[0] * profile[1] * 4
+        shape = getattr(self.engine, "input_shape", None)
+        if (
+            isinstance(shape, tuple)
+            and len(shape) == 5
+            and shape[:3] == (1, 1, 3)
+            and all(type(value) is int and value > 0 for value in shape)
+        ):
+            return shape[-2] * shape[-1] * 3 * 4
+        raise ValueError("Source-depth engine profile is unavailable")
 
     def _validate_frame(self, frame):
         if frame.dtype.name != "uint8" or frame.shape != (

@@ -65,7 +65,7 @@ def resolve_backend(model_id, engine_factory, prepare):
     return BackendBinding(BackendSpec('da2-small', 'tensorrt'), engine_factory, prepare)
 
 
-def vda_binding(directory, runtime_dir):
+def vda_binding(directory, runtime_dir, *, device_depth=False):
     from .vda_artifacts import artifact_profiles, select_artifact
     profiles = artifact_profiles(directory)
     if runtime_dir is None or not (runtime_dir / 'nvinfer_11.dll').is_file():
@@ -82,7 +82,10 @@ def vda_binding(directory, runtime_dir):
     def factory(progress):
         if selected is None:
             raise ValueError('VDA profile must be selected by input preflight before engine creation')
-        from .vda_backend import VdaEngine
+        if device_depth:
+            from .vda_device import VdaDeviceEngine as VdaEngine
+        else:
+            from .vda_backend import VdaEngine
         if progress is not None:
             shape = next(shape for shape, path in profiles.items() if path == selected)
             progress({'event': 'vda_profile', 'input_shape': [1, 1, 3, *shape], 'automatic_match': matched_input})
