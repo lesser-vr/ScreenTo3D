@@ -20,17 +20,20 @@ Cancel use the normal app worker. Completion means final mux/publication finishe
 The output contains both eyes side by side: each eye preserves input dimensions.
 No implicit crop, padding or aspect-ratio change is applied to source geometry.
 
-Other supported modes: Balanced and Offline Quality. Performance is rejected
-because its skipped-frame cadence is incompatible with the temporal cache.
-Offline Quality here uses this same online c16 backend, not native offline VDA.
+oVDA is a Video Quality choice only. Performance is incompatible with its
+full-rate temporal cache, Balanced belongs to DA2 Base, and Offline Quality now
+belongs to VDA plus the dedicated centered five-frame processor. The launcher
+rejects those mismatches instead of silently changing model or processing.
 H.264 remains the default output; HEVC is an explicit user choice.
 
 ```powershell
 ./scripts/run-ovda.ps1 -Diagnostics -NonCommercial
 ./scripts/run-ovda.ps1 -CheckInstallation
-./scripts/run-ovda.ps1 -NonCommercial -InputVideo 'input.mp4' -OutputVideo 'output-sbs.mp4'
-./scripts/run-ovda.ps1 -NonCommercial -InputVideo 'input.mp4' -OutputVideo 'output-sbs.mp4' -OutputCodec hevc -Mode offline-quality
+./scripts/run-ovda.ps1 -NonCommercial -InputVideo 'out/public-live-default/FloorballGame.mp4' -OutputVideo 'out/new-ovda-sbs.mp4'
+./scripts/run-ovda.ps1 -NonCommercial -InputVideo 'out/public-live-default/FloorballGame.mp4' -OutputVideo 'out/new-ovda-hevc-sbs.mp4' -OutputCodec hevc
 ./scripts/run-ovda.ps1 -StereoRenderer cpu
+# Actual cache/reset lifecycle on pinned public frames:
+./scripts/validate-ovda-lifecycle.ps1 -NonCommercial -OutputReport out/new-ovda-lifecycle.json
 ```
 
 `-NonCommercial` confirms the stated scope; it is not a commercial license grant.
@@ -45,9 +48,12 @@ choose a new name if you want to retain an earlier successful version.
 
 ## Supported environment and geometry
 
-- NVIDIA GeForce RTX 5090 (SM 12.0), validated driver 616.56, Windows.
+- NVIDIA GeForce RTX 5090 (SM 12.0), Windows. Engines were validated on driver
+  616.56; the 2026-09-08 public file/lifecycle runs observed driver 616.64.
 - TensorRT 11.2.1.2 runtime; `-RuntimeDirectory` may override its DLL location.
-- Local Python 3.13.14 environment `out/vda-oracle-env`, torch 2.7.1+cu128.
+- Prepared Python 3.13 packages under `out/vda-oracle-env`, torch 2.7.1+cu128.
+  If its old launcher points at a removed WindowsApps interpreter, the launcher
+  resolves an installed compatible CPython 3.13; the 2026-09-08 runs used 3.13.9.
 - Source width 16..4096, height 16..2160, landscape AND an exact preprocessing
   match to an installed 518x686, 518x896 or 518x924 engine.
   Verified examples: 4:3 960x720, original 1056x608, standard 1280x720,
@@ -71,8 +77,10 @@ There is no general end-user installer for oVDA yet.
 
 Required local assets:
 
-1. `out/vda-oracle-env/Scripts/python.exe`, with the pinned torch/TensorRT/CV
-   environment recorded above; do not downgrade it using upstream requirements.
+1. `out/vda-oracle-env/Lib/site-packages`, with the pinned torch/TensorRT/CV
+   environment recorded above, plus a compatible Python 3.13 interpreter. The
+   launcher handles the known stale WindowsApps base-path case; do not downgrade
+   the package set using upstream requirements.
 2. App dependencies in the existing `out/v1-python-deps` path; the optional
    NC runtime source and license in `experiments/ovda` remain required.
 3. FFmpeg/FFprobe at `out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg`.
@@ -120,8 +128,10 @@ not user selections; validated c16 FP32 remains the model configuration.
 oVDA-derived code remains in `experiments/ovda`, with NC-SA-UHDV1.0 and attribution.
 This optional integration does not claim unrestricted open-source/commercial
 compatibility or settle obligations for a redistributed combined product.
-Do not bundle/publish it under the repository's general license alone.
-Existing four defaults and portable distributions remain unchanged.
+The user's intended program is public but personal/noncommercial; publication
+does not remove the NC-SA-UHDV1.0 attribution, share-alike and noncommercial
+obligations. Do not bundle/publish it under the repository's general license alone.
+Existing portable distributions remain unchanged.
 ## Validating a new device/profile
 
 Record actual GPU, driver, runtime and shape. The pinned c16 checkpoint SHA256 is

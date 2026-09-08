@@ -76,12 +76,23 @@ class VdaApplicationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 preprocess(invalid)
 
-    def test_cli_default_stays_da2_and_vda_is_explicit(self):
+    def test_cli_backend_flag_remains_explicit(self):
         parser = build_parser()
-        self.assertEqual(parser.parse_args([]).depth_backend, 'da2-small')
+        self.assertEqual(parser.parse_args([]).depth_backend, 'da2-base')
+        self.assertEqual(
+            parser.parse_args(['--mode', 'performance']).depth_backend, 'da2-small'
+        )
+        self.assertEqual(
+            parser.parse_args(['--mode', 'video-quality']).depth_backend, 'vda-small'
+        )
+        self.assertEqual(
+            parser.parse_args(['--mode', 'offline-quality']).depth_backend, 'vda-small'
+        )
         args = parser.parse_args(['--depth-backend', 'vda-small', '--vda-engine-dir', 'engines'])
         self.assertEqual(args.vda_engine_dir, Path('engines'))
-        self.assertTrue(all(policy.depth_backend == 'da2-small' for policy in MODES.values()))
+        # Low-level policy oracles retain their historical DA2 fixture; product
+        # routing is owned separately and validated before worker launch.
+        self.assertEqual(MODES['balanced'].depth_backend, 'da2-small')
 
     def test_geometry_rejected_before_output_mutation(self):
         factory = Mock()

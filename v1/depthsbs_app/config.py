@@ -59,3 +59,28 @@ MODES = {
         "offline-quality", "Offline Quality", 1, 0.12, 0.038, 0.43, "p7", 17
     ),
 }
+
+
+# Product modes own their model identity. Multiple entries mean an explicit
+# choice within that mode, never permission to select an unrelated fallback.
+MODE_MODEL_CHOICES = {
+    "performance": ("da2-small",),
+    "balanced": ("da2-base",),
+    "video-quality": ("ovda-small-c16", "vda-small"),
+    # DA3 Mono may be added after a validated backend exists. VDA Small is paired
+    # with the dedicated bounded centered-window processor for file-only Offline.
+    "offline-quality": ("vda-small",),
+}
+
+DEFAULT_MODE_MODELS = {
+    "performance": "da2-small",
+    "balanced": "da2-base",
+    "video-quality": "vda-small",
+    "offline-quality": "vda-small",
+}
+
+
+def validate_mode_model(mode, model):
+    if mode not in MODES or model not in MODE_MODEL_CHOICES.get(mode, ()):
+        raise ValueError("선택한 처리 모드와 깊이 모델이 일치하지 않습니다.")
+    return model

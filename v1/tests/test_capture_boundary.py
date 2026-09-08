@@ -36,6 +36,16 @@ class CaptureBoundaryTests(unittest.TestCase):
                 self.assertEqual(box.meta[STATE], FAILED)
                 self.assertIn(b"Invalid capture update interval", box.error.value)
 
+    def test_invalid_frame_ownership_mode_fails_before_capture(self):
+        from depthsbs_app.capture_worker import capture_worker
+
+        for value in (0, 1, None, "retained"):
+            with self.subTest(value=value):
+                box = Mailbox.create(mp.get_context("spawn"))
+                capture_worker({}, False, box, retain_frame=value)
+                self.assertEqual(box.meta[STATE], FAILED)
+                self.assertIn(b"Invalid capture frame ownership mode", box.error.value)
+
     def test_shape_bounds(self):
         for shape in ((16, 16), (3840, 2160), (4096, 2160)):
             validate_shape(*shape)

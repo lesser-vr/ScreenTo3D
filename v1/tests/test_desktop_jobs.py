@@ -3,6 +3,7 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
+from depthsbs_app.config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES
 from depthsbs_app.desktop_jobs import Job, ProcessingLease, unused_output
 
 
@@ -18,7 +19,7 @@ class DesktopJobTests(unittest.TestCase):
             str(self.root / "out.mp4"),
             "balanced",
             "h264",
-            "da2-small",
+            "da2-base",
             "cuda",
             str(self.root),
             str(self.root),
@@ -27,6 +28,17 @@ class DesktopJobTests(unittest.TestCase):
 
     def test_valid_job(self):
         self.job.validate()
+
+    def test_product_mode_model_contract(self):
+        self.assertEqual(DEFAULT_MODE_MODELS["performance"], "da2-small")
+        self.assertEqual(DEFAULT_MODE_MODELS["balanced"], "da2-base")
+        self.assertEqual(
+            set(MODE_MODEL_CHOICES["video-quality"]),
+            {"vda-small", "ovda-small-c16"},
+        )
+        self.assertEqual(MODE_MODEL_CHOICES["offline-quality"], ("vda-small",))
+        with self.assertRaisesRegex(ValueError, "일치하지 않습니다"):
+            replace(self.job, model="da2-small").validate()
 
     def test_no_input_overwrite(self):
         with self.assertRaises(ValueError):
@@ -50,8 +62,15 @@ class DesktopJobTests(unittest.TestCase):
 
     def test_nc_requires_explicit_confirmation(self):
         with self.assertRaises(ValueError):
-            replace(self.job, model="ovda-small-c16").validate()
-        replace(self.job, model="ovda-small-c16", noncommercial=True).validate()
+            replace(
+                self.job, model="ovda-small-c16", mode="video-quality"
+            ).validate()
+        replace(
+            self.job,
+            model="ovda-small-c16",
+            mode="video-quality",
+            noncommercial=True,
+        ).validate()
 
     def test_no_implicit_license_flag(self):
         self.assertNotIn("--ovda-noncommercial", self.job.arguments("cancel"))

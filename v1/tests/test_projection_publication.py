@@ -8,10 +8,11 @@ from unittest.mock import Mock, patch
 import numpy as np
 from depthsbs_app import pipeline
 from depthsbs_app.depth_backend import BackendBinding, BackendSpec
+from depthsbs_app.offline_depth import CenteredDepthWindow
 
 
 class PublicationTests(unittest.TestCase):
-    def exercise(self, failure, diagnostic_hashes=False, output_codec='h264', stateful=False):
+    def exercise(self, failure, diagnostic_hashes=False, output_codec='h264', stateful=False, offline=False):
         decoder = Mock(stdout=io.BytesIO(bytes(16*16*3*2)), stderr=io.BytesIO())
         if stateful:
             decoder.stdout = io.BytesIO(bytes(16*16*3) + bytes([255]) * (16*16*3))
@@ -29,8 +30,13 @@ class PublicationTests(unittest.TestCase):
                 sequence.append('infer')
                 return np.ones((1, 16, 16), np.float32)
             engine.infer.side_effect = infer
-        binding = BackendBinding(BackendSpec('fake-video', 'test', stateful=True),
-                                 lambda progress: engine_scope, pipeline.preprocess) if stateful else None
+        binding = BackendBinding(
+            BackendSpec('fake-video', 'test', stateful=True,
+                        processing=CenteredDepthWindow.strategy if offline else 'streaming'),
+            lambda progress: engine_scope,
+            pipeline.preprocess,
+            offline_processor_factory=(lambda: CenteredDepthWindow(radius=1)) if offline else None,
+        ) if stateful else None
         projection = Mock(algorithm='test_projection')
         projection.__enter__ = Mock(return_value=projection)
         projection.__exit__ = Mock(return_value=False)
@@ -61,13 +67,18 @@ class PublicationTests(unittest.TestCase):
                     self.assertEqual(output.read_bytes(), b'old output')
                     self.assertFalse(any(e['event'] == 'complete' for e in events))
                 else:
-                    pipeline.convert_video(Path(folder)/'input.mp4', output, 'balanced' if stateful else 'performance', events.append,
+                    mode = 'offline-quality' if offline else ('balanced' if stateful else 'performance')
+                    pipeline.convert_video(Path(folder)/'input.mp4', output, mode, events.append,
                                            projection_factory=lambda w, h: projection,
                                            diagnostic_hashes=diagnostic_hashes, output_codec=output_codec,
                                            depth_backend=binding)
                     if stateful:
                         self.assertEqual(sequence, ['start', 'infer', 'scene_cut', 'infer'])
                         self.assertEqual(events[-1]['depth_backend']['model_id'], 'fake-video')
+                    if offline:
+                        self.assertTrue(events[-1]['telemetry']['offline_depth']['enabled'])
+                        self.assertEqual(events[-1]['telemetry']['offline_depth']['emitted_frames'], 2)
+                        self.assertEqual(events[-1]['telemetry']['scheduling_contract']['offline_depth_window_capacity'], 3)
                     self.assertEqual(output.read_bytes(), b'new output')
                     self.assertEqual(events[-1]['event'], 'complete')
                     self.assertEqual(events[-1]['output_codec'], output_codec)
@@ -96,6 +107,9 @@ class PublicationTests(unittest.TestCase):
 
     def test_stateful_start_and_cut_reset_before_inference(self):
         self.exercise(None, stateful=True)
+
+    def test_offline_window_preserves_order_count_and_publication(self):
+        self.exercise(None, stateful=True, offline=True)
 
     def test_projection_failure_preserves_prior_output(self):
         self.exercise('run')

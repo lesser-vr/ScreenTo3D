@@ -31,6 +31,33 @@ class LiveControllerTests(unittest.TestCase):
         self.assertEqual(live.processingPath, "gpu")
         self.assertEqual(live.presentationHz, 30)
 
+    def test_model_owned_mode_selection(self):
+        self.assertEqual(self.live.liveMode, "balanced")
+        self.assertEqual(self.live.liveModel, "da2-base")
+        self.assertEqual(self.live.report()["plan"], None)
+        self.live.setSbs(True)
+        self.assertEqual(self.live.report()["plan"]["model"], "da2-base")
+        self.assertEqual(
+            self.live.report()["plan"]["stereo"]["depth_backend"], "da2-base"
+        )
+        self.live.setMode("performance")
+        self.assertEqual(self.live.liveModel, "da2-small")
+        self.live.setMode("video-quality")
+        self.assertEqual(self.live.liveModel, "vda-small")
+        self.live.setLiveModel("ovda-small-c16")
+        self.assertEqual(self.live.liveModel, "ovda-small-c16")
+
+    def test_file_mode_selection_updates_owned_model(self):
+        self.assertEqual(self.desktop.settings["model"], "da2-base")
+        self.desktop.setOption("mode", "performance")
+        self.assertEqual(self.desktop.settings["model"], "da2-small")
+        self.desktop.setOption("mode", "video-quality")
+        self.assertEqual(self.desktop.settings["model"], "vda-small")
+        self.desktop.setOption("model", "ovda-small-c16")
+        self.assertEqual(self.desktop.settings["model"], "ovda-small-c16")
+        self.desktop.setOption("model", "da2-small")
+        self.assertEqual(self.desktop.settings["model"], "ovda-small-c16")
+
     def test_explicit_reference_environment_remains_available(self):
         with patch(
             "depthsbs_app.live_preview.os.environ", {"DEPTHSBS_LIVE_GPU_CANDIDATE": "0"}
@@ -40,6 +67,7 @@ class LiveControllerTests(unittest.TestCase):
 
     def test_native_is_explicit_and_locked_while_active(self):
         self.live.setSbs(True)
+        self.live.setMode("performance")
         with patch("depthsbs_app.native_delivery.NativeDelivery"):
             self.live.setProcessingPath("gpu-texture")
         self.assertTrue(self.live.nativeEnabled)
@@ -50,7 +78,14 @@ class LiveControllerTests(unittest.TestCase):
         self.live.stop()
         self.live.native.end.assert_called_once()
 
+    def test_native_rejects_non_da2_small_mode(self):
+        self.live.setSbs(True)
+        self.live.setProcessingPath("gpu-texture")
+        self.assertFalse(self.live.nativeEnabled)
+        self.assertIn("Performance", self.live.status)
+
     def test_native_load_failure_does_not_select_or_start_it(self):
+        self.live.setMode("performance")
         with patch(
             "depthsbs_app.native_delivery.NativeDelivery",
             side_effect=RuntimeError("hash mismatch"),

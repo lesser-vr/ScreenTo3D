@@ -15,7 +15,7 @@ from PySide6.QtTest import QTest
 
 from benchmark_live_modes import ClockOracle
 from depthsbs_app.desktop import create_app
-from depthsbs_app.capture_mailbox import WIDTH, MAX_BYTES
+from depthsbs_app.capture_mailbox import WIDTH
 
 
 def main():
@@ -161,7 +161,7 @@ def main():
         assert live._stats()[2] > 1
         assert desktop.main_window.grabWindow().save(str(args.output / "gui.png"))
         report = live.report()
-        assert report["shared_pixel_bytes"] == MAX_BYTES
+        assert report["shared_pixel_bytes"] == 0
         assert report["qt_delivery"]["provider_requests"] == 0
         assert not any(
             name == "cuda" or name.startswith("cuda.") for name in sys.modules

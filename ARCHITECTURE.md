@@ -1,6 +1,6 @@
 # DepthSBS architecture
 
-Status: Current boundary map, reviewed 2026-09-07 against repository contracts.
+Status: Current boundary map, reviewed 2026-09-08 against repository contracts.
 This describes delivered paths and their limits; it does not certify performance.
 See [implementation-status.md](docs/implementation-status.md) for status and [ROADMAP.md](docs/ROADMAP.md) for priorities.
 
@@ -10,13 +10,20 @@ See [implementation-status.md](docs/implementation-status.md) for status and [RO
 Qt Live / Files / Settings shell -> immutable job/session plan -> isolated worker
 
 Files: probe -> FFmpeg decode/host frames -> selected depth binding
-       -> depth postprocessing -> CPU or explicit CUDA SBS -> NVENC/FFmpeg
+       -> streaming depth postprocessing
+          OR Offline/VDA scene-local centered five-frame depth window
+       -> CPU or explicit CUDA SBS -> NVENC/FFmpeg
        -> drain/audio mux/validation -> atomic publication
 
-Live: selected WGC source -> bounded host BGRA mailbox -> owned RGB/model input
-      -> DA2 Small TRT -> depth postprocessing / stereo
+Live: selected WGC source -> retained mapped latest-frame slot (SBS)
+                           OR bounded host BGRA mailbox (original preview)
+      -> owned RGB/model input
+      -> immutable model-defined binding
+         -> DA2 Small fused live path (Performance)
+         OR DA2 Base / explicit oVDA or VDA host-depth path
+      -> depth postprocessing / stereo
       -> host mailbox + owned QImage -> Qt output
-      OR explicit experimental native texture pool -> Qt/D3D11 private textures
+      OR Performance-only experimental native texture pool -> Qt/D3D11 private textures
 ```
 
 C++ CMake core provides capability/mode foundations. It is not the complete native
@@ -29,11 +36,18 @@ default are separate decisions.
 
 - `desktop_jobs.py` and isolated workers own job/session lifecycle; the GUI does
   not run inference. Live and file work share an exclusive processing lease.
-- `live_policy.py` resolves immutable policy. Stages consume validated values,
-  not mode-name branches. Backend/profile selection precedes output mutation.
+- `live_policy.py` resolves immutable temporal/stereo policy. `live_backend.py`
+  validates the mode-owned model snapshot and constructs only that binding.
+  Backend/profile selection precedes output mutation.
 - `depth_backend.py` provides model-independent binding/factory boundaries.
   Raw depth is finite float32 with declared shape/polarity; raw output and
-  normalized display depth are distinct contracts.
+  normalized display depth are distinct contracts. A binding may also declare a
+  file-only offline processor; the pipeline rejects it outside Offline Quality
+  and rejects Offline Quality when that processor is absent.
+- `offline_depth.py` owns Offline/VDA's bounded scene-local window. Pending samples
+  retain source RGB for ordered emission; emitted history retains only reduced
+  guides, depth and cached normalization. Cuts drain the old scene before reset,
+  and finish must emit exactly the decoded frame count.
 - The inference engine owns its CUDA context/stream, allocations and recurrent
   cache. Borrowed device depth validates owner, thread, epoch/generation and
   lifetime; postprocessing resources must be released before their owner stream.
@@ -50,6 +64,7 @@ default are separate decisions.
 | Model recurrent cache / position | Selected engine; its declared input timeline and reset API |
 | Depth scale, normalization, EMA / stereo history | Depth postprocessing/stereo path; not implicitly the model cache |
 | Flow/propagation source, confidence | Explicit propagation candidate; rejected fixed 1:2 is not product policy |
+| Offline centered window / lookahead | File-only offline processor; five samples maximum, scene-local flush, ordered emission |
 | Output pacing and any future FG pair/PTS | Presentation path; generated output does not masquerade as fresh inference |
 
 Capture sequence, selected model-input sequence, fresh-depth sequence, base SBS
@@ -73,7 +88,11 @@ remove recurrent drift.
 
 ## GPU measurement details
 
-File pipes and live capture/input still cross host memory. GPU postprocessing
+File pipes and live capture/input still cross host memory. The SBS capture thread
+retains the ownership-bearing WGC mapped NumPy view in one latest-frame slot until
+RGB conversion completes; original preview still copies into bounded shared BGRA.
+This removes one same-process 4-byte-per-pixel memcpy, not the WGC readback or RGB
+host-to-device transfer. GPU postprocessing
 borrows TensorRT output/stream through owner/thread/generation checks. Eligible
 CPU background refinement remains explicitly counted. Host delivery copies owned
 BGRA/QImage data; native delivery returns a slot only after the last GPU lease.

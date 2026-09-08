@@ -5,6 +5,7 @@ Historical evidence by recorded checkpoint. Current support is in
 
 ## Records
 
+- [ovda-public-file-lifecycle-2026-09-08](#record-result-ovda-public-file-lifecycle-2026-09-08)
 - [ovda-c16-experiment](#record-result-ovda-c16-experiment)
 - [ovda-expansion-results-2026-09-05](#record-result-ovda-expansion-results-2026-09-05)
 - [ovda-other-gpu-validation](#record-result-ovda-other-gpu-validation)
@@ -12,6 +13,55 @@ Historical evidence by recorded checkpoint. Current support is in
 - [ovda-user-integration](#record-plan-ovda-user-integration)
 - [ovda-quality-performance-expansion](#record-plan-ovda-quality-performance-expansion)
 - [ovda-local-preview](#record-reference-ovda-local-preview)
+
+<a id="record-result-ovda-public-file-lifecycle-2026-09-08"></a>
+## ovda-public-file-lifecycle-2026-09-08
+
+> Date: 2026-09-08. The user confirmed personal/noncommercial use and described
+> the intended program as public. The optional oVDA code/weights remain under
+> NC-SA-UHDV1.0: public distribution still requires applicable attribution,
+> share-alike and noncommercial compliance. This record is not legal clearance for
+> a combined release. Current product behavior is owned by
+> [implementation status](../implementation-status.md).
+
+> Test data policy correction: an initial run used a previously supplied personal
+> fixture and was excluded; its derived output directory was deleted. The accepted
+> results below use only the pinned public UVG-VCM corpus. A redundant downloaded
+> public copy was also removed in favor of the existing canonical verified corpus.
+> Executable test/verification scripts were audited so no personal-media path or
+> previously derived personal fixture remains an implicit video input.
+
+> `scripts/run-ovda.ps1 -CheckInstallation` verified three installed profiles
+> (518x686, 518x896 and 518x924), their allowlisted hashes, dependencies and the
+> 16-slot cache contract. Its stale prepared-environment launcher pointed at a
+> removed WindowsApps Python, so both oVDA/VDA launchers now resolve a compatible
+> installed CPython 3.13 while retaining the prepared site-packages. This run used
+> CPython 3.13.9 on RTX 5090, driver 616.64 and TensorRT 11.2.1.2; the engine build
+> remains the separately recorded driver-616.56 validation artifact.
+
+> Actual Video Quality file result: canonical public FloorballGame, prepared
+> 1920x1080 60 fps / six seconds / no audio, source SHA256
+> `a0506f552047992498ea81c9ffb19269504d1d617a5bea89360f159a2842007b`.
+> `out/ovda-public-video-quality-smoke-20260908/FloorballGame-sbs.mp4` fully
+> decodes as H.264 3840x1080, 60/1 fps, 6.000 seconds and 360/360 frames; output
+> SHA256 is `46436520179d7f2e3c99f5a76cc151e38dca405fc0a45697bda882bbc987b27c`.
+> The single short application run reported 6.9965 processing fps, 360 completed
+> inferences, one start reset, cache use capped at 15 of 16 slots, and no model,
+> precision, shape, CPU or renderer fallback.
+
+> `out/ovda-public-video-quality-smoke-20260908/lifecycle-public.json` is a
+> separate actual-engine check using two hash-verified public frames. It retained
+> two sequential cache positions; scene-cut reset reduced cache use to zero;
+> discontinuity reset allowed 1920x1080 to 1280x720 within the same installed
+> profile; source-change reset restored 1920x1080. Geometry change without reset
+> and the skipped-frame Performance policy were rejected. Five accepted inferences
+> and four reset calls completed; this is reset/cache ownership evidence, not a
+> quality or throughput benchmark.
+
+> This establishes one public file conversion and actual lifecycle behavior on
+> the named local machine. It does not establish visual quality, general content,
+> sustained performance, VR comfort, long-session/device-loss recovery, other
+> hardware, a clean installer, commercial use, or redistribution compliance.
 
 <a id="record-result-ovda-c16-experiment"></a>
 ## ovda-c16-experiment

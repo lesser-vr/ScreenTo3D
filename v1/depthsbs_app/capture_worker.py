@@ -23,8 +23,34 @@ from .capture_mailbox import (
 )
 
 
+def publish_pixels(mailbox, frame_buffer, width, height, *, retain_frame=False):
+    """Publish one frame while the caller owns the mailbox lock.
+
+    The normal path copies into fixed shared storage.  The opt-in retained-frame
+    experiment instead transfers ownership of the mapped NumPy view to the
+    single-slot mailbox; its native buffer exporter stays alive through the view.
+    """
+    if retain_frame:
+        mailbox.pixels = frame_buffer
+        return
+    import numpy as np
+
+    output = np.frombuffer(
+        mailbox.pixels,
+        dtype=np.uint8,
+        count=width * height * 4,
+    ).reshape(height, width, 4)
+    np.copyto(output, frame_buffer)
+
+
 def capture_worker(
-    source, cursor, mailbox, *, minimum_update_interval=16, capture_telemetry=None
+    source,
+    cursor,
+    mailbox,
+    *,
+    minimum_update_interval=16,
+    capture_telemetry=None,
+    retain_frame=False,
 ):
     control = None
     recorder = None
@@ -38,6 +64,8 @@ def capture_worker(
             16,
         ):
             raise ValueError("Invalid capture update interval")
+        if type(retain_frame) is not bool:
+            raise ValueError("Invalid capture frame ownership mode")
         import numpy as np
         from windows_capture import WindowsCapture
         from .capture_sources import validate_source, enable_capture_dpi
@@ -93,12 +121,13 @@ def capture_worker(
                     if dimensions is not None and shape != dimensions:
                         m[RESIZES] += 1
                     dimensions = shape
-                    output = np.frombuffer(
-                        mailbox.pixels,
-                        dtype=np.uint8,
-                        count=frame.width * frame.height * 4,
-                    ).reshape(frame.height, frame.width, 4)
-                    np.copyto(output, frame.frame_buffer)
+                    publish_pixels(
+                        mailbox,
+                        frame.frame_buffer,
+                        frame.width,
+                        frame.height,
+                        retain_frame=retain_frame,
+                    )
                     m[WIDTH], m[HEIGHT] = shape
                     m[SEQ] = m[RECEIVED] = sequence
                     m[SOURCE_NS] = source_ns
@@ -134,6 +163,11 @@ def capture_worker(
                 os._exit(0)
             if control.is_finished():
                 break
+        # A retained NativeMappedFrame can keep a D3D staging resource mapped.
+        # Release it before asking the native capture session to drain/stop.
+        if retain_frame:
+            with mailbox.lock:
+                mailbox.pixels = None
         control.stop()
         control = None
         if recorder is not None:
@@ -148,6 +182,9 @@ def capture_worker(
     finally:
         if control is not None:
             try:
+                if retain_frame:
+                    with mailbox.lock:
+                        mailbox.pixels = None
                 control.stop()
             except BaseException:
                 pass

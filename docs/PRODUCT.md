@@ -1,6 +1,6 @@
 # DepthSBS product
 
-Current product intent and local user behavior, 2026-09-07. Implemented limits
+Current product intent and local user behavior, 2026-09-08. Implemented limits
 below describe the current build, not permanent restrictions on future designs.
 
 ## Goal
@@ -37,11 +37,30 @@ Navigation remains available during work; it does not silently cancel a job.
 4. Stop releases the owned session and clears stale pixels. Source loss, incompatible
    color/topology changes and errors are visible; there is no silent source fallback.
 
-Current live profiles are Performance, Balanced and Video Quality, all DA2 Small.
-They vary temporal/stereo policy, not model identity. Offline Quality is file-only.
-Moving content may force fresh depth even in Performance. The exact policy values
-are owned by `v1/depthsbs_app/live_policy.py` and shared configuration, not a second
-numeric table here. Model changes and other sampling/FG designs are valid experiments.
+The four product modes are defined by their depth-model class and purpose, not only
+by temporal/stereo policy labels:
+
+| Mode | Depth-model contract | Processing and frame-rate intent |
+|---|---|---|
+| Performance | DA2 Small | Lowest latency and highest throughput; 1080p/4K 60–120 fps exploration |
+| Balanced | DA2 Base | Stronger spatial depth and practical default; end-to-end 60 fps where hardware allows |
+| Video Quality | oVDA or VDA, selected explicitly | Stateful temporal depth, cut-aware reset and low flicker; 60 fps goal with 30–60 fps as the test range |
+| Offline Quality | VDA Small with centered five-frame processing; later validated models may replace it | File/offline-only, scene-local two-frame lookahead and color/depth-gated fusion; quality first with no realtime guarantee |
+
+Backend availability, conversion correctness, license scope and complete-pipeline
+evidence still determine whether a contract entry is supported on a given build.
+There is no silent fallback to DA2 Small or another model. Moving content may force
+fresh depth in Performance. Exact temporal/stereo values remain owned by
+`v1/depthsbs_app/live_policy.py` and shared configuration; those values refine a
+mode but do not redefine its model identity.
+
+The source desktop now snapshots and validates the model owned by the selected
+mode. Performance uses the existing fused DA2 Small live path. Balanced uses DA2
+Base, while Video Quality exposes only an explicit oVDA/VDA choice; these models
+currently cross a host-depth boundary before CUDA stereo and cannot select the
+experimental native-texture delivery. Offline Quality remains file-only. Missing,
+unlicensed or shape-incompatible artifacts fail visibly without model fallback.
+See [current paths and limits](implementation-status.md).
 
 Current capture supports SDR BGRA8, source dimensions 16..4096 by 16..2160 and
 Full SBS at twice source width. Unsupported shapes/HDR fail rather than crop or
@@ -67,10 +86,14 @@ Full SBS doubles width. Eye-4K file output requires explicit HEVC in the current
 implementation because H.264 output is width-limited. Short 4K fixtures establish
 compatibility only. Live overload replacement is not offline frame dropping.
 
-Four existing file modes resolve a processing policy; explicit model selection
-is separate. DA2 Small is the default. VDA/oVDA stateful file bindings currently
-reject the skipped-frame Performance policy. Offline Quality with those bindings
-still uses their streaming algorithms, not a separate offline-windowed model.
+The source desktop resolves Performance to DA2 Small and Balanced to DA2 Base.
+Video Quality permits only an explicit oVDA/VDA choice. Offline Quality resolves
+to VDA Small plus its dedicated centered five-frame processor: it buffers at most
+two prior and two future depth observations within a scene, emits every source
+frame in order, and flushes at cuts without crossing the boundary. Moving pixels
+are gated rather than warped because this path has no trusted motion-vector input.
+Missing artifacts and incompatible combinations fail before conversion. VDA/oVDA
+stateful bindings still reject skipped-frame policies.
 
 - [DA2 Base local setup](models/da2-base.md)
 - [VDA Small local setup](models/vda.md)

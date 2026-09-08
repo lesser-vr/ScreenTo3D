@@ -5,10 +5,10 @@ import json
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QPointF, Qt
-from PySide6.QtTest import QTest
-from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from depthsbs_app.desktop import create_app
+from PySide6.QtCore import QObject, QPointF, Qt
+from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
+from PySide6.QtTest import QTest
 
 
 def main():
@@ -39,7 +39,7 @@ def main():
     pump(1)
     assert window.findChild(QObject, "modePicker").property("currentText") == "Balanced"
     assert (
-        window.findChild(QObject, "modelPicker").property("currentText") == "DA2 Small"
+        window.findChild(QObject, "modelPicker").property("currentText") == "DA2 Base"
     )
     graphics = str(window.rendererInterface().graphicsApi())
     assert (
@@ -61,7 +61,15 @@ def main():
         controller.changed.emit()
     pump(0.5)
     window.grabWindow().save(str(args.output / "files.png"))
+    controller.setOption("mode", "offline-quality")
     window.setProperty("page", 2)
+    pump(0.2)
+    assert (
+        window.findChild(QObject, "modelPicker").property("currentText")
+        == "VDA Small · 5프레임 Offline"
+    )
+    window.grabWindow().save(str(args.output / "settings-offline.png"))
+    controller.setOption("mode", "balanced")
     controller.checkSetup()
     until = time.monotonic() + 45
     while controller.busy and time.monotonic() < until:
@@ -107,15 +115,15 @@ def main():
         pump(0.2)
         window.grabWindow().save(str(args.output / "result.png"))
     assert not warnings, warnings
-    report = dict(
-        graphics=graphics,
-        warnings=warnings,
-        setup=controller.setup,
-        status=controller.status,
-        jobs=controller.rows,
-        fullscreen=True,
-        scope="Qt D3D11 generated scene, not CUDA texture import or live capture",
-    )
+    report = {
+        "graphics": graphics,
+        "warnings": warnings,
+        "setup": controller.setup,
+        "status": controller.status,
+        "jobs": controller.rows,
+        "fullscreen": True,
+        "scope": "Qt D3D11 generated scene, not CUDA texture import or live capture",
+    }
     (args.output / "report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
     )

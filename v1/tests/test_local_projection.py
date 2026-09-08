@@ -25,7 +25,7 @@ class LocalProjectionTests(unittest.TestCase):
 
     def test_explicit_renderer_worker_contract(self):
         for renderer in ('cpu','cuda'):
-            args=build_parser().parse_args(['--stereo-renderer',renderer])
+            args=build_parser().parse_args(['--mode','performance','--stereo-renderer',renderer])
             with patch('depthsbs_app.pipeline.convert_video') as convert,patch('depthsbs_app.main.emitter'):
                 self.assertEqual(run_worker(args),0)
                 self.assertEqual('projection_factory' in convert.call_args.kwargs,renderer=='cuda')

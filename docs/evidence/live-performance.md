@@ -3,6 +3,11 @@
 Historical evidence by recorded checkpoint. Current support is in
 [implementation status](../implementation-status.md).
 
+Where a record explicitly names DA2 Small together with Performance, Balanced or
+Video Quality, the latter name is the legacy temporal/stereo policy selected by
+that run. It is not evidence for a different model required by the current
+[model-defined product contract](../PRODUCT.md#live-capture-and-output).
+
 ## Guarded run condition
 
 The recorded user condition for reproducing the monitor-transition FPS-collapse
@@ -19,6 +24,9 @@ general requirement to ask before tests.
 - [guide-subkernel-profile](#record-result-guide-subkernel-profile)
 - [guide-rolling-isolated](#record-result-guide-rolling-isolated)
 - [guide-hybrid-isolated](#record-result-guide-hybrid-isolated)
+- [pinned-input-rejected](#record-result-pinned-input-rejected)
+- [retained-capture-promoted](#record-result-retained-capture-promoted)
+- [model-defined-live-routing](#record-result-model-defined-live-routing)
 - [live-gpu-idle-recheck](#record-result-live-gpu-idle-recheck)
 - [live-gpu-speed-results](#record-result-live-gpu-speed-results)
 - [live-guarded-baseline](#record-result-live-guarded-baseline)
@@ -261,7 +269,8 @@ Checkpoint date recorded in source: 2026-09-08.
 
 > The candidate was then selected only in the benchmark's owned child through a
 > fixed hash-pinned wrapper; the normal app path and default remained unchanged.
-> Matched sequential actual-app runs used WGC, DA2 Small Balanced, native texture
+> Matched sequential actual-app runs used WGC, DA2 Small with the legacy Balanced
+> temporal/stereo policy, native texture
 > delivery and Qt output submission with 3840x2160 input/per eye and 7680x2160
 > Full SBS. Each path used the same scaled public FloorballGame source process,
 > 60 Hz presentation target, 1400x650 logical output window, ten-second warmup,
@@ -303,7 +312,8 @@ Checkpoint date recorded in source: 2026-09-08.
 
 > Two more six-second-window actual-app pairs broadened the raw rolling candidate
 > to OfficeWalk and ParkingGarage under the same 3840x2160 input/per-eye,
-> 7680x2160 Full SBS, DA2 Small Balanced, 60 Hz native-output contract. Across all
+> 7680x2160 Full SBS, DA2 Small with the legacy Balanced policy, 60 Hz native-output
+> contract. This is not DA2 Base Balanced-mode evidence. Across all
 > three clips and 15 windows per path, processed-rate improvement was 4.24-12.78%
 > (4.73% median), output-ID improvement was 0.10-12.17% (1.10% median), and the
 > sampled guide reduction was 4.65-31.44% (19.74% median). All transfer formulas
@@ -395,12 +405,183 @@ Checkpoint date recorded in source: 2026-09-08.
 > `ad729d79acd6da9df1f3006d539666d0d55b714418ce3ce45e0d45fc65133039`.
 > The product hash passed five real-GPU failure/cleanup cycles (report SHA-256
 > `40d1d4e824fd3704a536cd768adfb88b4cbba05ea11b07a144753f7ef06618d2`)
-> and a default-path Floorball 4K Balanced functional smoke. That smoke loaded the
+> and a default-path Floorball 4K DA2 Small functional smoke using the legacy
+> Balanced policy. That smoke loaded the
 > exact product hash and produced 52.26 processed / 52.43 distinct output IDs/s,
 > but its device-wide preflight was already 8%, so it is not used as comparative
 > performance evidence. Python 234/234, C++ 1/1 and scoped static checks passed
 > after promotion. Continuous visual/headset review, sustained 4K60, real device
 > loss, packaging and other-GPU support remain unverified.
+
+<a id="record-result-pinned-input-rejected"></a>
+## pinned-input-rejected
+
+Checkpoint date recorded in source: 2026-09-08.
+
+> After guided-filter promotion, sampled actual-app attribution left a large
+> full-resolution RGB host-to-device interval. The bounded candidate allocates
+> one 24,883,200-byte page-locked host RGB buffer for a 3840x2160 session, copies
+> the already converted RGB frame into it, and passes that exact byte array to
+> the unchanged product DLL. It does not change capture format, depth, guide,
+> projection, eye geometry or native texture publication. Candidate source
+> SHA-256 is
+> `03b02d737c249e36664f2681c73d261f2160ff02a2b27ee17abb7e9de926fcf8`.
+
+> The existing numerical oracle passed all 261/261 public, synthetic cut and
+> scrolling-text cases across Performance, Balanced and Video Quality.
+> Preprocessing remained exact; maximum depth MAE/max were `1.8241e-7` and
+> `9.3848e-5`, while maximum RGB MAE/changed fraction were `0.007827` and
+> `0.0001961`, all within the existing declared limits. Report SHA-256 is
+> `2e51416522e9eb91991d32dda043751e53ba5e1f44de003bd5fb95fb7736c53a`.
+> Five source-hash-pinned real-GPU cycles passed non-finite rejection,
+> poisoned-context behavior, idempotent cleanup, wrong-thread rejection and
+> closed-token rejection. Their report SHA-256 is
+> `f7eb48d298f71a2dddf27bd916b4b686248d3153ae71924dc9a8aed0bb32e089`.
+
+> The actual-app A/B used separate 0%-GPU-preflight sessions, FloorballGame,
+> 3840x2160 input/per eye, 7680x2160 Full SBS, DA2 Small with the legacy Balanced
+> policy, 60 Hz native
+> output, a six-second warmup and five six-second windows. The current/candidate
+> processed medians were 62.2189/62.2818 fps (+0.10%); distinct output medians
+> were 59.9022/59.9336 fps (+0.05%). Two candidate windows exceeded 60, with a
+> 60.1285 maximum, but the median did not. Across 120 samples per path, host
+> input conversion/staging P50 plus GPU RGB-transfer/depth-resize P50 fell from
+> 4.3686 to 3.5228 ms (19.36%). These stage intervals are diagnostic and not an
+> additive physical latency measurement. Raw run SHA-256 values are
+> `f46a3deeb203d5c3c5db6d046ec87b302a6c71b7f5a59ff185da360bac2bd5d3`
+> current and
+> `e45bfd4f0aa64a6eb2b23ae197513332c35fab32fed291b22f8851401a125abc`
+> candidate.
+
+> The unpaced native gate removed WGC, worker IPC and Qt, then alternated five
+> 20-frame repeats per path. Before execution it required at least 20% lower RGB
+> transfer P50, at least 3% higher whole native throughput and no more than 1%
+> guide regression. The final source-hash run measured RGB transfer P50
+> 2.0916 -> 1.2862 ms (38.51% lower) and guide P50 2.8159 -> 2.7730 ms (1.53%
+> faster), but native throughput median was only 107.22 -> 110.13 fps (+2.71%).
+> It therefore failed the declared whole-throughput gate; report SHA-256 is
+> `9dfb944b77a977f7b5d012707d1bfc306575e8af4c66b238fd1fdcd0e36b8bd0`.
+> A preceding semantic version of the candidate had narrowly measured +3.19%,
+> so the final failure also shows the gain did not reproduce with enough margin.
+> The candidate is rejected for promotion and the prepared-local product path is
+> unchanged. The result does not establish sustained 4K60, scanout or VR quality.
+
+<a id="record-result-retained-capture-promoted"></a>
+## retained-capture-promoted
+
+Checkpoint date recorded in source: 2026-09-08.
+
+> The SBS worker and its WGC capture callback share one process. The selected
+> candidate therefore transfers the ownership-bearing `windows-capture` NumPy
+> mapped-frame view into a locked latest-frame slot instead of copying every
+> 3840x2160 BGRA frame into a 33,177,600-byte `RawArray`. RGB conversion, model,
+> depth/stereo math, native publication, source selection and the original-preview
+> path are unchanged. Replacing a pending view releases its former native owner;
+> stop clears the retained view before draining native capture.
+
+> Unit coverage verifies exact view identity, replacement release, release before
+> native stop, validation and the unchanged copy helper. The final product also
+> allocates metadata only for SBS capture input, while original preview retains
+> its fixed shared BGRA mailbox. Application tests passed 45/45 and contract/unit
+> tests passed 240/240 after promotion.
+
+> The predeclared actual-app comparison required at least 80% lower callback P50,
+> at least 5% lower owned-worker CPU, no more than 1% regression in capture,
+> processing or output rate, and no more than 64 MiB worker private-memory P95
+> growth. Sequential sessions used the same public FloorballGame source,
+> 3840x2160 input/per eye, 7680x2160 Full SBS, DA2 Small with the legacy Balanced
+> policy, 60 Hz native
+> output, six-second warmup and five six-second windows. Device-wide GPU preflight
+> was 1% current and 0% candidate.
+>
+> | Actual-app metric | Copied current | Retained candidate | Change |
+> |---|---:|---:|---:|
+> | Callback duration P50 | 1.8641 ms | 0.0402 ms | 97.84% lower |
+> | Owned-worker CPU | 2.6611 cores | 2.3953 cores | 9.99% lower |
+> | Capture published | 62.0812 fps | 62.0707 fps | -0.02% |
+> | Fresh processing | 61.5329 fps | 61.7979 fps | +0.43% |
+> | Distinct output IDs | 59.8788 fps | 59.8455 fps | -0.06% |
+> | Worker private-memory P95 | 1739.92 MiB | 1772.31 MiB | +32.39 MiB |
+>
+> All declared gates passed. Callback timing begins after native readback and
+> Python/GIL entry, so the result attributes the removed host copy rather than
+> total capture latency. Output IDs are Qt/native application submissions, not
+> scanout. The comparison report is
+> `out/live-retained-capture/comparison-floorball-4k-balanced-final-20260908/report.json`,
+> SHA-256
+> `4a6a2b4de73466c319a1f7873c5bca58aa73be83e14b2e335195028ae4ef5c0a`;
+> current/candidate `runs.json` hashes are
+> `eadedb577e77c0ca6d2ccfd2f85beeb17bb9ee8a48550bb423a90e363e6fb7e3`
+> and `6f600769be561680c47bce23788e9c62b2a30f3a4ef33dc78a3a0dffcf93ddb8`.
+
+> A second-session stall seen during early multi-mode work reproduced on the
+> copied baseline: the hidden benchmark had removed every demand-driven native
+> consumer while waiting for submissions. Exposing one initial frame per session
+> and one stopped cleanup frame fixed that harness error. Baseline Performance/VQ
+> restart controls and retained Performance/VQ functional runs then completed;
+> every final sequential run reported zero native pools and nodes after stop.
+
+> After product wiring and removal of the unused shared capture allocation, a
+> final default-path (no candidate flag), 0%-GPU-preflight DA2 Small smoke using
+> the legacy Balanced policy recorded
+> 62.4751 capture, 62.1446 processed and 59.8307 distinct output IDs/s, callback
+> P50/P95 0.0373/0.0656 ms, and zero shared capture-pixel bytes/pools/nodes after
+> stop. Its `runs.json` SHA-256 is
+> `39386f07d5ad092cf5c88799cc5c9afe9d83791ad541630e8914caf1dea6a846`.
+> The recorded final source SHA-256 values are
+> `4290f0f8ec2a683fb0d93de5bcd0bbdd6fb598ff3c77bee7fcb4fb80abc8ceed`
+> for `live_sbs.py`,
+> `efcf736b498b34c0663ba13bc2156f1ef61924131e2da51496fdfe15caffb5e2`
+> for `capture_worker.py`, and
+> `e30ffd36d9fe6ed743c32688c16608f15f6d81477cfadc4610cc7245b0967920`
+> for `live_preview.py`.
+> This short single-content smoke confirms product wiring and cleanup only. The
+> selection does not establish sustained 4K60, 1:1 fullscreen/physical scanout,
+> continuous visual quality, VR comfort, long-session/device-loss behavior,
+> packaging or another GPU.
+
+<a id="record-result-model-defined-live-routing"></a>
+## model-defined-live-routing
+
+Checkpoint date recorded in source: 2026-09-08.
+
+> The source desktop now owns one mode-to-model contract used by both file jobs
+> and immutable live session snapshots: Performance selects DA2 Small, Balanced
+> selects DA2 Base, Video Quality permits only oVDA or VDA, and Offline Quality
+> remains file-only with streaming VDA as the currently installed placeholder.
+> Cross-mode model combinations, missing engine/runtime paths and unconfirmed oVDA
+> use fail before worker launch. The UI changes the model with the mode and exposes
+> a second model choice only for Video Quality. There is no model fallback.
+
+> Performance retains the fused DA2 Small and optional native-texture paths.
+> DA2 Base, VDA and oVDA currently return host depth into the existing CUDA stereo
+> path; native texture selection is rejected for those models. Stateful engines
+> receive start, cut, discontinuity and source-change resets from the live owner.
+> Input profile changes recreate the selected engine rather than reuse an engine
+> with the wrong shape.
+
+> All 233 GPU-free core/platform/profile/quality contract tests passed in one
+> classified run. A focused 58-test routing, GUI-controller, backend and
+> existing-mode set also passed.
+> Read-only binding checks validated the installed 3840x2160 DA2 Base and VDA
+> profiles and trusted plan manifests. One initial Balanced smoke stopped before
+> model creation because the ad-hoc runner omitted the prepared PyTorch path; it
+> is not a product failure or performance result and was preserved separately.
+
+> A final sequential actual-GPU source-window smoke used an RTX 5090, generated
+> 1280x720 content, 30 Hz presentation target, one-second warmup and one measured
+> second per mode. Balanced reported `model=da2-base`, and Video Quality reported
+> `model=vda-small`; both policy backend fields matched and both used the declared
+> `model-host-depth-cuda-stereo` path. Observed processed/output submission rates
+> were 12.94/13.93 fps and 17.89/16.90 fps respectively. These tiny generated-source
+> windows prove routing, execution and sequential restart only. They do not support
+> comparative performance, sustained throughput, visual quality, 4K, scanout, VR,
+> oVDA execution, dedicated Offline Quality or long-session cleanup claims.
+
+> The sequential `runs.json` SHA-256 is
+> `f007c7b71e14c46d9299406856b20876626ced1ee7572f2b293d1381f19b6556`;
+> `environment.json` is
+> `ec36a8abd0bacf76e7a4a839f1ab5b90793797a205b37bc42cf083b96e23740d`.
 
 <a id="record-result-live-gpu-idle-recheck"></a>
 ## live-gpu-idle-recheck

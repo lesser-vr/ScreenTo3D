@@ -31,6 +31,7 @@ from .capture_sources import monitors, windows, validate_source
 from .capture_worker import capture_worker
 from .live_sbs import STAT_COUNT
 from .live_policy import LIVE_MODES
+from .live_backend import choices as live_model_choices, default_model as default_live_model
 from .presentation_policy import PresentationCadence
 from .owned_preview_image import PreviewCopyPool
 
@@ -81,6 +82,8 @@ class LivePreview(QObject):
         self.preview_visible = True
         self.sbs = False
         self.mode = "balanced"
+        self.live_model = default_live_model(self.mode)
+        self.ovda_noncommercial = False
         # Prepared local desktop default; explicit reference selection remains available.
         self.gpu_candidate = os.environ.get("DEPTHSBS_LIVE_GPU_CANDIDATE", "1") == "1"
         self.native_selected = False
@@ -155,7 +158,7 @@ class LivePreview(QObject):
             f"세션 평균: 처리 {self._stats()[0] / elapsed:.1f} fps · 출력 창 제출 {output_count / elapsed:.1f} fps · 최신 프레임 교체 {self.meta[REPLACED]}\n"
             f"{'Full SBS' if self.sbs else '원본'} {self.meta[WIDTH]} × {self.meta[HEIGHT]}  ·  최근 수신→화면 교환 P95 {p95}\n"
             + (
-                f"DA2 Small + CUDA · 처리 {self._stats()[0]} · 입력 교체 {self._stats()[1]} · 재초기화 {self._stats()[2]}\n"
+                f"{self.liveModelLabel} + CUDA · 처리 {self._stats()[0]} · 입력 교체 {self._stats()[1]} · 재초기화 {self._stats()[2]}\n"
                 f"최근 전처리/추론/SBS {self._stats()[3] / 1e6:.1f}/{self._stats()[4] / 1e6:.1f}/{self._stats()[5] / 1e6:.1f} ms · CPU 전달 경계 있음"
                 if self.sbs
                 else f"원본 미리보기 · CPU 복사 경로 · 출력 목표 {self.cadence.hz} fps"
@@ -180,9 +183,32 @@ class LivePreview(QObject):
     @Property("QVariantList", notify=changed)
     def liveModes(self):
         return [
-            dict(key=key, label=profile.resolve().label)
+            dict(
+                key=key,
+                label=f"{profile.resolve().label} · "
+                + "/".join(self.desktop.models_label(model) for model in live_model_choices(key)),
+            )
             for key, profile in LIVE_MODES.items()
         ]
+
+    @Property("QVariantList", notify=changed)
+    def liveModels(self):
+        return [
+            dict(key=model, label=self.desktop.models_label(model))
+            for model in live_model_choices(self.mode)
+        ]
+
+    @Property(str, notify=changed)
+    def liveModel(self):
+        return self.live_model
+
+    @Property(str, notify=changed)
+    def liveModelLabel(self):
+        return self.desktop.models_label(self.live_model)
+
+    @Property(bool, notify=changed)
+    def ovdaConfirmed(self):
+        return self.ovda_noncommercial
 
     @Property(str, notify=changed)
     def liveMode(self):
@@ -229,6 +255,10 @@ class LivePreview(QObject):
     def nativeEnabled(self):
         return self.sbs and self.native_selected
 
+    @Property(bool, notify=changed)
+    def nativeCapable(self):
+        return self.sbs and self.live_model == "da2-small"
+
     @Property(int, notify=changed)
     def nativeSession(self):
         return self.session
@@ -253,6 +283,8 @@ class LivePreview(QObject):
             return
         if path not in ("gpu", "reference", "gpu-texture"):
             self.message = "지원하지 않는 처리 경로입니다."
+        elif path == "gpu-texture" and self.live_model != "da2-small":
+            self.message = "GPU 직접 출력은 현재 Performance · DA2 Small만 지원합니다."
         else:
             try:
                 if path == "gpu-texture" and self.native is None:
@@ -283,6 +315,26 @@ class LivePreview(QObject):
                 self.message = "지원하지 않는 실시간 모드입니다. Offline Quality는 파일 전용입니다."
             else:
                 self.mode = mode
+                if self.live_model not in live_model_choices(mode):
+                    self.live_model = default_live_model(mode)
+                    self.ovda_noncommercial = False
+                if self.live_model != "da2-small":
+                    self.native_selected = False
+            self.changed.emit()
+
+    @Slot(str)
+    def setLiveModel(self, model):
+        if not self.active and model in live_model_choices(self.mode):
+            self.live_model = model
+            self.ovda_noncommercial = False
+            if model != "da2-small":
+                self.native_selected = False
+            self.changed.emit()
+
+    @Slot(bool)
+    def setOvdaConfirmed(self, confirmed):
+        if not self.active and self.live_model == "ovda-small-c16":
+            self.ovda_noncommercial = bool(confirmed)
             self.changed.emit()
 
     @Property("QStringList", notify=changed)
@@ -406,6 +458,17 @@ class LivePreview(QObject):
             source = dict(self.items[self.selected])
             validate_source(source)
             validate_shape(source["width"], source["height"])
+            backend_snapshot = {
+                "model": self.live_model,
+                "engine": self.desktop.engine_paths.get(self.live_model, ""),
+                "runtime": self.desktop.values["runtime"],
+                "noncommercial": self.ovda_noncommercial,
+            }
+            from .live_backend import validate_snapshot
+
+            validate_snapshot(backend_snapshot, self.mode)
+            if self.nativeEnabled and self.live_model != "da2-small":
+                raise ValueError("GPU 직접 출력은 현재 Performance · DA2 Small만 지원합니다.")
             if source["kind"] == "monitor" and not self.excluded:
                 raise ValueError(
                     "이 환경에서 미리보기 창의 재캡처를 차단하지 못했습니다. 창 캡처를 사용하세요."
@@ -441,7 +504,7 @@ class LivePreview(QObject):
                     self.processing_stats,
                     self.strength,
                     self.mode,
-                    self.gpu_candidate,
+                    self.gpu_candidate if self.live_model == "da2-small" else False,
                     *(
                         [self.texture_mailbox, self.session + 1]
                         if self.nativeEnabled
@@ -450,7 +513,10 @@ class LivePreview(QObject):
                 )
                 if self.sbs
                 else (source, self.cursor, self.mailbox),
-                kwargs={"capture_telemetry": self.capture_telemetry},
+                kwargs={
+                    "capture_telemetry": self.capture_telemetry,
+                    **({"backend_snapshot": backend_snapshot} if self.sbs else {}),
+                },
                 daemon=True,
             )
             self.process.start()
@@ -621,7 +687,7 @@ class LivePreview(QObject):
                     self.message = (
                         "● GPU 직접 출력 · 실험 / 녹화 안 함"
                         if self.nativeEnabled
-                        else "● DA2 Small 실시간 Full SBS / 녹화 안 함"
+                        else f"● {self.liveModelLabel} 실시간 Full SBS / 녹화 안 함"
                         if self.sbs
                         else "● 캡처 중 · 원본 미리보기 / 녹화 안 함"
                     )
@@ -665,7 +731,12 @@ class LivePreview(QObject):
                 self.callback_latencies.append((now - source) / 1e6)
 
     def report(self):
-        plan = LIVE_MODES[self.mode].describe(self.strength) if self.sbs else None
+        fused_live = self.live_model == "da2-small" and self.gpu_candidate
+        plan = (
+            LIVE_MODES[self.mode].describe(self.strength, self.live_model)
+            if self.sbs
+            else None
+        )
         if plan is not None:
             plan["live"]["presentation_hz"] = self.cadence.hz
         return dict(
@@ -695,12 +766,14 @@ class LivePreview(QObject):
             processing_path="gpu-texture"
             if self.nativeEnabled
             else "gpu-candidate"
-            if self.sbs and self.gpu_candidate
+            if self.sbs and fused_live
+            else "model-host-depth-cuda-stereo"
+            if self.sbs and self.live_model != "da2-small"
             else "reference-host-bridge",
             presentation_target_hz=self.cadence.hz,
             presentation_poll_ms=self.timer.interval(),
             stage_timing_scope="candidate depth is submission; stereo includes pending GPU work"
-            if self.gpu_candidate
+            if fused_live
             else "synchronous host stages",
             processing_stats=self._stats(),
             projection_stage_ms={
@@ -717,7 +790,7 @@ class LivePreview(QObject):
                     24,
                 )
             }
-            if self.gpu_candidate
+            if fused_live
             else None,
             host_bridge_timing_scope="input ownership through shared output publication; excludes source wait and Qt",
             host_bridge_ms={
@@ -744,7 +817,7 @@ class LivePreview(QObject):
                     12,
                 )
             }
-            if self.gpu_candidate
+            if fused_live
             else None,
             explicit_cuda_h2d_bytes=self._stats()[7],
             explicit_cuda_d2h_bytes=self._stats()[8],
@@ -756,20 +829,21 @@ class LivePreview(QObject):
             height=self.meta[HEIGHT],
             mailbox_slots=2 if self.sbs else 1,
             pending_frame=int(self.meta[SEQ] > self.meta[ACK]),
-            shared_pixel_bytes=MAX_BYTES
-            * (1 if self.nativeEnabled else 3 if self.sbs else 1),
+            shared_pixel_bytes=(
+                0 if self.nativeEnabled else 2 * MAX_BYTES if self.sbs else MAX_BYTES
+            ),
             callback_to_swap_ms=list(self.latencies),
             source_to_swap_unverified_ms=list(self.callback_latencies),
             source_clock="WGC SystemRelativeTime; cross-clock comparability requires oracle",
             last_callback_copy_ns=self.meta[COPY_NS],
             duration_seconds=(self.ended or time.perf_counter()) - self.started,
             copies=(
-                "capture readback + shared input BGRA + RGB/preprocess H2D; GPU SBS surface + per-window GPU copy; 4-byte validity D2H and eligible background depth D2H/H2D"
+                "capture readback + retained mapped BGRA + RGB/preprocess H2D; GPU SBS surface + per-window GPU copy; 4-byte validity D2H and eligible background depth D2H/H2D"
                 if self.nativeEnabled
-                else "native GPU readback + shared BGRA copy + owned QImage copy + Qt upload"
+                else "native GPU readback + shared output BGRA copy + owned QImage copy + Qt upload"
                 + (
                     "; uint8 resized input H2D + RGB H2D + same-stream device depth/postprocess/projection + RGB D2H; eligible flat backgrounds use explicit aligned-depth D2H/H2D"
-                    if self.sbs and self.gpu_candidate
+                    if self.sbs and fused_live
                     else "; TensorRT H2D/D2H + CUDA projection H2D/D2H + RGB/BGRA host conversion + owned input copy"
                     if self.sbs
                     else ""

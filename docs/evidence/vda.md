@@ -5,6 +5,7 @@ Historical evidence by recorded checkpoint. Current support is in
 
 ## Records
 
+- [offline-centered-window-2026-09-08](#record-result-offline-centered-window-2026-09-08)
 - [streaming-model-candidate](#record-result-streaming-model-candidate)
 - [vda-device-boundary-2026-09-06](#record-result-vda-device-boundary-2026-09-06)
 - [vda-lifecycle](#record-plan-vda-lifecycle)
@@ -23,6 +24,69 @@ Historical evidence by recorded checkpoint. Current support is in
 - [vda-trt-pipeline](#record-plan-vda-trt-pipeline)
 - [vda-widescreen](#record-plan-vda-widescreen)
 - [vda-local-preview](#record-reference-vda-local-preview)
+
+<a id="record-result-offline-centered-window-2026-09-08"></a>
+## offline-centered-window-2026-09-08
+
+> Date: 2026-09-08. Current behavior is owned by
+> [PRODUCT](../PRODUCT.md) and [implementation status](../implementation-status.md).
+
+> Offline Quality now pairs the installed VDA Small TensorRT FP32 engine with
+> `CenteredDepthWindow` (`centered-color-gated-depth-fusion-v1`). The file-only
+> processor keeps two past and two future reduced observations, aligns neighbor
+> depths to the target's robust range, and accepts contributions only where color
+> and normalized depth are stable. It does not motion-warp. The queue is capped at
+> five samples, emits in source order, drains a scene before cut reset, and verifies
+> emitted count equals decoded count before publication. The pipeline rejects an
+> Offline job without this processor and rejects the processor in other modes.
+
+> Public source: prepared first six seconds of UVG-VCM FloorballGame, CC BY 4.0,
+> 1920x1080 at 60 fps, no audio, SHA256
+> `a0506f552047992498ea81c9ffb19269504d1d617a5bea89360f159a2842007b`.
+> Source URL and complete attribution are pinned by `v1/public_test_media.py` and
+> the adjacent JSON/ATTRIBUTION records under `out/public-live-default`.
+
+> Actual application result:
+>
+> - `out/offline-window-public-final-20260908/FloorballGame-offline-sbs.mp4`
+>   fully decodes as H.264, 3840x1080, 60/1 fps, 6.000 seconds, 360/360 frames.
+>   SHA256 is `b978fe0f740c130228c4e8c5d1466a13054cc336582834386f37d3b347604285`.
+> - Processing rate was 5.3744 fps in this final-code short run. The centered-window
+>   stage averaged 45.8937 ms/frame; it used future context on 359 frames and
+>   recorded a five-sample / 47,174,400-byte maximum. No cut occurred in this clip.
+> - Two post-cache runs measured 44.1 and 45.9 ms/frame versus the initial 54.5
+>   ms/frame (about 15.8–19.0% lower) while raising the bounded window maximum from
+>   36.8 to 47.2 MB. Initial, optimized and final-code MP4 SHA256 values are all
+>   identical, so these implementation optimizations preserved the complete encoded
+>   result for this input. Whole processing rate moved from 5.2308 to 5.3755/5.3744
+>   fps; these short observations are not a repeated performance claim.
+
+> `out/offline-window-public-smoke-optimized-20260908/temporal-proxy-120.json`
+> compares raw and centered depth over the first 120 public FloorballGame frames.
+> The centered/raw Farneback-aligned normalized-depth-change ratio is 0.7654
+> overall and 0.8193 at detected edges, with equal 0.8777 valid fraction. A second
+> report, `temporal-proxy-public-hard-cut-120.json`, concatenates 60 public
+> OfficeWalk frames and 60 public ParkingGarage frames in memory. Both raw and
+> centered paths detect the annotated cut at frame 60; the window reports two
+> scenes, one flush, five samples maximum and 120/120 emitted frames. Its aligned
+> ratios are 0.8465 overall and 0.8585 at edges.
+
+> Related unit/publication contracts pass ordering, owned-frame retention,
+> future context, motion gating, invalid input/lifecycle, hard-cut isolation,
+> count preservation and close-before-publication. The proxy shows lower temporal
+> change on these bounded public samples. It does not establish ground-truth depth,
+> spatial fidelity, absence of ghosting, continuous visual quality, VR comfort,
+> other content/hardware, long-run stability or a model-quality winner.
+
+> Reproduction uses a fresh output/report path:
+>
+> ```powershell
+> .\scripts\run-vda.ps1 -InputVideo out\public-live-default\FloorballGame.mp4 `
+>   -OutputVideo out\new-offline-sbs.mp4 -Mode offline-quality -StereoRenderer cuda
+> .\scripts\evaluate-offline-vda.ps1 -OutputReport out\new-offline-proxy.json
+> .\scripts\evaluate-offline-vda.ps1 -Clip OfficeWalk -CutClip ParkingGarage `
+>   -OutputReport out\new-offline-cut-proxy.json
+> ```
 
 <a id="record-result-streaming-model-candidate"></a>
 ## streaming-model-candidate

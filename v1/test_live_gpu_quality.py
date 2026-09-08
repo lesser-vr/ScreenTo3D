@@ -23,6 +23,7 @@ def main():
     parser.add_argument("--compare-publish", action="store_true")
     parser.add_argument("--compare-pool", action="store_true")
     parser.add_argument("--compare-runtime", action="store_true")
+    parser.add_argument("--pinned-input", action="store_true")
     args = parser.parse_args()
     args.compare_publish = args.compare_publish or args.compare_pool
     args.compare_texture = args.compare_texture or args.compare_publish
@@ -35,6 +36,10 @@ def main():
     from depthsbs_app.live_gpu_candidate import LiveGpuCandidate
     from depthsbs_app.live_policy import resolve_live
     from depthsbs_app.live_host_bridge import capture_rgb, publish_rgb
+    if args.pinned_input:
+        from depthsbs_app.live_pinned_input import LiveGpuPinnedCandidate
+
+        LiveGpuCandidate = LiveGpuPinnedCandidate
 
     report = {
         "limits": dict(
@@ -54,6 +59,7 @@ def main():
     report["compare_publish"] = args.compare_publish
     report["compare_pool"] = args.compare_pool
     report["compare_runtime"] = args.compare_runtime
+    report["pinned_input"] = args.pinned_input
     if args.compare_runtime:
         from depthsbs_app.live_texture_pool import RUNTIME_SHA256
 

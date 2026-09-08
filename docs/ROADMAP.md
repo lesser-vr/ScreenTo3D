@@ -7,6 +7,7 @@ acceptance in [implementation status](implementation-status.md).
 
 | Work area | Useful next outcome |
 |---|---|
+| Model-defined modes | Dedicated Offline/VDA centered processing and public oVDA file/lifecycle checks are implemented; next compare model-defined live routes and Offline output visually on matched public/game material |
 | Depth and FG quality | Compare viable models/postprocessing/FG against Small + LSFG on matched games and videos; record input/eye/output geometry and real latency |
 | GPU data path | Reduce capture/input transfers, unnecessary preview work or synchronization where profiling predicts a benefit; retain correct resource ownership |
 | Simpler operation | Improve source/output selection and game/video workflows from the existing desktop shell |

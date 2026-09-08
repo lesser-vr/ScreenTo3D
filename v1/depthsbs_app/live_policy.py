@@ -24,11 +24,11 @@ class LivePolicy:
             temporal_depth_transition=0.008,
         )
 
-    def describe(self, strength=1.0):
+    def describe(self, strength=1.0, model="da2-small"):
         return dict(
             live=asdict(self),
-            stereo=asdict(self.resolve(strength)),
-            model="da2-small",
+            stereo=asdict(replace(self.resolve(strength), depth_backend=model)),
+            model=model,
             depth_reuse_guard="exact_rgb_equality_on_noncadence_frames",
             resize=False,
             zero_copy=False,

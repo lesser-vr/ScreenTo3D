@@ -18,7 +18,10 @@ def main():
     )
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--guide-candidate", choices=("hybrid", "promoted"))
+    parser.add_argument("--pinned-input", action="store_true")
     args = parser.parse_args()
+    if args.pinned_input and not args.native:
+        parser.error("--pinned-input requires --native")
     configure_resource_root(BUNDLE)
     from depthsbs_app.trt_backend import DepthEngine, _cuda, cudart
     from depthsbs_app import live_gpu_candidate as gpu_module
@@ -30,6 +33,11 @@ def main():
     elif args.guide_candidate == "promoted":
         from depthsbs_app.live_guide_promoted_worker import candidate_manifest
 
+    input_candidate = None
+    if args.pinned_input:
+        from depthsbs_app.live_pinned_input_worker import candidate_manifest as pinned
+
+        input_candidate = pinned()
     if args.guide_candidate:
         candidate = candidate_manifest()
         gpu_module.DLL_PATH = Path(candidate["dll"])
@@ -45,6 +53,10 @@ def main():
         from depthsbs_app.live_gpu_texture import LiveGpuTexture
 
         LiveGpuCandidate = LiveGpuTexture
+        if args.pinned_input:
+            from depthsbs_app.live_pinned_input import LiveGpuPinnedTexture
+
+            LiveGpuCandidate = LiveGpuPinnedTexture
 
     results = []
     frame = np.full((180, 320, 3), 127, np.uint8)
@@ -137,9 +149,13 @@ def main():
     target = args.output
     target.parent.mkdir(parents=True, exist_ok=True)
     report = results
-    if args.guide_candidate:
+    if args.guide_candidate or args.pinned_input:
         report = {
-            "candidate": candidate,
+            "candidate": (
+                candidate
+                if args.guide_candidate
+                else input_candidate
+            ),
             "native": args.native,
             "cycles": results,
         }

@@ -50,7 +50,7 @@ class DepthSbsGui:
         mode_box.grid(row=6, column=0, columnspan=2, sticky="ew")
         ttk.Label(panel, text='Output codec (HEVC for 4K; compatible player required)').grid(row=7, column=0, columnspan=3, sticky='w', pady=(12, 0))
         ttk.Combobox(panel, textvariable=self.codec_value, state='readonly', values=tuple(OUTPUTS)).grid(row=8, column=0, columnspan=2, sticky='ew')
-        ttk.Label(panel, text='Depth model (VDA: local preview, every-frame modes only)').grid(row=9, column=0, columnspan=3, sticky='w', pady=(12, 0))
+        ttk.Label(panel, text='Depth model (Offline Quality: VDA centered 5-frame processing)').grid(row=9, column=0, columnspan=3, sticky='w', pady=(12, 0))
         ttk.Combobox(panel, textvariable=self.backend_value, state='readonly', values=('da2-small', 'da2-base', 'vda-small', 'ovda-small-c16')).grid(row=10, column=0, columnspan=2, sticky='ew')
         ttk.Label(panel, text='Selected model engine folder (DA2 Base: non-commercial use)').grid(row=11, column=0, columnspan=3, sticky='w', pady=(12, 0))
         ttk.Entry(panel, textvariable=self.engine_value).grid(row=12, column=0, columnspan=2, sticky='ew')
@@ -124,8 +124,9 @@ class DepthSbsGui:
                 return
         if self.backend_value.get() == 'vda-small':
             try:
-                from .depth_backend import vda_binding
-                vda_binding(Path(self.engine_value.get()), self.runtime_dir).validate_policy(MODES[self.mode_value.get()])
+                from .depth_backend import vda_binding, vda_offline_binding
+                create_binding = vda_offline_binding if self.mode_value.get() == 'offline-quality' else vda_binding
+                create_binding(Path(self.engine_value.get()), self.runtime_dir).validate_policy(MODES[self.mode_value.get()])
             except Exception as error:
                 messagebox.showerror('DepthSBS VDA', str(error))
                 return

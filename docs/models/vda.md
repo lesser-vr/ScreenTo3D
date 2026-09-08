@@ -1,25 +1,28 @@
 # VDA Small local preview
 
 
-Status: Implemented and locally verified, 2026-09-04. Not a public release.
+Status: Implemented and locally verified through 2026-09-08. Not a public release.
 
 ## What works
 
-An explicitly selected VDA Small **streaming TensorRT FP32** backend runs through
-the application GUI/worker: video decode, full-rate depth inference, cut reset,
-existing mode-controlled temporal/stereo processing, NVENC encode and audio mux.
-The app no longer imports the upstream source or experiment adapter at runtime.
-DA2 remains the default for all four modes and existing portable packages.
+The VDA Small **streaming TensorRT FP32** engine runs through the application
+GUI/worker: video decode, full-rate depth inference, cut reset, CUDA or CPU stereo,
+NVENC encode and audio mux. Video Quality consumes each streaming depth directly.
+Offline Quality pairs the same VDA engine with a dedicated scene-local centered
+five-frame processor: two past/two future reduced depth observations are
+color/depth gated, every source frame is emitted in order, and cuts are flushed
+without crossing scenes. It deliberately does not warp moving content without a
+trusted motion-vector input. The app does not import upstream VDA source at runtime.
 
-Select `vda-small` with Balanced, Video Quality or Offline Quality. Performance
-is rejected because its every-other-frame policy violates streaming VDA's cache
-contract. Selecting Offline Quality here still uses streaming VDA, **not** the
-offline windowed VDA algorithm. This is not an oVDA integration or an automatic
-mode-to-model reassignment. Mode-specific existing EMA remains enabled.
+The source desktop selects `vda-small` for Offline Quality and defaults Video
+Quality to VDA while still allowing an explicit oVDA choice. Performance is
+rejected because its every-other-frame policy violates VDA's cache contract.
+This is not an oVDA integration. Existing portable packages have not been rebuilt.
 
 ## Current compatibility limits
 
-- Windows, RTX 5090 (SM 12.0), TensorRT 11.2.1.2; validated driver 616.56.
+- Windows, RTX 5090 (SM 12.0), TensorRT 11.2.1.2. Engines were validated on
+  driver 616.56; the 2026-09-08 public runs observed driver 616.64.
 - Two validated model profiles: `[1,1,3,518,896]` for the supplied 1056x608
   aspect ratio, and `[1,1,3,518,924]` for standard 16:9 (720p/1080p/4K).
   Source aspect-preserving lower-bound resize must map to an installed profile.
@@ -32,7 +35,8 @@ mode-to-model reassignment. Mode-specific existing EMA remains enabled.
   The source pixel dimensions and cadence are retained; Full SBS doubles width.
 - Local source launcher uses the isolated CUDA PyTorch environment for buffers
   and resize, OpenCV for preprocessing, and explicit FFmpeg/TensorRT paths.
-  This is not a zero-copy pipeline. The normal launch uses existing CPU stereo.
+  This is not a zero-copy pipeline. The current launcher defaults to explicit
+  CUDA stereo; `-StereoRenderer cpu` remains available with no silent fallback.
 - No CPU/model/precision fallback, no automatic engine download, no resume.
 - Real device loss, long-duration stability, wider content quality, VR playback,
   other GPUs and clean-machine distribution remain unverified/deferred.
@@ -54,8 +58,11 @@ Capability/engine diagnostic and command-line conversion:
 
 ```powershell
 .\scripts\run-vda.ps1 -Diagnostics
-.\scripts\run-vda.ps1 -InputVideo '<supported-input.mp4>' `
-  -OutputVideo '.\out\avatar-vda-sbs.mp4' -Mode video-quality
+.\scripts\run-vda.ps1 -InputVideo '.\out\public-live-default\FloorballGame.mp4' `
+  -OutputVideo '.\out\new-vda-sbs.mp4' -Mode video-quality
+# Dedicated five-frame Offline Quality processing:
+.\scripts\run-vda.ps1 -InputVideo '.\out\public-live-default\FloorballGame.mp4' `
+  -OutputVideo '.\out\new-vda-offline-sbs.mp4' -Mode offline-quality
 # Optional HEVC output:
 .\scripts\run-vda.ps1 -InputVideo '<supported-input.mp4>' `
   -OutputVideo '<output.mp4>' -OutputCodec hevc
@@ -75,7 +82,10 @@ of authenticity. Native TensorRT plans must never come from untrusted sources.
 
 Existing prepared environment and artifact:
 
-- Python: `out/vda-oracle-env/Scripts/python.exe` (3.13.14).
+- Prepared packages: `out/vda-oracle-env/Lib/site-packages` for Python 3.13.
+  If the old environment launcher points at a removed WindowsApps interpreter,
+  `run-vda.ps1` resolves an installed compatible CPython 3.13. The 2026-09-08
+  public runs used that fallback with CPython 3.13.9.
 - Source: `out/vda-source`, official revision
   `4f5ae23172ba60fd7bc11ef671cca678842c7072`, clean worktree.
 - Small checkpoint: `out/models/vda-small/video_depth_anything_vits.pth`, SHA256
@@ -123,12 +133,16 @@ and may contain full local paths. Do not publish them without review.
 ```powershell
 .\scripts\test-v1.ps1
 $env:PYTHONPATH = 'v1'
-out/vda-oracle-env/Scripts/python.exe v1/test_vda_application.py --input '<supported-clip.mp4>'
+out/vda-oracle-env/Scripts/python.exe v1/test_vda_application.py --input '.\out\public-live-default\FloorballGame.mp4'
 # A profile root supports either accepted ratio:
-out/vda-oracle-env/Scripts/python.exe v1/test_vda_application.py --input '<1080p-clip.mp4>' --engine-dir out/vda-local
+out/vda-oracle-env/Scripts/python.exe v1/test_vda_application.py --input '.\out\public-live-default\FloorballGame.mp4' --engine-dir out/vda-local
 out/vda-oracle-env/Scripts/python.exe v1/test_vda_gui.py --input '<supported-clip.mp4>'
 out/vda-oracle-env/Scripts/python.exe v1/compare_vda_application.py --input '<supported-clip-up-to-124-frames.mp4>'
 out/vda-oracle-env/Scripts/python.exe v1/test_vda_widescreen.py --widescreen '<1080p-clip.mp4>' --original '<1056x608-clip.mp4>'
+# Public raw-vs-centered temporal proxy and an annotated public hard cut:
+.\scripts\evaluate-offline-vda.ps1 -OutputReport out\new-offline-proxy.json
+.\scripts\evaluate-offline-vda.ps1 -Clip OfficeWalk -CutClip ParkingGarage `
+  -OutputReport out\new-offline-cut-proxy.json
 ```
 
 `compare_vda_application.py` now auto-selects either installed profile and accepts
@@ -138,6 +152,9 @@ are bounded even if metadata is wrong. Missing/extra frames or differing input
 hashes fail the comparison. It emits normalized, labeled lower-frame regions and
 reports the reference runtimes separately. The widescreen harness
 creates an explicitly upscaled 12-frame 4K fixture; it does not alter the input.
+The Offline evaluator is capped at 124 frames and uses only the pinned public
+UVG-VCM corpus by default. Its Farneback-aligned normalized-depth change is a
+temporal proxy, not ground truth, a spatial-quality score or a VR-comfort result.
 
 ### Experimental black-bar backdrop correction
 

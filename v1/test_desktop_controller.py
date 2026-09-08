@@ -47,13 +47,23 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(self.c.settings["mode"], "balanced")
         self.assertEqual(len(self.c.rows), 1)
 
+    def test_offline_mode_selects_dedicated_vda_label(self):
+        self.c.setOption("mode", "offline-quality")
+        self.assertEqual(self.c.settings["model"], "vda-small")
+        self.assertEqual(
+            self.c.models,
+            [{"key": "vda-small", "label": "VDA Small · 5프레임 Offline"}],
+        )
+
     def test_license_reset_on_model_change(self):
+        self.c.setOption("mode", "video-quality")
         self.c.setOption("model", "ovda-small-c16")
         self.c.setOption("noncommercial", True)
-        self.c.setOption("model", "da2-small")
+        self.c.setOption("model", "vda-small")
         self.assertFalse(self.c.settings["noncommercial"])
 
     def test_model_paths_do_not_leak_across_selection(self):
+        self.c.setOption("mode", "video-quality")
         self.c.setOption("model", "vda-small")
         self.c.setOption("engine", str(self.root))
         self.c.setOption("model", "ovda-small-c16")

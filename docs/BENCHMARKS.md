@@ -55,6 +55,8 @@ evidence limits the claim; it does not block unrelated experimentation.
 | Lifecycle and long-run observation | `scripts/test-v1-motion-stability.ps1`, `scripts/soak-v1.ps1` |
 | Matched file renderers | `v1/compare_packaged_renderers.py`, `v1/validate_packaged_comparison.py` |
 | Model comparisons | `v1/evaluate_live_action.py`, `v1/evaluate_live_supplement.py`, `v1/evaluate_ovda_expansion.py` |
+| Offline/VDA temporal proxy | `v1/evaluate_offline_depth.py` on the pinned public corpus |
+| oVDA actual reset/cache lifecycle | `v1/validate_ovda_lifecycle.py --noncommercial` |
 | Live/native/capture attribution | `v1/benchmark_live_modes.py`, `v1/probe_capture_only.py`, `v1/summarize_guarded_baseline.py`, `v1/analyze_live_gpu_boundary.py` |
 | Host live-input alternatives | `v1/benchmark_live_input_layout.py` |
 | Exact isolated guided-filter CUDA candidates | `v1/benchmark_live_guide_candidate.py` |
@@ -127,6 +129,49 @@ DLL. For an A/B, keep geometry, source, mode, warmup, windows, native/runtime
 hashes, presentation target and output guard matched. Validate the pair with
 `summarize_live_guide_rolling_app.py`; the observed effect is not a post-hoc 4K60
 gate.
+
+The current benchmark controller routes `--mode` through the model-defined product
+mapping. Video Quality defaults to VDA for automation; use `--video-model` to name
+VDA or oVDA, and oVDA additionally requires the explicit
+`--ovda-noncommercial` confirmation. The report records the actual model ID.
+Historical DA2 Small runs labeled Balanced or Video Quality remain legacy
+policy/transport evidence only; they must not be relabeled as DA2 Base or
+oVDA/VDA model performance.
+
+`evaluate_offline_depth.py` defaults to the pinned public FloorballGame clip and
+caps work at 124 frames. `--cut-clip ParkingGarage` builds an in-memory annotated
+hard-cut sequence from two separately hash-verified public clips; it does not write
+or silently substitute user media. The report compares raw and centered VDA using
+the existing 480-pixel Farneback-aligned normalized-depth-change proxy. Lower
+change can indicate steadier depth, but it is not ground truth, spatial fidelity,
+ghosting or VR comfort. `validate_ovda_lifecycle.py` likewise defaults to public
+frames and requires the explicit noncommercial confirmation; it is a lifecycle
+check rather than a benchmark.
+
+`benchmark_live_modes.py --path gpu-texture --input-candidate pinned` selects the
+isolated page-locked full-RGB staging worker. It cannot be combined with a guide
+candidate. Count its CPU staging inside `input_color`; the CUDA
+`rgb_h2d_depth_resize` interval alone omits that cost, and CUDA stage intervals
+are not an additive critical path. Use `test_live_gpu_quality.py --pinned-input`
+for the normal numerical matrix and `test_live_gpu_failures.py --native
+--pinned-input` for allocation/failure cleanup. Then run
+`benchmark_live_pinned_input.py --runtime-dll <consume-runtime> --output
+<new-directory>` for five order-alternated unpaced native repeats with declared
+RGB-transfer, whole-throughput and guide-regression gates. The tested candidate
+is rejected because its final source-hash run did not repeat the required 3%
+whole-throughput gain.
+
+For capture-ownership work, `benchmark_live_modes.py --capture-telemetry` retains
+per-callback entry/exit observations. The historical `--capture-candidate
+retained` switch selected a metadata-only, one-slot WGC mapped-frame owner inside
+the SBS worker; that behavior is now the product default, so omitting the switch
+is the current-path check. Evaluate matched five-window pairs with
+`evaluate_live_retained_capture.py`: the declared gates are at least 80% lower
+callback P50, at least 5% lower owned-worker CPU, no more than 1% regression in
+capture/processed/output rate, and no more than 64 MiB worker-memory P95 growth.
+The callback interval starts after native readback and Python/GIL entry, so it
+isolates the removed host memcpy but does not measure WGC latency or scanout.
+Always verify `native_after_stop.live_pools/live_nodes == 0` for sequential modes.
 
 ## Scoped regression entry points
 

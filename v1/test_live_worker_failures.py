@@ -68,10 +68,10 @@ class LiveWorkerFailures(unittest.TestCase):
         def capture(source, cursor, mailbox, **kwargs):
             for index, seq in enumerate((1, 2, 4, 5, 6, 7)):
                 with mailbox.lock:
-                    pixels = np.frombuffer(mailbox.pixels, np.uint8, count=32 * 32 * 4)
-                    pixels[:] = 127
+                    pixels = np.full((32, 32, 4), 127, np.uint8)
                     if index == 5:
-                        pixels[0] = 128
+                        pixels[0, 0, 0] = 128
+                    mailbox.pixels = pixels
                     mailbox.meta[WIDTH] = mailbox.meta[HEIGHT] = 32
                     mailbox.meta[SEQ] = seq
                     mailbox.meta[STATE] = RUNNING
@@ -121,7 +121,7 @@ class LiveWorkerFailures(unittest.TestCase):
 
         def capture(source, cursor, mailbox, **kwargs):
             with mailbox.lock:
-                np.frombuffer(mailbox.pixels, np.uint8, count=32 * 32 * 4)[:] = 127
+                mailbox.pixels = np.full((32, 32, 4), 127, np.uint8)
                 mailbox.meta[WIDTH] = mailbox.meta[HEIGHT] = 32
                 mailbox.meta[SEQ] = 1
                 mailbox.meta[STATE] = RUNNING

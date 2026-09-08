@@ -60,7 +60,7 @@ class OvdaTests(unittest.TestCase):
     def test_parser_defaults(self):
         parser = build_parser()
         default = parser.parse_args([])
-        self.assertEqual(default.depth_backend, 'da2-small')
+        self.assertEqual(default.depth_backend, 'da2-base')
         self.assertFalse(default.ovda_noncommercial)
         parsed = parser.parse_args(['--depth-backend', 'ovda-small-c16', '--ovda-noncommercial'])
         self.assertTrue(parsed.ovda_noncommercial)

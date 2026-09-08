@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from pathlib import Path
 import os
 
-from .config import MODES, OUTPUTS
+from .config import MODES, OUTPUTS, validate_mode_model
 
 ROOT = Path(__file__).resolve().parents[2]
 BUNDLE = ROOT / "out/gpu-preview/DepthSBS-GPU-Preview/_internal"
 MODELS = {
-    "da2-small": ("DA2 Small", "", "", "Apache-2.0 · 기본 모델"),
+    "da2-small": ("DA2 Small", "", "", "Apache-2.0 · Performance 모델"),
     "da2-base": (
         "DA2 Base",
         "da2-base-local",
@@ -63,6 +63,7 @@ class Job:
             or self.model not in MODELS
         ):
             raise ValueError("모드, 코덱 또는 모델 설정을 확인하세요.")
+        validate_mode_model(self.mode, self.model)
         if self.renderer not in ("cpu", "cuda"):
             raise ValueError("렌더러 설정을 확인하세요.")
         if self.model in STATEFUL and MODES[self.mode].inference_cadence != 1:

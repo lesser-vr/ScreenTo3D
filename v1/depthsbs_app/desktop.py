@@ -22,7 +22,7 @@ from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 
-from .config import MODES, OUTPUTS
+from .config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES, MODES, OUTPUTS
 from .desktop_jobs import (
     BUNDLE,
     ROOT,
@@ -65,7 +65,7 @@ class DesktopController(QObject):
         self.detail_text = "Full SBS · 원본 크기와 오디오 유지 · 자동 크기 변경 없음"
         self.setup_text = "설치 확인은 모델을 실행하지 않습니다. GPU 호환성과 성능은 별도 검증이 필요합니다."
         self.values = dict(
-            model="da2-small",
+            model=DEFAULT_MODE_MODELS["balanced"],
             mode="balanced",
             codec="h264",
             renderer="cuda",
@@ -92,9 +92,22 @@ class DesktopController(QObject):
     def settings(self):
         return self.values
 
-    @Property("QVariantList", constant=True)
+    @Property("QVariantList", notify=changed)
     def models(self):
-        return [dict(key=k, label=v[0]) for k, v in MODELS.items()]
+        return [
+            dict(
+                key=key,
+                label=(
+                    "VDA Small · 5프레임 Offline"
+                    if key == "vda-small" and self.values["mode"] == "offline-quality"
+                    else MODELS[key][0]
+                ),
+            )
+            for key in MODE_MODEL_CHOICES[self.values["mode"]]
+        ]
+
+    def models_label(self, key):
+        return MODELS[key][0]
 
     @Property("QVariantList", constant=True)
     def modes(self):
@@ -166,7 +179,16 @@ class DesktopController(QObject):
             return
         if name in ("letterbox", "noncommercial"):
             value = bool(value)
+        if name == "mode":
+            allowed_models = MODE_MODEL_CHOICES[value]
+            if self.values["model"] not in allowed_models:
+                model = DEFAULT_MODE_MODELS[value]
+                self.values["model"] = model
+                self.values["engine"] = self.engine_paths.get(model, "")
+                self.values["noncommercial"] = False
         if name == "model":
+            if value not in MODE_MODEL_CHOICES[self.values["mode"]]:
+                return
             self.values["engine"] = self.engine_paths.get(value, "")
             self.values["noncommercial"] = False
         if name == "engine" and self.values["model"] != "da2-small":
@@ -359,6 +381,10 @@ class DesktopController(QObject):
         elif kind == "progress" and not self.cancelling:
             self.progress_value = max(0, min(99, float(event.get("percent") or 0)))
             self.status_text = f"변환 중 · {event.get('frame', 0)} / {event.get('total_frames', '?')} 프레임"
+        elif kind == "offline_depth" and not self.cancelling:
+            self.status_text = (
+                f"Offline 문맥 준비 · {event.get('window_frames', '?')}프레임 중앙 윈도우"
+            )
         elif kind == "engine_build" and not self.cancelling:
             self.status_text = (
                 "이 GPU에 맞게 모델을 최적화하고 있습니다. 첫 실행에만 필요합니다."

@@ -6,7 +6,7 @@ import subprocess
 
 ROOT=Path(__file__).resolve().parents[1]
 MEDIA=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg'
-FOLDER=ROOT/'out/ovda-expanded-gate/05d776718fdf4cbcbe4af9f423c3f598'
+FOLDER=ROOT/'out/ovda-public-timing'
 
 
 def probe(path):
@@ -17,11 +17,11 @@ def probe(path):
 
 
 def main():
-    sources={'original':Path('E:/Media/avatar/lesser talking sad 03.mp4'),
-        'four-three':ROOT/'out/ovda-expansion-fixtures/four-three-60.mp4',
-        '1080':ROOT/'out/ovda-user-validation/86afad4c521147b492e052186b57a277/1080-hevc-audio.mp4',
+    sources={'original':ROOT/'out/public-live-default/FloorballGame.mp4',
+        'four-three':ROOT/'out/public-live-default/OfficeWalk.mp4',
+        '1080':ROOT/'out/public-live-default/FloorballGame.mp4',
         '4k':FOLDER/'4k30-audio.mp4',
-        'cuts':ROOT/'out/live-action-evaluation/eab25eb5c4b948b2a11b5ce3dad79a2f/KnownCut/input.mp4'}
+        'cuts':ROOT/'out/public-live-default/ParkingGarage.mp4'}
     rows=[]
     for name,source in sources.items():
         expected,pts=probe(source)
@@ -45,9 +45,9 @@ def main():
     from depthsbs_app.pipeline import probe_video
     from evaluate_depth_models import inspect_media
     configure_media_tools(MEDIA)
-    inspect_media(FOLDER/'user-cuda-original.mp4',probe_video(sources['original']))
-    (FOLDER/'timing-report.json').write_text(json.dumps(dict(passed=True,rows=rows,user_launcher_decode_audio=True),indent=2))
-    print('PASS 10 outputs: exact cadence, relative PTS, audio channels/rate/duration; user launcher full decode')
+    inspect_media(FOLDER/'original-cuda.mp4',probe_video(sources['original']))
+    (FOLDER/'timing-report.json').write_text(json.dumps(dict(passed=True,rows=rows,launcher_decode_audio=True),indent=2))
+    print('PASS 10 outputs: exact cadence, relative PTS, audio channels/rate/duration; launcher full decode')
 
 
 if __name__=='__main__':main()

@@ -5,7 +5,7 @@ import traceback
 from pathlib import Path
 
 from . import __version__
-from .config import MODES, OUTPUTS
+from .config import DEFAULT_MODE_MODELS, MODES, OUTPUTS, validate_mode_model
 from .error_reporting import error_event
 
 
@@ -24,6 +24,7 @@ def emitter(status_file: Path | None):
 def run_worker(arguments, gpu_preview=False) -> int:
     emit = emitter(arguments.status_file)
     try:
+        validate_mode_model(arguments.mode, arguments.depth_backend)
         from .pipeline import convert_video
         options = {'output_codec': getattr(arguments, 'output_codec', 'h264')}
         if getattr(arguments, 'depth_backend', 'da2-small') == 'ovda-small-c16':
@@ -41,10 +42,12 @@ def run_worker(arguments, gpu_preview=False) -> int:
         if getattr(arguments, 'depth_backend', 'da2-small') == 'vda-small':
             if arguments.vda_engine_dir is None:
                 raise ValueError('VDA requires --vda-engine-dir built by build_vda_artifact.py')
-            from .depth_backend import vda_binding
-            options['depth_backend'] = vda_binding(arguments.vda_engine_dir, arguments.runtime_dir)
+            from .depth_backend import vda_binding, vda_offline_binding
+            create_binding = vda_offline_binding if arguments.mode == 'offline-quality' else vda_binding
+            options['depth_backend'] = create_binding(arguments.vda_engine_dir, arguments.runtime_dir)
             options['depth_backend'].validate_policy(MODES[arguments.mode])
             emit({'event': 'depth_backend', 'model_id': 'vda-small', 'runtime': 'tensorrt-fp32',
+                  'processing': options['depth_backend'].spec.processing,
                   'preview': True, 'fallback': False})
         selected_renderer = getattr(arguments, 'stereo_renderer', None)
         if gpu_preview and selected_renderer is not None:
@@ -82,8 +85,16 @@ def run_worker(arguments, gpu_preview=False) -> int:
         return 1
 
 
+class ProductArgumentParser(argparse.ArgumentParser):
+    def parse_args(self, args=None, namespace=None):
+        parsed = super().parse_args(args, namespace)
+        if parsed.depth_backend is None:
+            parsed.depth_backend = DEFAULT_MODE_MODELS[parsed.mode]
+        return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="DepthSBS")
+    parser = ProductArgumentParser(prog="DepthSBS")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--diagnostics", action="store_true")
@@ -97,7 +108,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mode", choices=tuple(MODES), default="balanced")
     parser.add_argument('--output-codec', choices=tuple(OUTPUTS), default='h264')
     parser.add_argument('--stereo-renderer', choices=('cpu', 'cuda'), help='Explicit source-app stereo renderer; never automatic fallback')
-    parser.add_argument('--depth-backend', choices=('da2-small', 'da2-base', 'vda-small', 'ovda-small-c16'), default='da2-small')
+    parser.add_argument('--depth-backend', choices=('da2-small', 'da2-base', 'vda-small', 'ovda-small-c16'))
     parser.add_argument('--ovda-engine-dir', type=Path, help='Trusted local oVDA profile directory')
     parser.add_argument('--ovda-noncommercial', action='store_true', help='Confirm personal/non-commercial oVDA use under NC-SA-UHDV1.0')
     parser.add_argument('--da2-base-engine-dir', type=Path)
@@ -149,12 +160,13 @@ def main(gpu_preview=False) -> int:
                         emit({'event': 'diagnostics', 'depth_backend': backend.describe(), 'resources': engine.telemetry()})
                 return 0
             if arguments.depth_backend == 'vda-small':
-                from .depth_backend import vda_binding
+                from .depth_backend import vda_binding, vda_offline_binding
                 if arguments.vda_engine_dir is None:
                     raise ValueError('VDA diagnostics require --vda-engine-dir')
                 from .vda_artifacts import artifact_profiles
+                create_binding = vda_offline_binding if arguments.mode == 'offline-quality' else vda_binding
                 for directory in artifact_profiles(arguments.vda_engine_dir).values():
-                    backend = vda_binding(directory, arguments.runtime_dir)
+                    backend = create_binding(directory, arguments.runtime_dir)
                     with backend.engine_factory(emit) as engine:
                         emit({'event': 'diagnostics', 'depth_backend': backend.describe(), 'resources': engine.telemetry()})
                 return 0
@@ -172,6 +184,7 @@ def main(gpu_preview=False) -> int:
         if arguments.input is None or arguments.output is None:
             raise SystemExit("--worker requires --input and --output")
         return run_worker(arguments, gpu_preview=gpu_preview)
+    validate_mode_model(arguments.mode, arguments.depth_backend)
     from .gui import run_gui
     run_gui(gpu_preview=gpu_preview, backend=arguments.depth_backend,
             engine_dir={'da2-base': arguments.da2_base_engine_dir, 'vda-small': arguments.vda_engine_dir, 'ovda-small-c16': arguments.ovda_engine_dir}.get(arguments.depth_backend),

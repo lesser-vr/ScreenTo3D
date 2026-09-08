@@ -16,7 +16,7 @@ class DepthBindingTests(unittest.TestCase):
             resolve_backend('unavailable', factory, lambda x: x)
         factory.assert_not_called()
 
-    def test_all_modes_still_explicitly_resolve_da2(self):
+    def test_legacy_policy_backend_remains_available_for_low_level_oracles(self):
         for policy in MODES.values():
             binding = resolve_backend(policy.depth_backend, Mock(), lambda x: x)
             binding.validate_policy(policy)

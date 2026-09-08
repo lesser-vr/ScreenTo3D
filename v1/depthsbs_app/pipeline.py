@@ -15,6 +15,7 @@ import numpy as np
 from .config import MODES, OUTPUTS, ModePolicy
 from .resources import resource_path
 from .depth_backend import resolve_backend
+from .offline_depth import is_scene_cut as is_offline_scene_cut
 from .telemetry import StageMetrics
 from .lifecycle import Lifecycle
 from .stereo import project_eye, guide_depth, refine_flat_background, color_change
@@ -251,6 +252,11 @@ def convert_video(
     metadata = probe_video(input_path, output_codec=output_codec)
     backend = depth_backend if depth_backend is not None else resolve_backend(policy.depth_backend, DepthEngine, preprocess)
     backend.validate_policy(policy)
+    offline_factory = backend.offline_processor_factory
+    if mode == 'offline-quality' and offline_factory is None:
+        raise ValueError('Offline Quality requires a dedicated future-aware depth processor')
+    if mode != 'offline-quality' and offline_factory is not None:
+        raise ValueError('Offline depth processing is file-only and requires Offline Quality mode')
     if backend.input_validator is not None:
         backend.input_validator(metadata)
     output_policy = OUTPUTS[output_codec]
@@ -262,12 +268,13 @@ def convert_video(
     video_path = output_path.with_name(f".{output_path.name}.{token}.video-only.mp4")
     width, height = metadata["width"], metadata["height"]
     decode = encode = None
-    started, frames, last_depth = time.perf_counter(), 0, None
+    started, frames, decoded_frames, last_depth = time.perf_counter(), 0, 0, None
     metrics = StageMetrics()
     decoded_pipe_bytes = encoded_pipe_bytes = 0
     scene_cut_resets = extra_cut_inferences = extra_motion_inferences = 0
     local_motion_inferences = 0
     inferred_frame = None
+    offline_window = None
     lifecycle = Lifecycle()
     try:
         _check_cancel(cancel_path)
@@ -294,6 +301,36 @@ def convert_video(
             )
             projection = projection_scope.enter_context(projection_factory(width, height)) if projection_factory else None
             synthesizer, frame_size = StereoSynthesizer(width, height, policy, projection), width * height * 3
+            offline_window = offline_factory() if offline_factory is not None else None
+            if offline_window is not None:
+                progress({
+                    'event': 'offline_depth',
+                    'strategy': offline_window.strategy,
+                    'window_frames': offline_window.capacity,
+                    'lookahead_frames': offline_window.radius,
+                    'bounded': True,
+                })
+
+            def write_sample(output_frame, output_depth):
+                nonlocal encoded_pipe_bytes, frames
+                with metrics.measure('temporal_stereo'):
+                    rendered = synthesizer.render(output_frame, output_depth).tobytes()
+                if hashes is not None:
+                    hashes['depth'].update(output_depth.tobytes())
+                    hashes['sbs_rgb'].update(rendered)
+                with metrics.measure('encode_write'):
+                    written = encode.stdin.write(rendered)
+                    if written != len(rendered):
+                        raise RuntimeError('Encoder pipe returned a short write')
+                    encoded_pipe_bytes += written
+                frames += 1
+                if frames == 1 or frames % 10 == 0:
+                    total = metadata['total_frames']
+                    progress({
+                        'event': 'progress', 'frame': frames, 'total_frames': total,
+                        'percent': min(100.0, frames * 100.0 / total) if total else None,
+                    })
+
             lifecycle.checkpoint('pipeline_setup')
             while True:
                 _check_cancel(cancel_path)
@@ -310,12 +347,22 @@ def convert_video(
                 decoded_pipe_bytes += len(raw)
                 metrics.observe('decode_read', time.perf_counter() - read_started)
                 with metrics.measure('temporal_guard'):
-                    cut = synthesizer.is_scene_cut(frame)
-                    refresh = depth_refresh_reason(frame, inferred_frame, frames, policy, cut)
+                    if offline_window is None:
+                        cut = synthesizer.is_scene_cut(frame)
+                    else:
+                        cut = (
+                            inferred_frame is not None
+                            and is_offline_scene_cut(
+                                inferred_frame,
+                                frame,
+                                policy.scene_cut_threshold,
+                            )
+                        )
+                    refresh = depth_refresh_reason(frame, inferred_frame, decoded_frames, policy, cut)
                 if cut:
                     backend.reset(engine, 'scene_cut')
                     scene_cut_resets += 1
-                    if last_depth is not None and frames % policy.inference_cadence != 0:
+                    if last_depth is not None and decoded_frames % policy.inference_cadence != 0:
                         extra_cut_inferences += 1
                 if refresh in ('motion', 'local_motion'):
                     extra_motion_inferences += 1
@@ -327,24 +374,22 @@ def convert_video(
                         last_depth = backend.infer(engine, tensor)
                     # Holds one immutable decoded RGB buffer, not a growing history.
                     inferred_frame = frame
-                with metrics.measure('temporal_stereo'):
-                    rendered = synthesizer.render(frame, last_depth).tobytes()
-                if hashes is not None:
-                    hashes['depth'].update(last_depth.tobytes())
-                    hashes['sbs_rgb'].update(rendered)
-                with metrics.measure('encode_write'):
-                    written = encode.stdin.write(rendered)
-                    if written != len(rendered):
-                        raise RuntimeError('Encoder pipe returned a short write')
-                    encoded_pipe_bytes += written
+                if offline_window is None:
+                    ready = ((frame, last_depth),)
+                else:
+                    with metrics.measure('offline_depth_window'):
+                        ready = offline_window.submit(frame, last_depth, cut_before=cut)
+                for output_frame, output_depth in ready:
+                    write_sample(output_frame, output_depth)
+                decoded_frames += 1
                 metrics.observe('frame_total', time.perf_counter() - frame_started)
-                frames += 1
-                if frames == 1 or frames % 10 == 0:
-                    total = metadata["total_frames"]
-                    progress({
-                        "event": "progress", "frame": frames, "total_frames": total,
-                        "percent": min(100.0, frames * 100.0 / total) if total else None,
-                    })
+            if offline_window is not None:
+                with metrics.measure('offline_depth_window'):
+                    remaining = offline_window.finish()
+                for output_frame, output_depth in remaining:
+                    write_sample(output_frame, output_depth)
+                if frames != decoded_frames:
+                    raise RuntimeError('Offline depth processing changed the frame count')
             lifecycle.checkpoint('frame_loop')
             _check_cancel(cancel_path)
             decode.stdout.close()
@@ -410,12 +455,14 @@ def convert_video(
             'scheduling_contract': {
                 'worker_active_frame_limit': 1, 'application_work_queue_capacity': 0,
                 'external_buffering_measured': False,
+                'offline_depth_window_capacity': offline_window.capacity if offline_window is not None else 0,
             },
             'zero_copy': False,
             'scene_cut_resets': scene_cut_resets,
             'extra_cut_inferences': extra_cut_inferences,
             'extra_motion_inferences': extra_motion_inferences,
             'local_motion_inferences': local_motion_inferences,
+            'offline_depth': offline_window.telemetry() if offline_window is not None else {'enabled': False},
             'stereo': {'algorithm': projection.algorithm if projection is not None else 'forward_zbuffer_cpu',
                        'projection_resources': projection_stats,
                        'flat_background_frames': synthesizer.flat_background_frames,

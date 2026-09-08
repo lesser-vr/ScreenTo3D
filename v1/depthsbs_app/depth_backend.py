@@ -19,6 +19,7 @@ class BackendSpec:
     stateful: bool = False
     requires_every_frame: bool = False
     polarity: str = 'larger_is_nearer'
+    processing: str = 'streaming'
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,7 @@ class BackendBinding:
     engine_factory: Callable
     prepare: Callable
     input_validator: Callable | None = None
+    offline_processor_factory: Callable | None = None
 
     def validate_policy(self, policy):
         if self.spec.polarity != 'larger_is_nearer':
@@ -87,3 +89,22 @@ def vda_binding(directory, runtime_dir):
         return VdaEngine(selected, runtime_dir, progress)
     return BackendBinding(BackendSpec('vda-small', 'tensorrt-fp32', stateful=True, requires_every_frame=True),
                           factory, lambda frame: frame, validate)
+
+
+def vda_offline_binding(directory, runtime_dir):
+    """VDA Small with a bounded future-aware file-only depth processor."""
+    streaming = vda_binding(directory, runtime_dir)
+    from .offline_depth import CenteredDepthWindow
+    return BackendBinding(
+        BackendSpec(
+            'vda-small',
+            'tensorrt-fp32',
+            stateful=True,
+            requires_every_frame=True,
+            processing=CenteredDepthWindow.strategy,
+        ),
+        streaming.engine_factory,
+        streaming.prepare,
+        streaming.input_validator,
+        CenteredDepthWindow,
+    )

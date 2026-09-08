@@ -6,15 +6,20 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-from PySide6.QtWidgets import QMessageBox
 import shiboken6
-
 from depthsbs_app.desktop import create_app
+from PySide6.QtWidgets import QMessageBox
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=ROOT / "out/public-live-default/FloorballGame.mp4",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     args.output = args.output.resolve()
@@ -52,7 +57,7 @@ def main():
         if name == "close-cancel":
             exits = []
             controller.exitReady.disconnect(app.quit)
-            controller.exitReady.connect(lambda: exits.append(True))
+            controller.exitReady.connect(lambda exits=exits: exits.append(True))
             with patch.object(QMessageBox, "question", return_value=QMessageBox.Yes):
                 assert not controller.requestClose()
         else:
@@ -64,8 +69,9 @@ def main():
         if name == "close-cancel":
             assert exits == [True]
             controller.closing = False
-        evidence.append(dict(case=name, preserved=True, cleaned=True))
+        evidence.append({"case": name, "preserved": True, "cleaned": True})
 
+    controller.setOption("mode", "video-quality")
     controller.setOption("model", "ovda-small-c16")
     controller.setOption("noncommercial", True)
     controller.setOption("engine", str(args.output))
@@ -74,9 +80,10 @@ def main():
     assert controller.rows[0]["state"] == "오류"
     assert target.read_bytes() == sentinel
     assert controller.temp is None and controller.process is None
-    evidence.append(dict(case="invalid-engine", preserved=True, cleaned=True))
+    evidence.append(
+        {"case": "invalid-engine", "preserved": True, "cleaned": True}
+    )
 
-    controller.setOption("model", "da2-small")
     for mode in ("performance", "balanced", "video-quality", "offline-quality"):
         controller.setOption("mode", mode)
         target = args.output / (mode + ".mp4")
@@ -88,7 +95,7 @@ def main():
             controller.status
         )
         assert controller.temp is None and controller.process is None
-        evidence.append(dict(case="retry-" + mode, complete=True, cleaned=True))
+        evidence.append({"case": "retry-" + mode, "complete": True, "cleaned": True})
 
     assert not list(args.output.glob("*.partial*"))
     (args.output / "report.json").write_text(

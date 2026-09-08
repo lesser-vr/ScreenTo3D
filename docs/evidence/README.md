@@ -14,8 +14,8 @@ Read only the records relevant to the current question.
 | [Live stereo and numerical parity](stereo.md) | 8 |
 | [Matched model and content comparisons](model-comparisons.md) | 6 |
 | [DA2 Base build and evaluation](da2-base.md) | 5 |
-| [VDA export, runtime and quality](vda.md) | 18 |
-| [oVDA build, runtime and evaluation](ovda.md) | 7 |
+| [VDA export, runtime and quality](vda.md) | 19 |
+| [oVDA build, runtime and evaluation](ovda.md) | 8 |
 | [NVOF temporal experiments](nvof.md) | 3 |
 | [Frame-generation feasibility](frame-generation.md) | 2 |
 | [Desktop and output controls](desktop.md) | 4 |

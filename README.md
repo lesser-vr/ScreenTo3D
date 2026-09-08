@@ -1,9 +1,10 @@
 # DepthSBS
 
 Desktop 2D-to-SBS conversion for games and videos. Run `Run-DepthSBS.cmd` in the
-prepared local environment for the Korean Live / Files / Settings app. Live has
-Original preview and DA2 Small SBS; file conversion includes explicit installed
-model choices. Current source features are not automatically in old portable builds.
+prepared local environment for the Korean Live / Files / Settings app. Live and
+file conversion resolve the selected product mode to its permitted installed depth
+model without silent fallback. Current source features are not automatically in
+old portable builds.
 
 The goal is better depth and easier use than Small + Lossless Scaling FG, with
 3840x2160 per eye / 7680x2160 Full SBS at final 60 fps. This is not certified support.

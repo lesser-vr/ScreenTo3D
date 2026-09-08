@@ -107,14 +107,16 @@ ApplicationWindow {
                 anchors.margins: 32
                 Item { height: 16 }
                 Heading { text: "화면에 깊이를 더하세요"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                Copy { text: "화면 캡처 → DA2 Small → Full SBS · SDR 전용 / 로컬 GPU 처리"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                Copy { text: "화면 캡처 → 선택 모드의 깊이 모델 → Full SBS · SDR 전용 / 로컬 GPU 처리"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 RowLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32
-                    Picker { objectName: "liveMode"; enabled: !live.active; model: ["원본 미리보기", "DA2 Small · SBS"]; currentIndex: live.sbsEnabled ? 1 : 0; onActivated: live.setSbs(currentIndex === 1) }
+                    Picker { objectName: "liveMode"; enabled: !live.active; model: ["원본 미리보기", "모델별 Full SBS"]; currentIndex: live.sbsEnabled ? 1 : 0; onActivated: live.setSbs(currentIndex === 1) }
                     Picker { objectName: "livePolicy"; enabled: !live.active && live.sbsEnabled; model: live.liveModes; textRole: "label"; valueRole: "key"; currentIndex: live.liveModes.map(function(m) { return m.key }).indexOf(live.liveMode); onActivated: live.setMode(currentValue) }
+                    Picker { objectName: "liveModel"; visible: live.sbsEnabled && live.liveModels.length > 1; enabled: !live.active; model: live.liveModels; textRole: "label"; valueRole: "key"; currentIndex: live.liveModels.map(function(m) { return m.key }).indexOf(live.liveModel); onActivated: live.setLiveModel(currentValue) }
                     Label { text: "입체감 " + live.depthStrength.toFixed(2) + "×"; color: root.muted }
                     Slider { objectName: "liveStrength"; enabled: !root.liveController.active && root.liveController.sbsEnabled; from: 0.25; to: 2.0; stepSize: 0.25; value: root.liveController.depthStrength; onMoved: root.liveController.setStrength(value); Layout.preferredWidth: 130 }
                 }
+                CheckBox { visible: live.sbsEnabled && live.liveModel === "ovda-small-c16"; enabled: !live.active; text: "oVDA 개인·비상업적 사용 및 라이선스 조건 확인"; checked: live.ovdaConfirmed; onClicked: live.setOvdaConfirmed(checked); Layout.leftMargin: 32 }
                 RowLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32
                     Picker { Layout.preferredWidth: 140; Layout.fillWidth: false; enabled: !live.active; model: ["창", "모니터"]; currentIndex: live.sourceKind === "window" ? 0 : 1; onActivated: live.setKind(currentIndex === 0 ? "window" : "monitor") }
@@ -123,7 +125,7 @@ ApplicationWindow {
                 }
                 RowLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32
-                    Picker { objectName: "liveProcessingPath"; enabled: !live.active && live.sbsEnabled; model: ["GPU 가속 · 로컬 기본", "기존 처리 · 비교용", "GPU 직접 출력 · 실험"]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]) }
+                    Picker { objectName: "liveProcessingPath"; enabled: !live.active && live.sbsEnabled; model: live.nativeCapable ? ["GPU 가속 · 로컬 기본", "기존 처리 · 비교용", "GPU 직접 출력 · 실험"] : ["GPU 가속 · 모델 호스트 경계", "기존 처리 · 비교용"]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]) }
                     Picker { objectName: "livePresentationHz"; enabled: !live.active; model: ["출력 목표 30 fps", "출력 목표 60 fps"]; currentIndex: live.presentationHz === 60 ? 1 : 0; onActivated: live.setPresentationHz(currentIndex === 1 ? 60 : 30) }
                 }
                 Card {
@@ -252,7 +254,7 @@ ApplicationWindow {
                     Copy { text: "깊이 모델" }
                     Picker { objectName: "modelPicker"; enabled: !desktop.busy; model: desktop.models; textRole: "label"; valueRole: "key"; currentIndex: desktop.models.map(function(m) { return m.key }).indexOf(desktop.settings.model); onActivated: desktop.setOption("model", currentValue) }
                     Copy { text: desktop.licenseNotice; color: root.accent }
-                    Copy { text: "모드와 모델은 별개입니다. VDA / oVDA는 Performance 모드를 지원하지 않습니다. 모델은 자동 다운로드하거나 대체하지 않습니다."; font.pixelSize: 12 }
+                    Copy { text: "모드가 깊이 모델을 지정합니다. Video Quality에서만 oVDA/VDA를 명시적으로 선택할 수 있습니다. Offline Quality는 VDA의 장면별 5프레임 앞·뒤 문맥을 사용합니다. 모델은 자동 다운로드하거나 다른 모델로 대체하지 않습니다."; font.pixelSize: 12 }
                     RowLayout {
                         visible: desktop.settings.model === "ovda-small-c16"
                         CheckBox { text: "개인·비상업적 사용 및 라이선스 조건 확인"; checked: desktop.settings.noncommercial; enabled: !desktop.busy; onClicked: desktop.setOption("noncommercial", checked) }

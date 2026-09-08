@@ -12,19 +12,21 @@ def main():
     root.mkdir(parents=True)
     ffmpeg=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg/ffmpeg.exe'
     ffprobe=ffmpeg.with_name('ffprobe.exe')
-    original=ROOT/'out/vda-widescreen-fixtures/e27e0df90d9949e885fc6c3e12aecacb/avatar-1080p.mp4'
+    original=ROOT/'out/public-live-default/FloorballGame.mp4'
     report=dict(passed=False,runs=[])
     def command(args):
         subprocess.run([str(v) for v in args],check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     try:
-        command([ffmpeg,'-v','error','-i',original,'-vf','scale=1280:720','-c:v','libx264','-c:a','aac',root/'720p.mp4'])
+        command([ffmpeg,'-v','error','-i',original,'-vf','scale=1280:720','-c:v','libx264',root/'720p.mp4'])
+        command([ffmpeg,'-v','error','-i',original,'-frames:v','12','-vf','scale=3840:2160:flags=lanczos',
+            '-an','-c:v','libx265','-preset','fast','-x265-params','log-level=error',root/'4k.mp4'])
         command([ffmpeg,'-v','error','-f','lavfi','-i','color=white:s=1280x720:r=24:d=1',
             '-f','lavfi','-i','color=black:s=1280x720:r=24:d=1','-f','lavfi','-i','sine=frequency=440:duration=2',
             '-filter_complex','[0:v][1:v]concat=n=2:v=1:a=0[v]','-map','[v]','-map','2:a',
             '-c:v','libx265','-c:a','aac','-tag:v','hvc1',root/'cut.mp4'])
-        fixtures=[('720p',root/'720p.mp4',1280,720,124,'h264'),
-            ('1080p',original,1920,1080,124,'h264'),
-            ('4k',ROOT/'out/vda-widescreen/07afaccdee26490c8262cc61b90b646f/input-4k-hevc.mp4',3840,2160,12,'hevc'),
+        fixtures=[('720p',root/'720p.mp4',1280,720,360,'h264'),
+            ('1080p',original,1920,1080,360,'h264'),
+            ('4k',root/'4k.mp4',3840,2160,12,'hevc'),
             ('cut',root/'cut.mp4',1280,720,48,'hevc')]
         for name,path,w,h,count,codec in fixtures:
             output=root/f'{name}-sbs.mp4'
@@ -38,7 +40,8 @@ def main():
             assert completed['telemetry']['resources']['input_shape']==[1,3,518,924]
             if name=='cut':assert completed['telemetry']['scene_cut_resets']==1
             streams=json.loads(subprocess.check_output([str(ffprobe),'-v','error','-show_streams','-of','json',str(output)]))['streams']
-            assert any(s['codec_type']=='audio' for s in streams)
+            source_streams=json.loads(subprocess.check_output([str(ffprobe),'-v','error','-show_streams','-of','json',str(path)]))['streams']
+            assert sum(s['codec_type']=='audio' for s in streams)==sum(s['codec_type']=='audio' for s in source_streams)
             video=next(s for s in streams if s['codec_type']=='video')
             assert video['codec_name']==codec
             capture=cv2.VideoCapture(str(output)); decoded=0

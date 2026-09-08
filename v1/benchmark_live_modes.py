@@ -183,8 +183,20 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--seconds", type=float, default=6)
     parser.add_argument("--repeats", type=int, default=5)
+    parser.add_argument("--startup-timeout", type=float, default=120)
     parser.add_argument("--sizes", default="1280x720,1920x1080")
     parser.add_argument("--modes", default=",".join(LIVE_MODES))
+    parser.add_argument(
+        "--video-model",
+        choices=("vda-small", "ovda-small-c16"),
+        default="vda-small",
+        help="Explicit Video Quality backend",
+    )
+    parser.add_argument(
+        "--ovda-noncommercial",
+        action="store_true",
+        help="Confirm oVDA personal/non-commercial license conditions",
+    )
     parser.add_argument(
         "--source",
         choices=("generated", "FloorballGame", "OfficeWalk", "ParkingGarage"),
@@ -208,17 +220,37 @@ def main():
         "--guide-candidate", choices=("rolling", "hybrid", "promoted")
     )
     parser.add_argument(
+        "--input-candidate",
+        choices=("pinned",),
+        help="Opt-in native RGB input staging candidate",
+    )
+    parser.add_argument(
+        "--capture-candidate",
+        choices=("retained",),
+        help="Opt-in retained mapped capture-frame candidate",
+    )
+    parser.add_argument(
         "--legacy-poll",
         action="store_true",
         help="Explicit old 33ms scheduling baseline",
     )
     args = parser.parse_args()
+    if args.startup_timeout <= 0:
+        raise ValueError("Positive startup timeout required")
     if args.abort_output_below_fps is not None and args.abort_output_below_fps <= 0:
         raise ValueError("Positive output guard threshold required")
     if args.capture_telemetry:
         os.environ["DEPTHSBS_CAPTURE_TELEMETRY"] = "1"
     if args.guide_candidate and args.path != "gpu-texture":
         raise ValueError("Guide candidate integration is scoped to gpu-texture")
+    if args.input_candidate and args.path != "gpu-texture":
+        raise ValueError("Input candidate integration is scoped to gpu-texture")
+    if args.capture_candidate and args.path != "gpu-texture":
+        raise ValueError("Capture candidate integration is scoped to gpu-texture")
+    if args.guide_candidate and args.input_candidate:
+        raise ValueError("Run one isolated candidate at a time")
+    if args.capture_candidate and (args.guide_candidate or args.input_candidate):
+        raise ValueError("Run one isolated candidate at a time")
     guide_candidate = None
     if args.guide_candidate == "rolling":
         from depthsbs_app import live_sbs as live_sbs_module
@@ -247,6 +279,26 @@ def main():
 
         guide_candidate = candidate_manifest()
         live_sbs_module.sbs_worker = sbs_worker_promoted
+    input_candidate = None
+    if args.input_candidate == "pinned":
+        from depthsbs_app import live_sbs as live_sbs_module
+        from depthsbs_app.live_pinned_input_worker import (
+            candidate_manifest,
+            sbs_worker_pinned_input,
+        )
+
+        input_candidate = candidate_manifest()
+        live_sbs_module.sbs_worker = sbs_worker_pinned_input
+    capture_candidate = None
+    if args.capture_candidate == "retained":
+        from depthsbs_app import live_sbs as live_sbs_module
+        from depthsbs_app.live_retained_capture_worker import (
+            candidate_manifest,
+            sbs_worker_retained_capture,
+        )
+
+        capture_candidate = candidate_manifest()
+        live_sbs_module.sbs_worker = sbs_worker_retained_capture
     args.output.mkdir(parents=True, exist_ok=False)
     app, engine, desktop = create_app()
     live = desktop.live
@@ -305,7 +357,7 @@ def main():
         end = time.perf_counter() + timeout
         while not predicate() and time.perf_counter() < end:
             pump(0.03)
-        assert predicate(), live.status
+        assert predicate(), {"status": live.status, "report": live.report()}
 
     def command(*argv):
         return subprocess.check_output(
@@ -361,6 +413,10 @@ def main():
                 live.selected = 0
                 live.setSbs(True)
                 live.setMode(mode)
+                if mode == "video-quality":
+                    live.setLiveModel(args.video_model)
+                    if args.video_model == "ovda-small-c16":
+                        live.setOvdaConfirmed(args.ovda_noncommercial)
                 live.setPresentationHz(args.hz)
                 if args.path:
                     live.setProcessingPath(args.path)
@@ -371,6 +427,11 @@ def main():
                     live.timer.setInterval(33)
                     # Old timer alone paced submissions; no additional deadline gate.
                     live.cadence.period_ns = 0
+                if args.hide_main and not desktop.main_window.isVisible():
+                    # Native delivery is demand-driven. Prime every new session
+                    # with one visible consumer before hiding the diagnostic UI.
+                    desktop.main_window.showNormal()
+                    pump(0.1)
                 live.start()
                 if args.poll_ms is not None:
                     if args.legacy_poll:
@@ -378,7 +439,10 @@ def main():
                             "Cannot combine poll override with legacy pacing"
                         )
                     live.timer.setInterval(args.poll_ms)
-                wait(lambda: live.submitted >= 8 or not live.active)
+                wait(
+                    lambda: live.submitted >= 8 or not live.active,
+                    args.startup_timeout,
+                )
                 assert live.active, live.status
                 live.showOutput(0, False)
                 live.output_window.resize(1400, 650)
@@ -607,14 +671,44 @@ def main():
                 )
                 live.timer.setInterval(live.cadence.poll_ms)
                 live.stop()
+                # Keep the output scene exposed briefly so its NativeSurface can
+                # observe the stopped session and delete the old render node.
+                # Hiding first prevents that cleanup frame from being rendered.
+                pump(0.15)
+                if args.path == "gpu-texture":
+                    live.output_window.grabWindow()
                 wait(lambda: not live.active, 15)
+                if args.hide_main:
+                    # The hidden main NativeSurface cannot run updatePaintNode
+                    # to delete its old node. Expose one stopped/blank frame only
+                    # after measurement so the next session cannot retain it.
+                    desktop.main_window.showNormal()
+                    pump(0.15)
+                    desktop.main_window.grabWindow()
+                # Let QML/render-thread visibility and native-session teardown
+                # settle before creating another CUDA/WGC worker in this process.
+                # Immediate back-to-back starts can otherwise leave the next
+                # worker blocked during GPU/capture initialization even though
+                # the previous child has exited.
+                pump(0.25)
+                if args.path == "gpu-texture":
+                    native_after_stop = live.native.report()
+                    assert native_after_stop["live_pools"] == 0
+                    assert native_after_stop["live_nodes"] == 0
+                    rows[-1]["native_after_stop"] = native_after_stop
                 live.output_window.hide()
+                if args.hide_main:
+                    desktop.main_window.hide()
+                pump(0.1)
                 (args.output / "runs.json").write_text(
                     json.dumps(rows, indent=2), encoding="utf-8"
                 )
         from depthsbs_app.desktop_jobs import BUNDLE
         import PySide6
 
+        selected_models = sorted(
+            {row["report"]["plan"]["model"] for row in rows if row["report"]["plan"]}
+        )
         environment = dict(
             gpu_preflight=gpu_preflight,
             gpu_processes_preflight=gpu_processes_preflight,
@@ -629,9 +723,23 @@ def main():
             ),
             commit=command("git", "rev-parse", "HEAD"),
             dirty=bool(command("git", "status", "--porcelain")),
-            model_sha256=hashlib.sha256(
-                (BUNDLE / "models/da2-small/model_fp16.onnx").read_bytes()
-            ).hexdigest(),
+            model_ids=selected_models,
+            video_model=args.video_model if "video-quality" in args.modes.split(",") else None,
+            ovda_noncommercial_confirmed=(
+                args.ovda_noncommercial and "ovda-small-c16" in selected_models
+            ),
+            model_sha256=(
+                hashlib.sha256(
+                    (BUNDLE / "models/da2-small/model_fp16.onnx").read_bytes()
+                ).hexdigest()
+                if selected_models == ["da2-small"]
+                else None
+            ),
+            model_hash_scope=(
+                "DA2 Small ONNX"
+                if selected_models == ["da2-small"]
+                else "Non-Small bindings validated their trusted local plan manifests before startup"
+            ),
             dpi=dpi,
             fixture=args.source,
             source_process=args.source_process,
@@ -663,6 +771,8 @@ def main():
             if live.processingPath in ("gpu", "gpu-texture")
             else None,
             guide_candidate=guide_candidate,
+            input_candidate=input_candidate,
+            capture_candidate=capture_candidate,
             native_dll_sha256=live.native.report()["dll_sha256"]
             if live.nativeEnabled
             else None,
@@ -688,6 +798,10 @@ def main():
                         "live_guide_hybrid_worker.py",
                         "live_guide_promoted_worker.py",
                         "live_guide_rolling_worker.py",
+                        "live_pinned_input.py",
+                        "live_pinned_input_worker.py",
+                        "live_retained_capture.py",
+                        "live_retained_capture_worker.py",
                         "live_scene_history.py",
                         "live_gpu_texture.py",
                         "live_texture_pool.py",

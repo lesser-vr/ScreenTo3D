@@ -1,4 +1,4 @@
-"""Owned, bounded DA2 Small/TensorRT worker with explicit host/native delivery.
+"""Owned, bounded model-defined TensorRT worker with explicit delivery.
 
 Capture runs on a thread; CUDA objects remain on the worker's main thread.
 Native delivery exports owned D3D resources through bounded descriptors only.
@@ -10,6 +10,7 @@ import os
 import threading
 import time
 from contextlib import ExitStack
+from dataclasses import replace
 
 from .capture_mailbox import (
     Mailbox,
@@ -69,12 +70,17 @@ def sbs_worker(
     session=0,
     *,
     capture_telemetry=None,
+    backend_snapshot=None,
 ):
     from .capture_worker import capture_worker
 
     capture = None
     profiler = None
-    incoming = Mailbox.create(mp.get_context("spawn"))
+    # Capture and SBS run in the same owned worker process. WGC's NumPy view
+    # carries the mapped-frame owner, so only metadata/coordination must be
+    # shared with the GUI process; allocating a 4K BGRA RawArray here would be
+    # unused after the retained-frame handoff below.
+    incoming = Mailbox.create(mp.get_context("spawn"), metadata_only=True)
     incoming.stop = output.stop
     try:
         import cv2
@@ -90,6 +96,25 @@ def sbs_worker(
         from .live_host_bridge import capture_rgb, publish_rgb
 
         policy = resolve_live(mode, validate_strength(strength))
+        selected_model = "da2-small"
+        if backend_snapshot is None:
+            # Direct diagnostic callers retain their explicit legacy DA2 Small
+            # behavior. The product controller always supplies a snapshot.
+            from .depth_backend import resolve_backend
+
+            backend = resolve_backend(selected_model, DepthEngine, preprocess)
+        else:
+            from .live_backend import binding as create_live_binding
+
+            backend = create_live_binding(
+                backend_snapshot,
+                mode,
+                {"width": source["width"], "height": source["height"]},
+                DepthEngine,
+                preprocess,
+            )
+            selected_model = backend.spec.model_id
+        policy = replace(policy, depth_backend=selected_model)
         # Explicit diagnostic A/B switch, never an automatic fallback.
         bridge = os.environ.get("DEPTHSBS_LIVE_HOST_BRIDGE", "fused")
         if bridge not in ("legacy", "fused"):
@@ -114,6 +139,10 @@ def sbs_worker(
         if type(gpu_candidate) is not bool:
             raise ValueError("Invalid GPU path snapshot")
         native = texture_mailbox is not None
+        if selected_model != "da2-small" and gpu_candidate:
+            raise ValueError(
+                "The fused live GPU path currently supports Performance / DA2 Small only"
+            )
         if native and (
             not gpu_candidate
             or type(session) is not int
@@ -135,7 +164,9 @@ def sbs_worker(
 
         generation = 0
         with ExitStack() as scope:
-            engine = scope.enter_context(DepthEngine())
+            engine_scope = ExitStack()
+            scope.callback(engine_scope.close)
+            engine = engine_scope.enter_context(backend.engine_factory(None))
             parent = mp.parent_process()
             if output.stop.is_set() or (parent is not None and not parent.is_alive()):
                 return
@@ -145,6 +176,10 @@ def sbs_worker(
                 kwargs={
                     "minimum_update_interval": int(capture_interval),
                     "capture_telemetry": capture_telemetry,
+                    # WGC's NumPy view retains its owned mapped frame. The
+                    # single latest-frame mailbox holds that owner until RGB
+                    # conversion completes, avoiding a 4-byte-per-pixel copy.
+                    "retain_frame": True,
                 },
                 daemon=True,
             )
@@ -216,6 +251,10 @@ def sbs_worker(
                     previous_sequence, m[SEQ], previous_shape, shape, cut
                 )
                 if shape != previous_shape:
+                    if previous_shape is not None and backend.input_validator is not None:
+                        backend.input_validator({"width": width, "height": height})
+                        engine_scope.close()
+                        engine = engine_scope.enter_context(backend.engine_factory(None))
                     if native and projection is not None:
                         from .texture_mailbox import RETIRED
 
@@ -251,6 +290,15 @@ def sbs_worker(
                 if reason:
                     scene = None  # Reset invalidates observations from the old history.
                     inferred_frame = depth = None
+                    backend.reset(
+                        engine,
+                        {
+                            "start": "start",
+                            "resize": "source_change",
+                            "gap": "discontinuity",
+                            "cut": "scene_cut",
+                        }[reason],
+                    )
                     if gpu_candidate:
                         synthesizer = projection
                         synthesizer.reset()
@@ -277,14 +325,21 @@ def sbs_worker(
                         depth_start = time.perf_counter_ns()
                         depth = projection.infer(frame)
                     else:
-                        tensor = preprocess(frame)
+                        tensor = backend.prepare(frame)
                         depth_start = time.perf_counter_ns()
-                        depth = engine.infer(tensor)
+                        depth = backend.infer(engine, tensor)
                     inferred_frame = frame
                     stats[INFERRED] += 1
                     if not gpu_candidate:
-                        stats[H2D_BYTES] += engine.input_bytes
-                        stats[D2H_BYTES] += engine.output_bytes
+                        if selected_model == "da2-small":
+                            stats[H2D_BYTES] += engine.input_bytes
+                            stats[D2H_BYTES] += engine.output_bytes
+                        else:
+                            input_shape = getattr(
+                                engine, "input_shape", (1, 3, *getattr(engine, "shape", frame.shape[:2]))
+                            )
+                            stats[H2D_BYTES] += int(np.prod(input_shape) * 4)
+                            stats[D2H_BYTES] += depth.nbytes
                         stats[SYNCS] += 1
                 else:
                     depth_start = time.perf_counter_ns()
@@ -328,6 +383,9 @@ def sbs_worker(
                     ):
                         stats[key] = int(float(value) * 1e6)
                     stats[19] = int(projection.last["background_ms"] * 1e6)
+                    stats[INPUT_COLOR_NS] += int(
+                        projection.last.get("input_stage_ms", 0) * 1e6
+                    )
                     for key, value in zip(range(24, 30), projection.projection_ms):
                         stats[key] = int(float(value) * 1e6)
                 else:

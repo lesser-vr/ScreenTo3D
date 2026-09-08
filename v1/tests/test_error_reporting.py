@@ -9,7 +9,10 @@ from depthsbs_app.main import build_parser, run_worker
 
 class WorkerErrorPrivacyTests(unittest.TestCase):
     def invoke(self, detailed=False, cancellation=False):
-        args = build_parser().parse_args(['--detailed-errors'] if detailed else [])
+        values = ['--mode', 'performance']
+        if detailed:
+            values.append('--detailed-errors')
+        args = build_parser().parse_args(values)
         error = (InterruptedError if cancellation else RuntimeError)(
             'Decode failed: C:/private/secret.mp4 frame-bytes-SECRET')
         error.add_note('cleanup private user/path SECRET')

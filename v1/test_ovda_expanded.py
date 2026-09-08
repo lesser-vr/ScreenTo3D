@@ -21,13 +21,18 @@ def main():
     root=ROOT/'out/ovda-expanded-gate'/uuid.uuid4().hex;root.mkdir(parents=True)
     print(root,flush=True)
     configure_media_tools(MEDIA)
+    public_1080=root/'public-1080-hevc-audio.mp4'
+    subprocess.run([str(MEDIA/'ffmpeg.exe'),'-hide_banner','-loglevel','error','-nostdin',
+        '-i',str(args.original),'-f','lavfi','-i','sine=frequency=440:sample_rate=48000',
+        '-t','1','-c:v','libx265','-preset','fast','-x265-params','log-level=error',
+        '-c:a','aac','-shortest',str(public_1080)],check=True)
     fourk=root/'4k30-audio.mp4'
     subprocess.run([str(MEDIA/'ffmpeg.exe'),'-hide_banner','-loglevel','error','-nostdin',
         '-f','lavfi','-i','testsrc2=size=3840x2160:rate=30','-f','lavfi','-i','sine=frequency=440:sample_rate=48000',
         '-t','1','-c:v','libx265','-preset','fast','-x265-params','log-level=error','-c:a','aac','-shortest',str(fourk)],check=True)
     sources=[('original',args.original,'h264'),
              ('four-three',ROOT/'out/ovda-expansion-fixtures/four-three-60.mp4','h264'),
-             ('1080',ROOT/'out/ovda-user-validation/86afad4c521147b492e052186b57a277/1080-hevc-audio.mp4','hevc'),
+             ('1080',public_1080,'hevc'),
              ('4k',fourk,'hevc'),
              ('cuts',ROOT/'out/live-action-evaluation/eab25eb5c4b948b2a11b5ce3dad79a2f/KnownCut/input.mp4','h264')]
     report=dict(passed=False,clips=[],failures=[],rejections=[])
