@@ -610,9 +610,9 @@ def main():
                 ages = []
                 attempts = 0
                 review_frames = []
-                review_root = args.output / "review"
+                review_root = args.output / "review" / f"{size}-{mode}"
                 if args.save_review_frames:
-                    review_root.mkdir()
+                    review_root.mkdir(parents=True)
                 for review_index in range(15):
                     pump(0.2)
                     rendered = live.output_window.grabWindow()
