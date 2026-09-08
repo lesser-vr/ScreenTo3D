@@ -8,64 +8,8 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-from depthsbs_app import trt_backend as backend
 from depthsbs_app.pipeline import _cleanup_processes
 from depthsbs_app import pipeline
-
-
-class BackendCleanupTests(unittest.TestCase):
-    def engine(self):
-        engine = backend.DepthEngine.__new__(backend.DepthEngine)
-        engine.device_input, engine.device_output, engine.stream = 11, 22, 33
-        engine.context = engine.engine = engine.runtime = object()
-        engine.pending_work = True
-        return engine
-
-    def test_all_releases_attempted_and_no_double_free(self):
-        engine = self.engine()
-        ok = backend.cudart.cudaError_t.cudaSuccess
-        with patch.object(backend.cudart, 'cudaFree', side_effect=[RuntimeError('free'), (ok,)]) as free, \
-                patch.object(backend.cudart, 'cudaStreamDestroy', return_value=(ok,)) as destroy, \
-                patch.object(backend.cudart, 'cudaStreamSynchronize', return_value=(ok,)) as sync:
-            with self.assertRaises(ExceptionGroup):
-                engine.close()
-            engine.close()
-        self.assertEqual(free.call_count, 2)
-        destroy.assert_called_once_with(33)
-        sync.assert_called_once_with(33)
-        self.assertIsNone(engine.context)
-        self.assertIsNone(engine.engine)
-        self.assertIsNone(engine.runtime)
-
-    def test_original_error_survives_failed_cleanup(self):
-        engine = self.engine()
-        original = ValueError('original')
-        with patch.object(engine, 'close', side_effect=RuntimeError('cleanup')):
-            engine.__exit__(ValueError, original, None)
-        self.assertIn('cleanup', original.__notes__[0])
-
-    def test_partial_constructor_allocation_is_released(self):
-        ok = backend.cudart.cudaError_t.cudaSuccess
-
-        def fail_after_allocation(engine, progress):
-            engine.device_input = 11
-            raise RuntimeError('second allocation failed')
-
-        with patch.object(backend.DepthEngine, '_initialize', fail_after_allocation), \
-                patch.object(backend.cudart, 'cudaFree', return_value=(ok,)) as free:
-            with self.assertRaisesRegex(RuntimeError, 'second allocation'):
-                backend.DepthEngine()
-        free.assert_called_once_with(11)
-
-    def test_no_extra_sync_for_completed_inference(self):
-        engine = self.engine()
-        engine.pending_work = False
-        ok = backend.cudart.cudaError_t.cudaSuccess
-        with patch.object(backend.cudart, 'cudaFree', return_value=(ok,)), \
-                patch.object(backend.cudart, 'cudaStreamDestroy', return_value=(ok,)), \
-                patch.object(backend.cudart, 'cudaStreamSynchronize') as sync:
-            engine.close()
-        sync.assert_not_called()
 
 
 class ProcessCleanupTests(unittest.TestCase):
@@ -86,7 +30,8 @@ class ProcessCleanupTests(unittest.TestCase):
 class PipelineFailureTests(unittest.TestCase):
     def test_failure_and_finalization_cancel_preserve_existing_output(self):
         for scenario in ('inference', 'truncated_decode', 'encode_spawn', 'mux',
-                         'cancel_after_mux', 'publish', 'cancel_before_start'):
+                         'cancel_after_mux', 'publish', 'cancel_before_start',
+                         'decode_exit', 'encode_exit', 'empty_decode', 'empty_mux', 'process_cleanup'):
             with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as folder:
                 root = Path(folder)
                 output, cancel = root / 'output.mp4', root / 'cancel'
@@ -94,11 +39,17 @@ class PipelineFailureTests(unittest.TestCase):
                 if scenario == 'cancel_before_start':
                     cancel.touch()
                 raw = b'x' if scenario == 'truncated_decode' else bytes(16 * 16 * 3)
+                if scenario == 'empty_decode':
+                    raw = b''
                 decoder = Mock(stdin=None, stdout=io.BytesIO(raw), stderr=io.BytesIO())
                 encoder = Mock(stdin=io.BytesIO(), stdout=None, stderr=io.BytesIO())
                 for process in (decoder, encoder):
                     process.wait.return_value = 0
                     process.poll.return_value = None
+                if scenario == 'decode_exit':
+                    decoder.wait.return_value = 1
+                if scenario == 'encode_exit':
+                    encoder.wait.return_value = 1
                 engine = Mock()
                 engine.infer.return_value = np.ones((1, 518, 518), dtype=np.float32)
                 if scenario == 'inference':
@@ -107,7 +58,7 @@ class PipelineFailureTests(unittest.TestCase):
                 events = []
 
                 def mux(arguments):
-                    Path(arguments[-1]).touch()
+                    Path(arguments[-1]).write_bytes(b'' if scenario == 'empty_mux' else b'mock mux payload')
                     if scenario == 'cancel_after_mux':
                         cancel.touch()
                     return subprocess.CompletedProcess(arguments, 1 if scenario == 'mux' else 0, '', 'mux failed')
@@ -126,14 +77,23 @@ class PipelineFailureTests(unittest.TestCase):
                     stack.enter_context(patch.object(pipeline, 'DepthEngine', return_value=context))
                     stack.enter_context(patch.object(pipeline.subprocess, 'Popen', side_effect=popen))
                     stack.enter_context(patch.object(pipeline, '_run', side_effect=mux))
+                    if scenario == 'process_cleanup':
+                        actual_cleanup = pipeline._cleanup_processes
+                        def fail_cleanup(processes):
+                            errors = actual_cleanup(processes)
+                            if any(process is not None for process in processes):
+                                errors.append(OSError('injected pipe cleanup failure'))
+                            return errors
+                        stack.enter_context(patch.object(pipeline, '_cleanup_processes', side_effect=fail_cleanup))
                     if scenario == 'publish':
                         stack.enter_context(patch.object(Path, 'replace', side_effect=PermissionError('publish failed')))
-                    with self.assertRaises((RuntimeError, OSError)):
+                    with self.assertRaises((RuntimeError, OSError, ExceptionGroup)):
                         pipeline.convert_video(root / 'input.mp4', output, 'performance', events.append, cancel)
                 self.assertEqual(output.read_bytes(), b'original')
                 self.assertFalse(cancel.exists())
                 self.assertFalse(output.with_suffix('.mp4.partial.mp4').exists())
                 self.assertFalse(output.with_suffix('.mp4.video-only.mp4').exists())
+                self.assertEqual(list(root.iterdir()), [output])
                 self.assertFalse(any(event['event'] == 'complete' for event in events))
                 if scenario != 'cancel_before_start':
                     context.__exit__.assert_called_once()

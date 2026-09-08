@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param()
+param([switch]$GpuPreview)
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -11,6 +11,15 @@ $ffmpeg = (Get-Command ffmpeg.exe -ErrorAction Stop).Source
 $ffprobe = (Get-Command ffprobe.exe -ErrorAction Stop).Source
 $distRoot = Join-Path $repoRoot 'out\release'
 $workRoot = Join-Path $repoRoot 'out\pyinstaller'
+$appName = 'DepthSBS'
+$entryPoint = Join-Path $repoRoot 'v1\depthsbs.py'
+if ($GpuPreview) {
+    $distRoot = Join-Path $repoRoot 'out\gpu-preview'
+    $workRoot = Join-Path $repoRoot 'out\pyinstaller-gpu-preview'
+    $appName = 'DepthSBS-GPU-Preview'
+    $entryPoint = Join-Path $repoRoot 'v1\depthsbs_gpu_preview.py'
+    & (Join-Path $PSScriptRoot 'build-cuda-projection-spike.ps1') -GpuPreview
+}
 
 if (-not (Test-Path (Join-Path $dependencies 'PyInstaller'))) {
     throw 'Install V1 dependencies into out\v1-python-deps first.'
@@ -25,7 +34,7 @@ $env:PYTHONPATH = $dependencies
 $env:Path = "$(Join-Path $tensorRtRoot 'bin');$env:Path"
 $arguments = @(
     '-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir', '--windowed'
-    '--name', 'DepthSBS'
+    '--name', $appName
     '--paths', (Join-Path $repoRoot 'v1')
     '--paths', $dependencies
     '--distpath', $distRoot
@@ -40,13 +49,22 @@ $arguments = @(
 Get-ChildItem (Join-Path $tensorRtRoot 'bin') -Filter '*.dll' | ForEach-Object {
     $arguments += @('--add-binary', "$($_.FullName);runtime")
 }
-$arguments += (Join-Path $repoRoot 'v1\depthsbs.py')
+if ($GpuPreview) {
+    $arguments += @('--add-binary', "$(Join-Path $repoRoot 'out/cuda-projection-preview/projection.dll');projection")
+}
+$arguments += $entryPoint
 
 python @arguments
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller V1 build failed.' }
-$portable = Join-Path $distRoot 'DepthSBS'
+$portable = Join-Path $distRoot $appName
 Copy-Item (Join-Path $repoRoot 'distribution\README.txt') $portable -Force
 Copy-Item (Join-Path $repoRoot 'distribution\THIRD_PARTY_NOTICES.txt') $portable -Force
+if ($GpuPreview) {
+    Copy-Item (Join-Path $repoRoot 'distribution/GPU-PREVIEW.txt') $portable
+    Copy-Item (Join-Path $repoRoot 'out/cuda-projection-preview/build-manifest.json') (Join-Path $portable 'projection-build-manifest.json')
+    $cudaLicense = Join-Path (Split-Path (Split-Path (Get-Command nvcc).Source -Parent) -Parent) 'EULA.txt'
+    Copy-Item $cudaLicense (Join-Path $portable 'CUDA-EULA.txt')
+}
 $license = Get-ChildItem $dependencies -Directory -Filter 'tensorrt-*.dist-info' | `
     ForEach-Object { Join-Path $_.FullName 'LICENSE.txt' } | `
     Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -56,6 +74,7 @@ Copy-Item $license (Join-Path $portable 'TENSORRT-LICENSE.txt') -Force
 $manifest = [ordered]@{
     schema_version = 1
     product_version = '1.0.0-rc1'
+    gpu_preview = [bool]$GpuPreview
     model_sha256 = (Get-FileHash $model -Algorithm SHA256).Hash.ToLowerInvariant()
     tensorrt_version = '11.2.1.2'
     ffmpeg = (& $ffmpeg -version | Select-Object -First 1)

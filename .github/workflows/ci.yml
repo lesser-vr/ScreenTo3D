@@ -20,3 +20,57 @@ jobs:
           -File .\scripts\dev.ps1
           -Action check
           -Configuration Release
+
+  python-contracts:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [core, platform, profiles, quality]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tools/requirements-contracts.txt
+      - name: Install CPU contract dependencies
+        run: python -m pip install -r tools/requirements-contracts.txt
+      - name: Run required scoped contracts
+        run: python scripts/test-contracts.py --group ${{ matrix.group }} --report artifacts/contracts.json
+      - name: Check owned process selection
+        if: matrix.group == 'platform'
+        shell: powershell
+        run: ./scripts/test-process-tree-memory.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contracts-${{ matrix.group }}
+          path: artifacts/*.json
+          if-no-files-found: error
+
+  media-contracts:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r tools/requirements-contracts.txt
+      - name: Real CPU media contracts and comparison harness
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $mediaTools = ./scripts/prepare-contract-media.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'depthsbs-contract-media')
+          python v1/test_media_contracts.py --media-tools $mediaTools --output artifacts/media
+          if ($LASTEXITCODE -ne 0) { throw 'Media contracts failed' }
+          python v1/compare_quality_regression.py --media-tools $mediaTools --source artifacts/media/source-h264.mp4 --baseline artifacts/media/h264-success.mp4 --candidate artifacts/media/h264-success.mp4 --output artifacts/comparison --max-rgb-mae 0 --max-temporal-change-increase 0
+          if ($LASTEXITCODE -ne 0) { throw 'Comparison harness self-check failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: media-contracts
+          path: artifacts/**/report.json
+          if-no-files-found: error

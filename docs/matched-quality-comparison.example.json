@@ -1,0 +1,64 @@
+{
+  "schema": "depthsbs.matched-quality-comparison.v1",
+  "template_notice": "Replace every placeholder and numeric rate with observations from the compared runs.",
+  "workload": {
+    "kind": "video",
+    "name": "replace-with-workload-name",
+    "source_identity": "replace-with-source-path-and-sha256"
+  },
+  "environment": {
+    "gpu": "replace-with-GPU",
+    "driver": "replace-with-driver",
+    "display": "replace-with-display-mode-and-refresh",
+    "power": "replace-with-power-mode",
+    "competing_gpu_workloads": "replace-with-observed-state"
+  },
+  "geometry": {
+    "input": [3840, 2160],
+    "per_eye": [3840, 2160],
+    "combined": [7680, 2160]
+  },
+  "paths": {
+    "baseline": {
+      "label": "DA2 Small + Lossless Scaling FG",
+      "model": "DA2 Small",
+      "postprocessing": "replace-with-exact-depth-and-stereo-settings",
+      "frame_generation": "replace-with-Lossless-Scaling-version-and-settings",
+      "rates": {
+        "capture_hz": 60,
+        "model_input_hz": 30,
+        "fresh_depth_hz": 30,
+        "base_sbs_hz": 30,
+        "generated_output_hz": 60
+      },
+      "latency": {
+        "status": "pending"
+      }
+    },
+    "candidate": {
+      "label": "DepthSBS candidate",
+      "model": "replace-with-model-and-artifact",
+      "postprocessing": "replace-with-exact-depth-and-stereo-settings",
+      "frame_generation": "replace-with-FG-or-none",
+      "rates": {
+        "capture_hz": 60,
+        "model_input_hz": 30,
+        "fresh_depth_hz": 30,
+        "base_sbs_hz": 30,
+        "generated_output_hz": 60
+      },
+      "latency": {
+        "status": "pending"
+      }
+    }
+  },
+  "review": {
+    "spatial_depth": "pending",
+    "temporal_stability": "pending",
+    "occlusion_edges": "pending",
+    "text": "pending",
+    "cuts": "pending",
+    "binocular_consistency": "pending",
+    "game_latency": "not_applicable"
+  }
+}

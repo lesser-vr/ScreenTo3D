@@ -1,5 +1,4 @@
 import hashlib
-import json
 from pathlib import Path
 
 import numpy as np
@@ -62,6 +61,8 @@ def build_engine(model_path: Path, engine_path: Path) -> None:
 
 class DepthEngine:
     def __init__(self, progress=None):
+        import threading
+        self.device_owner = threading.get_ident()
         self.metrics = ResourceMetrics()
         self.device_input = self.device_output = self.stream = None
         self.runtime = self.engine = self.context = None
@@ -119,6 +120,8 @@ class DepthEngine:
         return result
 
     def infer(self, tensor: np.ndarray) -> np.ndarray:
+        if hasattr(self, 'device_generation'):
+            self.device_generation += 1
         contiguous = np.ascontiguousarray(tensor, dtype=np.float32)
         if contiguous.shape != INPUT_SHAPE:
             raise ValueError(f"invalid depth input shape: {contiguous.shape}")
@@ -150,7 +153,73 @@ class DepthEngine:
         self._sample_memory()
         return self.output.copy()
 
+    def _device_check(self):
+        import threading
+        if getattr(self, 'device_owner', threading.get_ident()) != threading.get_ident():
+            raise RuntimeError('Device depth must stay on its owner thread')
+        if self.context is None or self.stream is None:
+            raise RuntimeError('Depth engine is closed')
+
+    def infer_device(self, tensor):
+        """Submit on the owned stream, borrowing output until the next inference.
+
+        The consumer must enqueue on this stream and synchronize before releasing
+        host input or engine resources. No depth D2H or implicit host fallback.
+        """
+        import threading
+        from .live_device import DeviceDepth
+        self._device_check()
+        self.device_owner = threading.get_ident()
+        contiguous = np.ascontiguousarray(tensor, dtype=np.float32)
+        if contiguous.shape != INPUT_SHAPE or not np.isfinite(contiguous).all():
+            raise ValueError('Invalid device-depth input')
+        # Keep pageable source alive until the next submission or close.
+        if getattr(self, 'device_host_input', None) is not None and self.pending_work:
+            _cuda(cudart.cudaStreamSynchronize(self.stream))
+            self.pending_work = False
+            self.metrics.counters['stream_synchronizations'] += 1
+        self.device_host_input = contiguous
+        self.pending_work = True
+        _cuda(cudart.cudaMemcpyAsync(self.device_input, contiguous.ctypes.data,
+            self.input_bytes, cudart.cudaMemcpyKind.cudaMemcpyHostToDevice, self.stream))
+        self.metrics.copy_submitted('h2d', self.input_bytes)
+        self.device_generation = getattr(self, 'device_generation', 0) + 1
+        if not self.context.execute_async_v3(stream_handle=int(self.stream)):
+            raise RuntimeError('TensorRT device inference submission failed')
+        self.metrics.counters['device_inference_submissions'] = self.metrics.counters.get('device_inference_submissions', 0) + 1
+        return DeviceDepth(self, self.device_generation, int(self.device_output), int(self.stream))
+
+    def infer_prepared_device(self, prepare):
+        """Trusted adapter fills this engine's input on its owned stream."""
+        from .live_device import DeviceDepth
+        self._device_check()
+        if self.pending_work:
+            _cuda(cudart.cudaStreamSynchronize(self.stream))
+            self.metrics.counters['stream_synchronizations'] += 1
+        self.device_host_input = None
+        self.pending_work = True
+        self.device_generation = getattr(self, 'device_generation', 0) + 1
+        prepare(int(self.device_input), int(self.stream))
+        if not self.context.execute_async_v3(stream_handle=int(self.stream)):
+            raise RuntimeError('TensorRT prepared-device submission failed')
+        self.metrics.counters['device_inference_submissions'] = self.metrics.counters.get('device_inference_submissions', 0) + 1
+        return DeviceDepth(self, self.device_generation, int(self.device_output), int(self.stream))
+
+    def complete_device(self, depth):
+        """Consumer calls only after stream completion and finite-depth validation."""
+        depth.validate()
+        if depth.owner is not self:
+            raise ValueError('Foreign completed depth')
+        self.pending_work = False
+        self.device_host_input = None
+        if getattr(self, 'completed_device_generation', None) != depth.generation:
+            self.metrics.counters['completed_inferences'] += 1
+            self.completed_device_generation = depth.generation
+
     def close(self) -> None:
+        import threading
+        if hasattr(self, 'device_generation') and self.device_owner != threading.get_ident():
+            raise RuntimeError('Device depth engine must close on its owner thread')
         errors = []
         if getattr(self, 'pending_work', False) and self.stream is not None:
             try:
@@ -158,6 +227,7 @@ class DepthEngine:
             except Exception as error:
                 errors.append(error)
             self.pending_work = False
+        self.device_host_input = None
         self.context = None
         for name, release in (('device_input', cudart.cudaFree),
                               ('device_output', cudart.cudaFree),

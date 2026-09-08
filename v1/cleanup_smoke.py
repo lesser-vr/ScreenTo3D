@@ -7,19 +7,21 @@ from pathlib import Path
 from unittest.mock import patch
 
 from depthsbs_app import pipeline
-from depthsbs_app.trt_backend import _cuda, cudart
+from depthsbs_app.trt_backend import DepthEngine, _cuda, cudart
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', required=True, type=Path)
+    parser.add_argument('--output', type=Path)
     parser.add_argument('--runs', type=int, default=3)
     args = parser.parse_args()
     if not 1 <= args.runs <= 20:
         parser.error('runs must be between 1 and 20')
     root = Path(__file__).resolve().parents[1] / 'out' / 'cleanup'
     root.mkdir(parents=True, exist_ok=True)
-    run_dir = Path(tempfile.mkdtemp(prefix='repeat-', dir=root))
+    run_dir = args.output.resolve() if args.output else Path(tempfile.mkdtemp(prefix='repeat-', dir=root))
+    if args.output: run_dir.mkdir(parents=True, exist_ok=False)
     bad_input = run_dir / 'invalid.mp4'
     bad_input.write_bytes(b'not a video')
     original_popen = subprocess.Popen
@@ -48,7 +50,7 @@ def main():
             with patch.object(pipeline.subprocess, 'Popen', side_effect=popen):
                 try:
                     if scenario == 'inference_error':
-                        with patch.object(pipeline.DepthEngine, 'infer', side_effect=RuntimeError('injected inference failure')):
+                        with patch.object(DepthEngine, 'infer', side_effect=RuntimeError('injected inference failure')):
                             pipeline.convert_video(args.input, output, 'performance', progress, cancel)
                     else:
                         source = bad_input if scenario == 'invalid_input' else args.input
@@ -71,6 +73,7 @@ def main():
             assert not cancel.exists()
             assert not output.with_suffix('.mp4.partial.mp4').exists()
             assert not output.with_suffix('.mp4.video-only.mp4').exists()
+            assert not list(output.parent.glob(f'.{output.name}.*.mp4'))
             for child in children:
                 assert child.poll() is not None, f'child {child.pid} still running'
                 for stream in (child.stdin, child.stdout, child.stderr):
@@ -81,7 +84,7 @@ def main():
             observations.append(observation)
             print(json.dumps(observation), flush=True)
     artifact = run_dir / 'result.json'
-    artifact.write_text(json.dumps({'observations': observations,
+    artifact.write_text(json.dumps({'status': 'passed', 'observations': observations,
         'scope': 'same-process GPU lifecycle; inference failure injected, not actual device loss',
         'leak_verdict': 'not established by sampled global VRAM'}, indent=2), encoding='utf-8')
     print(artifact)

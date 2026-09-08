@@ -29,7 +29,7 @@ class PipelineLifecycleTests(unittest.TestCase):
             output = Path(folder) / 'output.mp4'
 
             def mux(arguments):
-                Path(arguments[-1]).touch()
+                Path(arguments[-1]).write_bytes(b'mock mux payload')
                 return subprocess.CompletedProcess(arguments, 0, '', '')
 
             with patch.object(pipeline, 'probe_video', return_value=metadata), \

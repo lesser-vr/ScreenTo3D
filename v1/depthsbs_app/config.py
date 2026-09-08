@@ -2,6 +2,20 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
+class OutputPolicy:
+    name: str
+    encoder: str
+    tag: str
+    max_sbs_width: int
+
+
+OUTPUTS = {
+    'h264': OutputPolicy('H.264', 'h264_nvenc', 'avc1', 4096),
+    'hevc': OutputPolicy('HEVC', 'hevc_nvenc', 'hvc1', 8192),
+}
+
+
+@dataclass(frozen=True)
 class ModePolicy:
     name: str
     label: str
@@ -11,6 +25,7 @@ class ModePolicy:
     convergence: float
     nvenc_preset: str
     cq: int
+    depth_backend: str = 'da2-small'
     temporal_color_threshold: float = 0.04
     temporal_depth_threshold: float = 0.08
     scene_cut_threshold: float = 0.18
@@ -18,6 +33,16 @@ class ModePolicy:
     flat_background_refinement: bool = True
     flat_background_tolerance: float = 0.04
     flat_background_min_coverage: float = 0.35
+    conservative_stereo_coverage: bool = True
+    motion_refresh_fraction: float = 0.01
+    motion_refresh_color_threshold: float = 0.04
+    local_motion_window: int = 16
+    local_motion_fraction: float = 0.0625
+    local_motion_color_threshold: float = 0.02
+    local_motion_concentration: float = 3.0
+    letterbox_refinement: bool = False
+    letterbox_stable_frames: int = 3
+    temporal_depth_transition: float = 0.0
 
 
 MODES = {

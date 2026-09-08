@@ -1,21 +1,21 @@
 # DepthSBS
 
-DepthSBS is an NVIDIA-GPU-first 2D video to VR side-by-side (SBS) converter in
-active development. The initial implementation establishes reproducible hardware
-capability detection and processing-mode contracts before the media pipeline.
+Desktop 2D-to-SBS conversion for games and videos. Run `Run-DepthSBS.cmd` in the
+prepared local environment for the Korean Live / Files / Settings app. Live has
+Original preview and DA2 Small SBS; file conversion includes explicit installed
+model choices. Current source features are not automatically in old portable builds.
 
-## Current status
+The goal is better depth and easier use than Small + Lossless Scaling FG, with
+3840x2160 per eye / 7680x2160 Full SBS at final 60 fps. This is not certified support.
 
-- C++20 core builds with MSVC through CMake and Ninja.
-- `depthsbs capability` emits machine-readable GPU/runtime capability JSON.
-- `depthsbs mode <name>` resolves Performance, Balanced, Video Quality, or
-  Offline Quality into an immutable initial processing plan.
-- Unit tests cover mode contracts and JSON serialization.
-- Video decode, depth inference, SBS synthesis, and encode are not implemented yet.
+## Documentation
 
-See [the active V1 plan](docs/exec-plans/active/v1-foundation.md) for milestones
-and [the processing-mode specification](docs/product-specs/processing-modes.md)
-for product behavior.
+- [Product behavior and target](docs/PRODUCT.md)
+- [Current paths, measurements and unpassed acceptance](docs/implementation-status.md)
+- [Work areas](docs/ROADMAP.md)
+- [Architecture](ARCHITECTURE.md)
+- [Security](docs/SECURITY.md), [reliability](docs/RELIABILITY.md), [measurement methods](docs/BENCHMARKS.md)
+- [Historical evidence](docs/evidence/README.md); model setup links are in PRODUCT.
 
 ## Build and test on Windows
 

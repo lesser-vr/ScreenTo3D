@@ -1,141 +1,96 @@
 # DepthSBS architecture
 
-Status: Proposed for V1  
-Last reviewed: 2026-09-03
+Status: Current boundary map, reviewed 2026-09-07 against repository contracts.
+This describes delivered paths and their limits; it does not certify performance.
+See [implementation-status.md](docs/implementation-status.md) for status and [ROADMAP.md](docs/ROADMAP.md) for priorities.
 
-## System goal
-
-DepthSBS is a native, NVIDIA-GPU-first 2D-to-SBS video pipeline. V1 is an
-instrumented CLI that establishes whether an end-to-end GPU path can meet the
-targets in `docs/product-specs/processing-modes.md`. A GUI, broad model gallery,
-and non-NVIDIA backends are outside the first milestone.
-
-## Context
+## Delivered paths
 
 ```text
-compressed video
-      |
-      v
-input probe -> decode -> preprocess -> depth -> temporal policy -> SBS -> encode
-                  |          |           |             |          |        |
-                  +----------+-----------+-------------+----------+--------+
-                                      telemetry
+Qt Live / Files / Settings shell -> immutable job/session plan -> isolated worker
+
+Files: probe -> FFmpeg decode/host frames -> selected depth binding
+       -> depth postprocessing -> CPU or explicit CUDA SBS -> NVENC/FFmpeg
+       -> drain/audio mux/validation -> atomic publication
+
+Live: selected WGC source -> bounded host BGRA mailbox -> owned RGB/model input
+      -> DA2 Small TRT -> depth postprocessing / stereo
+      -> host mailbox + owned QImage -> Qt output
+      OR explicit experimental native texture pool -> Qt/D3D11 private textures
 ```
 
-The intended V1 technology set is C++20, CUDA, TensorRT, FFmpeg demux/mux, and
-NVIDIA Video Codec SDK (NVDEC/NVENC). This is a proposed baseline: dependency
-versions and supported driver/GPU ranges are selected only after a compatibility
-spike records a reproducible matrix.
+C++ CMake core provides capability/mode foundations. It is not the complete native
+NVDEC/CUDA/NVENC pipeline originally proposed. Native output does not eliminate
+host capture/input transfers. oVDA/VDA device experiments are not automatically
+available as live GUI backends. Processing-backend default and delivery-path
+default are separate decisions.
 
-## Components and dependency direction
+## Components and ownership
 
-Dependencies flow downward only.
+- `desktop_jobs.py` and isolated workers own job/session lifecycle; the GUI does
+  not run inference. Live and file work share an exclusive processing lease.
+- `live_policy.py` resolves immutable policy. Stages consume validated values,
+  not mode-name branches. Backend/profile selection precedes output mutation.
+- `depth_backend.py` provides model-independent binding/factory boundaries.
+  Raw depth is finite float32 with declared shape/polarity; raw output and
+  normalized display depth are distinct contracts.
+- The inference engine owns its CUDA context/stream, allocations and recurrent
+  cache. Borrowed device depth validates owner, thread, epoch/generation and
+  lifetime; postprocessing resources must be released before their owner stream.
+- Live worker/postprocessing owns normalization, EMA and stereo state. A CPU
+  background-refinement bridge may remain explicitly counted, not silently removed.
+- Native delivery uses worker-owned bounded texture slots and per-consumer leases.
+  Metadata acknowledgment cannot replace GPU mutex ownership. Each Qt window
+  copies into a private texture within the external-command render boundary.
 
-```text
-app / CLI
-   -> pipeline
-      -> mode policy
-      -> media I/O
-      -> temporal
-      -> stereo
-      -> depth backend interface
-   -> observability interface
+## State and time contracts
 
-platform adapters
-   -> FFmpeg / NVDEC / NVENC / CUDA / TensorRT
+| State | Owner / boundary |
+|---|---|
+| Model recurrent cache / position | Selected engine; its declared input timeline and reset API |
+| Depth scale, normalization, EMA / stereo history | Depth postprocessing/stereo path; not implicitly the model cache |
+| Flow/propagation source, confidence | Explicit propagation candidate; rejected fixed 1:2 is not product policy |
+| Output pacing and any future FG pair/PTS | Presentation path; generated output does not masquerade as fresh inference |
 
-foundation
-   -> validated value types, status/error types, resource ownership
-```
+Capture sequence, selected model-input sequence, fresh-depth sequence, base SBS
+and generated output are distinct. Cuts/source/shape changes reset or re-prime
+the appropriate owners. Existing stateful file bindings reject unsupported skips;
+a proposed new sampled timeline requires independent validation, not a silent
+change to those guards. Calling the same skipped input a new timeline does not
+remove recurrent drift.
 
-- `foundation`: codec-independent descriptors, time base, frame ID, dimensions,
-  pixel/depth formats, errors, and RAII GPU-resource wrappers.
-- `mode policy`: resolves one named mode plus probed device capabilities into an
-  immutable processing plan. It never processes pixels.
-- `media I/O`: demuxes, decodes, encodes, and muxes while preserving timestamps,
-  color metadata, and audio policy.
-- `depth backend`: consumes a validated GPU frame view and produces normalized
-  depth plus metadata. DA2, oVDA, and future engines implement one contract.
-- `temporal`: owns caches, propagation cadence, cut resets, and confidence. It is
-  optional per processing plan.
-- `stereo`: applies depth mapping, divergence/convergence, occlusion handling,
-  edge treatment, and SBS layout.
-- `pipeline`: schedules bounded work, owns cancellation, and reports progress.
-- `observability`: emits structured stage timings, counters, environment data,
-  and benchmark artifacts without becoming a stage dependency.
+## Invariants
 
-Platform headers must not leak into product policy. CUDA/TensorRT/NVCodec types
-are contained in adapters or opaque resource handles.
+1. Validate dimensions, color, timestamp, tensor and resource descriptors before
+   allocation/submission. Retention requires an ownership-bearing handle.
+2. Use bounded queues/pools. Offline preserves frame order/timestamps; live uses
+   declared latest-frame/drop policy with counters, not an unbounded backlog.
+3. No silent model/precision/resolution/CPU fallback. Session policy is immutable.
+4. Stop/error invalidates consumers and releases/reaps owned resources in order.
+   Failed publication preserves the previous output; device loss is not certified.
+5. Profile copies, synchronization and overlap before claiming zero-copy or gain.
+6. Preserve eye order and color; record model/artifact provenance and license scope.
 
-## Frame and resource contract
+## GPU measurement details
 
-Each frame has a monotonically increasing frame ID, input PTS, time base, color
-description, dimensions, and a resource whose owner is explicit. Stages may
-retain a frame only through an ownership-bearing handle.
+File pipes and live capture/input still cross host memory. GPU postprocessing
+borrows TensorRT output/stream through owner/thread/generation checks. Eligible
+CPU background refinement remains explicitly counted. Host delivery copies owned
+BGRA/QImage data; native delivery returns a slot only after the last GPU lease.
 
-The steady-state pipeline uses preallocated pools and bounded queues. Crossing a
-GPU/CPU boundary must be observable. The intended hot path keeps decoded frames,
-model tensors, depth, SBS surfaces, and encoder inputs in device-visible memory;
-profiling must prove whether copies remain.
+Submitted copy bytes are not measured bus traffic. Device-wide memory is not
+process peak memory. Detailed hashes/readbacks are optional diagnostics; frame
+callbacks and Qt/readback timing are not physical scanout. Measure completed
+pipeline work, including file drain/audio/publication, before performance claims.
+The comparable result owns its exact timing denominator.
 
-Queue saturation applies backpressure. It must not allocate an unbounded backlog
-or drop frames in offline conversion. A future playback mode may define an
-explicit drop policy, but that is a separate product contract.
+## Change boundaries
 
-## Processing-plan contract
+These are the current components, not a prescribed future architecture. Refactor
+or replace stages when it serves the user goal; keep externally visible contracts
+explicit and validate changed ownership, timing or quality. Platform APIs belong
+at adapters rather than hidden product-policy branches.
 
-The four user-facing modes resolve to a `ProcessingPlan` containing at least:
-
-- depth backend and engine precision;
-- inference resolution;
-- full-rate inference or propagation cadence;
-- temporal cache/reset policy;
-- stereo algorithm and quality parameters;
-- encode codec, pixel format, rate-control profile, and latency preference;
-- memory budget and queue depth;
-- capability requirements and permitted fallback behavior.
-
-Resolution happens once before processing. If requirements are not met, startup
-fails with an actionable message or uses a user-approved fallback. Individual
-stages do not reinterpret the selected mode.
-
-## Concurrency
-
-V1 begins with an asynchronous bounded pipeline and measures before adding more
-streams. Decode/encode hardware can operate independently from CUDA compute, but
-overlap is accepted only when traces show a gain and ordering remains correct.
-
-Every asynchronous unit carries frame ID and PTS. Completion order may differ
-internally; mux order may not. Cancellation drains or releases every outstanding
-resource and leaves no partially published output file.
-
-## Extension points
-
-- Depth backends are plugins behind a stable in-process interface, not runtime
-  arbitrary shared-library loading in V1.
-- Temporal policies are independent of the selected depth model where possible.
-- Stereo kernels may evolve from a baseline symmetric warp to occlusion-aware
-  forward warp/inpainting without changing media I/O.
-- An orchestration UI may call the same validated application service later; it
-  must not own pipeline logic.
-
-## Architectural invariants
-
-1. External metadata is validated before allocation or GPU submission.
-2. No unbounded queues or implicit global GPU state.
-3. No silent CPU/model/precision fallback.
-4. Timestamps, color metadata, and eye order are preserved or deliberately
-   transformed and reported.
-5. Scene cuts invalidate temporal caches.
-6. Stage timing is available in every build intended for benchmarking.
-7. Model and engine provenance is recorded with every benchmark result.
-8. Distribution must comply with each model's license; DA2 Base is not assumed
-   distributable for commercial use.
-
-## Open decisions
-
-- Direct NVCodec APIs versus FFmpeg hwaccel wrappers for the first vertical slice.
-- Exact CUDA surface format between decoder, preprocessing, and encoder.
-- Baseline stereo algorithm used for the first correctness oracle.
-- Audio copy/transcode policy and container support beyond the H.264/H.265 V1 set.
-- Engine artifact format, cache location, and compatibility invalidation scheme.
+Current user behavior: [PRODUCT](docs/PRODUCT.md). Trust and failure contracts:
+[SECURITY](docs/SECURITY.md), [RELIABILITY](docs/RELIABILITY.md). Historical results:
+[evidence index](docs/evidence/README.md).

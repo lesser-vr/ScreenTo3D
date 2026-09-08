@@ -7,6 +7,46 @@ from depthsbs_app.config import MODES
 
 
 class VisibilityTests(unittest.TestCase):
+    def test_fractional_near_surface_does_not_leak_background(self):
+        frame = np.zeros((3, 48, 3), np.uint8)
+        frame[:] = (0, 255, 0)
+        frame[:, 20:32] = (255, 0, 0)
+        depth = np.zeros((3, 48), np.float32)
+        depth[:, 20:32] = 1
+        shift = np.full_like(depth, 2)
+        shift[:, 20:32] = .51
+        shift[:, 20] = .49
+        for mirrored in (False, True):
+            f, d, s = (frame[:, ::-1], depth[:, ::-1], -shift[:, ::-1]) if mirrored else (frame, depth, shift)
+            old = project_eye(f, d, s)
+            new = project_eye(f, d, s, conservative_coverage=True)
+            x = 48 - 1 - 21 if mirrored else 21
+            np.testing.assert_array_equal(old[0, x], (0, 255, 0))
+            np.testing.assert_array_equal(new[0, x], (255, 0, 0))
+
+    def test_coverage_preserves_integer_projection_and_empty_rows(self):
+        rng = np.random.default_rng(19)
+        frame = rng.integers(0, 256, (4, 32, 3), dtype=np.uint8)
+        depth = rng.random((4, 32), dtype=np.float32)
+        for amount in (0, -4, 4, 100):
+            shift = np.full_like(depth, amount)
+            np.testing.assert_array_equal(project_eye(frame, depth, shift),
+                project_eye(frame, depth, shift, conservative_coverage=True))
+
+    def test_fully_projected_out_rows_keep_original(self):
+        frame = np.arange(3 * 8 * 3, dtype=np.uint8).reshape(3, 8, 3)
+        depth = np.ones((3, 8), np.float32)
+        shift = np.full_like(depth, 100)
+        shift[1] = 0
+        np.testing.assert_array_equal(project_eye(frame, depth, shift), frame)
+
+    def test_equal_depth_collision_uses_higher_source_index(self):
+        frame = np.arange(8 * 3, dtype=np.uint8).reshape(1, 8, 3)
+        depth = np.ones((1, 8), np.float32)
+        shift = -np.arange(8, dtype=np.float32)[None, :]
+        expected = np.broadcast_to(frame[:, -1:], frame.shape)
+        np.testing.assert_array_equal(project_eye(frame, depth, shift), expected)
+
     def test_zero_shift_identity(self):
         frame = np.arange(8 * 40 * 3, dtype=np.uint8).reshape(8, 40, 3)
         depth = np.zeros((8, 40), np.float32)

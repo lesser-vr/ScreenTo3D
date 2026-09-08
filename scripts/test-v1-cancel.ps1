@@ -32,10 +32,12 @@ try {
 } finally {
     if (-not $process.HasExited) { & taskkill /PID $process.Id /T /F | Out-Null }
 }
+$newPartials = @(Get-ChildItem -LiteralPath $runRoot -Force -File | Where-Object { $_.Name -like '.output.mp4.*.mp4' })
 $events = Get-Content -LiteralPath $statusPath | ForEach-Object { $_ | ConvertFrom-Json }
 if (-not ($events | Where-Object event -eq cancelled) -or
     ($events | Where-Object event -eq complete) -or
     (Test-Path -LiteralPath $cancelPath) -or
+    $newPartials.Count -ne 0 -or
     (Test-Path -LiteralPath "$outputPath.partial.mp4") -or
     (Test-Path -LiteralPath "$outputPath.video-only.mp4") -or
     (Get-FileHash -LiteralPath $outputPath).Hash -ne $priorHash) {

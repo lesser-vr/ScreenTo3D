@@ -3,21 +3,31 @@ import os
 import subprocess
 import sys
 import time
+import uuid
+from dataclasses import replace
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Callable
 
 import cv2
 import numpy as np
 
-from .config import MODES, ModePolicy
+from .config import MODES, OUTPUTS, ModePolicy
 from .resources import resource_path
-from .trt_backend import DepthEngine
+from .depth_backend import resolve_backend
 from .telemetry import StageMetrics
 from .lifecycle import Lifecycle
-from .stereo import project_eye, guide_depth, refine_flat_background
+from .stereo import project_eye, guide_depth, refine_flat_background, color_change
 
 
 Progress = Callable[[dict], None]
+
+
+def DepthEngine(progress=None):
+    # Load DA2 platform dependencies only when its binding is actually selected.
+    from .trt_backend import DepthEngine as TensorRTDepthEngine
+    return TensorRTDepthEngine(progress)
+
 MEAN = np.asarray([0.485, 0.456, 0.406], dtype=np.float32)[:, None, None]
 STD = np.asarray([0.229, 0.224, 0.225], dtype=np.float32)[:, None, None]
 
@@ -35,7 +45,10 @@ def _run(arguments: list[str]) -> subprocess.CompletedProcess:
     )
 
 
-def probe_video(path: Path) -> dict:
+def probe_video(path: Path, output_codec='h264') -> dict:
+    if output_codec not in OUTPUTS:
+        raise ValueError(f'Unknown output codec: {output_codec}')
+    output_policy = OUTPUTS[output_codec]
     result = _run([
         _tool("ffprobe"), "-v", "error", "-print_format", "json",
         "-show_streams", "-show_format", str(path),
@@ -50,6 +63,14 @@ def probe_video(path: Path) -> dict:
     width, height = int(video.get("width", 0)), int(video.get("height", 0))
     if width < 16 or height < 16 or width > 7680 or height > 4320:
         raise ValueError(f"Unsupported video dimensions: {width}x{height}")
+    # Conservative release boundary, verified on the current H.264 NVENC path.
+    # Full SBS doubles input width; never silently resize or switch codec.
+    if width * 2 > output_policy.max_sbs_width:
+        raise ValueError(
+            f'{output_policy.name} Full SBS output width {width * 2} exceeds this release limit '
+            f'of {output_policy.max_sbs_width} pixels (input width must be <= {output_policy.max_sbs_width // 2}). '
+            'For 4K input, explicitly select HEVC output and a compatible player.'
+        )
     rate_text = video.get("avg_frame_rate") or video.get("r_frame_rate") or "0/1"
     numerator, denominator = (int(value) for value in rate_text.split("/"))
     fps = numerator / denominator if denominator else 0.0
@@ -65,18 +86,55 @@ def probe_video(path: Path) -> dict:
     }
 
 
+def _paths_alias(left, right):
+    left, right = Path(left), Path(right)
+    if left.resolve() == right.resolve():
+        return True
+    return left.exists() and right.exists() and left.samefile(right)
+
+
 def preprocess(frame: np.ndarray) -> np.ndarray:
     resized = cv2.resize(frame, (518, 518), interpolation=cv2.INTER_CUBIC)
     rgb = resized.astype(np.float32).transpose(2, 0, 1) / 255.0
     return ((rgb - MEAN) / STD)[None, ...]
 
 
+def depth_refresh_reason(frame, inferred_frame, index, policy, cut):
+    if inferred_frame is None:
+        return 'initial'
+    if index % policy.inference_cadence == 0:
+        return 'cadence'
+    if cut:
+        return 'cut'
+    difference = color_change(frame, inferred_frame)
+    changed = difference > policy.motion_refresh_color_threshold
+    if np.mean(changed) >= policy.motion_refresh_fraction:
+        return 'motion'
+    if policy.local_motion_window > 0:
+        local_changed = (difference > policy.local_motion_color_threshold).astype(np.uint8)
+        density = float(np.mean(local_changed))
+        if density > 0:
+            window = policy.local_motion_window
+            local_density = cv2.boxFilter(local_changed, cv2.CV_32F, (window, window),
+                                         normalize=True, borderType=cv2.BORDER_CONSTANT)
+            required = max(policy.local_motion_fraction, density * policy.local_motion_concentration)
+            if float(np.max(local_density)) >= required:
+                return 'local_motion'
+    return 'reuse'
+
+
 class StereoSynthesizer:
-    def __init__(self, width: int, height: int, policy: ModePolicy):
+    def __init__(self, width: int, height: int, policy: ModePolicy, projection=None, *, paired_projection=None):
         self.width, self.height, self.policy = width, height, policy
         self.smoothed_depth = self.low = self.high = None
         self.previous_frame = None
         self.flat_background_frames = 0
+        self.padding = None
+        if policy.letterbox_refinement:
+            from .padding import PaddingRefiner
+            self.padding = PaddingRefiner(policy.letterbox_stable_frames)
+        self.project_eye = projection.project if projection is not None else project_eye
+        self.project_pair = paired_projection
 
     def is_scene_cut(self, frame):
         if self.previous_frame is None:
@@ -87,24 +145,32 @@ class StereoSynthesizer:
 
     def render(self, frame: np.ndarray, depth: np.ndarray) -> np.ndarray:
         if self.is_scene_cut(frame):
+            if self.padding is not None:
+                self.padding.reset()
             self.smoothed_depth = self.low = self.high = None
             self.previous_frame = None
         resized = cv2.resize(depth[0], (self.width, self.height), interpolation=cv2.INTER_CUBIC)
-        low, high = float(np.percentile(resized, 2.0)), float(np.percentile(resized, 98.0))
+        low, high = map(float, np.percentile(resized, [2.0, 98.0]).astype(resized.dtype))
         alpha = self.policy.temporal_alpha
         self.low = low if self.low is None else alpha * low + (1.0 - alpha) * self.low
         self.high = high if self.high is None else alpha * high + (1.0 - alpha) * self.high
         normalized = np.clip((resized - self.low) / max(self.high - self.low, 1.0e-6), 0.0, 1.0)
         if self.smoothed_depth is not None and self.previous_frame is not None:
-            changed = np.max(np.abs(frame.astype(np.float32) - self.previous_frame.astype(np.float32)), axis=2) / 255.0
+            changed = color_change(frame, self.previous_frame)
             changed = cv2.dilate((changed > self.policy.temporal_color_threshold).astype(np.uint8), np.ones((7, 7), np.uint8)) != 0
             changed |= np.abs(normalized - self.smoothed_depth) > self.policy.temporal_depth_threshold
-            normalized = np.where(changed, normalized, alpha * normalized + (1.0 - alpha) * self.smoothed_depth)
+            if self.policy.temporal_depth_transition > 0:
+                from .temporal_blend import blend_depth
+                normalized = blend_depth(normalized, self.smoothed_depth, changed, alpha,
+                    self.policy.temporal_depth_threshold, self.policy.temporal_depth_transition)
+            else:
+                normalized = np.where(changed, normalized, alpha * normalized + (1.0 - alpha) * self.smoothed_depth)
         self.smoothed_depth = normalized
         self.previous_frame = frame.copy()
         aligned = guide_depth(frame, normalized, radius=self.policy.depth_guide_radius)
         if self.policy.flat_background_refinement:
-            refined = refine_flat_background(frame, aligned,
+            refine = self.padding.refine if self.padding is not None else refine_flat_background
+            refined = refine(frame, aligned,
                 tolerance=self.policy.flat_background_tolerance,
                 minimum_coverage=self.policy.flat_background_min_coverage,
                 radius=self.policy.depth_guide_radius)
@@ -114,9 +180,16 @@ class StereoSynthesizer:
         disparity = (aligned - self.policy.convergence) * max(
             1.0, self.width * self.policy.divergence
         )
-        left = project_eye(frame, aligned, -disparity * 0.5)
-        right = project_eye(frame, aligned, disparity * 0.5)
-        return np.concatenate((left, right), axis=1)
+        if self.project_pair is not None:
+            left, right = self.project_pair(frame, aligned, -disparity * 0.5,
+                conservative_coverage=self.policy.conservative_stereo_coverage)
+        else:
+            left = self.project_eye(frame, aligned, -disparity * 0.5,
+                               conservative_coverage=self.policy.conservative_stereo_coverage)
+            right = self.project_eye(frame, aligned, disparity * 0.5,
+                                conservative_coverage=self.policy.conservative_stereo_coverage)
+        result = np.concatenate((left, right), axis=1)
+        return self.padding.restore(result, frame) if self.padding is not None else result
 
 
 def _read_frame(stream, size: int) -> bytes:
@@ -158,32 +231,49 @@ def _cleanup_processes(processes):
 def convert_video(
     input_path: Path, output_path: Path, mode: str, progress: Progress,
     cancel_path: Path | None = None,
+    *, projection_factory=None, diagnostic_hashes=False, output_codec='h264', depth_backend=None,
+    letterbox_refinement=False,
 ) -> dict:
     job_started = time.perf_counter()
+    import hashlib
+    hashes = {name: hashlib.sha256() for name in ('decoded_rgb', 'depth', 'sbs_rgb')} if diagnostic_hashes else None
     input_path, output_path = input_path.resolve(), output_path.resolve()
-    if input_path == output_path:
+    if _paths_alias(input_path, output_path):
         raise ValueError("Input and output paths must differ")
+    if cancel_path is not None and any(_paths_alias(cancel_path, path) for path in (input_path, output_path)):
+        raise ValueError("Cancel marker must differ from input and output paths")
     if mode not in MODES:
         raise ValueError(f"Unknown mode: {mode}")
     probe_started = time.perf_counter()
-    policy, metadata = MODES[mode], probe_video(input_path)
+    if type(letterbox_refinement) is not bool:
+        raise ValueError('letterbox_refinement must be boolean')
+    policy = replace(MODES[mode], letterbox_refinement=letterbox_refinement)
+    metadata = probe_video(input_path, output_codec=output_codec)
+    backend = depth_backend if depth_backend is not None else resolve_backend(policy.depth_backend, DepthEngine, preprocess)
+    backend.validate_policy(policy)
+    if backend.input_validator is not None:
+        backend.input_validator(metadata)
+    output_policy = OUTPUTS[output_codec]
     probe_seconds = time.perf_counter() - probe_started
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    partial_path = output_path.with_suffix(output_path.suffix + ".partial.mp4")
-    video_path = output_path.with_suffix(output_path.suffix + ".video-only.mp4")
-    partial_path.unlink(missing_ok=True)
-    video_path.unlink(missing_ok=True)
+    # Per-job siblings cannot overwrite stale artifacts or a similarly named input.
+    token = uuid.uuid4().hex
+    partial_path = output_path.with_name(f".{output_path.name}.{token}.partial.mp4")
+    video_path = output_path.with_name(f".{output_path.name}.{token}.video-only.mp4")
     width, height = metadata["width"], metadata["height"]
     decode = encode = None
     started, frames, last_depth = time.perf_counter(), 0, None
     metrics = StageMetrics()
     decoded_pipe_bytes = encoded_pipe_bytes = 0
-    scene_cut_resets = extra_cut_inferences = 0
+    scene_cut_resets = extra_cut_inferences = extra_motion_inferences = 0
+    local_motion_inferences = 0
+    inferred_frame = None
     lifecycle = Lifecycle()
     try:
         _check_cancel(cancel_path)
         progress({"event": "start", "mode": mode, "metadata": metadata})
-        with DepthEngine(progress) as engine:
+        with backend.engine_factory(progress) as engine, ExitStack() as projection_scope:
+            backend.reset(engine, 'start')
             lifecycle.checkpoint('engine_startup')
             decode = subprocess.Popen(
                 [_tool("ffmpeg"), "-v", "error", "-i", str(input_path),
@@ -195,13 +285,15 @@ def convert_video(
                 [_tool("ffmpeg"), "-y", "-v", "error", "-f", "rawvideo",
                  "-pix_fmt", "rgb24", "-s", f"{width * 2}x{height}",
                  "-r", f"{metadata['fps']:.8f}", "-i", "pipe:0", "-an",
-                 "-c:v", "h264_nvenc", "-preset", policy.nvenc_preset,
+                 "-c:v", output_policy.encoder, "-tag:v", output_policy.tag,
+                 "-preset", policy.nvenc_preset,
                  "-tune", "hq", "-rc", "vbr", "-cq", str(policy.cq),
                  "-b:v", "0", "-pix_fmt", "yuv420p", str(video_path)],
                 stdin=subprocess.PIPE, stderr=subprocess.PIPE,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
-            synthesizer, frame_size = StereoSynthesizer(width, height, policy), width * height * 3
+            projection = projection_scope.enter_context(projection_factory(width, height)) if projection_factory else None
+            synthesizer, frame_size = StereoSynthesizer(width, height, policy, projection), width * height * 3
             lifecycle.checkpoint('pipeline_setup')
             while True:
                 _check_cancel(cancel_path)
@@ -213,20 +305,33 @@ def convert_video(
                 if len(raw) != frame_size:
                     raise RuntimeError("Decoder returned a truncated frame")
                 frame = np.frombuffer(raw, dtype=np.uint8).reshape(height, width, 3)
+                if hashes is not None:
+                    hashes['decoded_rgb'].update(raw)
                 decoded_pipe_bytes += len(raw)
                 metrics.observe('decode_read', time.perf_counter() - read_started)
-                cut = synthesizer.is_scene_cut(frame)
+                with metrics.measure('temporal_guard'):
+                    cut = synthesizer.is_scene_cut(frame)
+                    refresh = depth_refresh_reason(frame, inferred_frame, frames, policy, cut)
                 if cut:
+                    backend.reset(engine, 'scene_cut')
                     scene_cut_resets += 1
                     if last_depth is not None and frames % policy.inference_cadence != 0:
                         extra_cut_inferences += 1
-                if last_depth is None or frames % policy.inference_cadence == 0 or cut:
+                if refresh in ('motion', 'local_motion'):
+                    extra_motion_inferences += 1
+                    local_motion_inferences += int(refresh == 'local_motion')
+                if refresh != 'reuse':
                     with metrics.measure('preprocess'):
-                        tensor = preprocess(frame)
+                        tensor = backend.prepare(frame)
                     with metrics.measure('depth_inference'):
-                        last_depth = engine.infer(tensor)
+                        last_depth = backend.infer(engine, tensor)
+                    # Holds one immutable decoded RGB buffer, not a growing history.
+                    inferred_frame = frame
                 with metrics.measure('temporal_stereo'):
                     rendered = synthesizer.render(frame, last_depth).tobytes()
+                if hashes is not None:
+                    hashes['depth'].update(last_depth.tobytes())
+                    hashes['sbs_rgb'].update(rendered)
                 with metrics.measure('encode_write'):
                     written = encode.stdin.write(rendered)
                     if written != len(rendered):
@@ -253,6 +358,7 @@ def convert_video(
                 raise RuntimeError("NVENC encode failed: " + encode_error.strip())
             lifecycle.checkpoint('encode_drain')
             resource_stats = engine.telemetry()
+            projection_stats = projection.telemetry() if projection is not None else None
             lifecycle.checkpoint('resource_snapshot')
         lifecycle.checkpoint('backend_close')
         if frames == 0:
@@ -268,15 +374,33 @@ def convert_video(
             raise RuntimeError("Audio mux failed: " + mux.stderr.strip())
         lifecycle.checkpoint('audio_mux')
         _check_cancel(cancel_path)
+        if not partial_path.is_file() or partial_path.stat().st_size == 0:
+            raise RuntimeError("Mux produced no final media")
+        # Finish every fallible owned cleanup before replacing an existing result.
+        # Otherwise a late pipe/temp cleanup error could report failure after publication.
+        cleanup_errors = _cleanup_processes((decode, encode))
+        decode = encode = None
+        if cleanup_errors:
+            raise ExceptionGroup('Pipeline cleanup failed', cleanup_errors)
+        video_path.unlink(missing_ok=True)
+        video_path = None
+        _check_cancel(cancel_path)
+        if cancel_path is not None:
+            cancel_path.unlink(missing_ok=True)
+            cancel_path = None
         partial_path.replace(output_path)
+        partial_path = None
         lifecycle.checkpoint('publish')
         elapsed = time.perf_counter() - started
         result = {
             "event": "complete", "output": str(output_path), "frames": frames,
             "elapsed_seconds": elapsed, "processing_fps": frames / elapsed,
             "mode": mode, "policy": policy.__dict__,
+            'output_codec': output_codec, 'output_policy': output_policy.__dict__,
+            'depth_backend': backend.describe(),
         }
         result['telemetry'] = {
+            'diagnostic_hashes': {name: value.hexdigest() for name, value in hashes.items()} if hashes is not None else None,
             'schema_version': 2, 'sample_capacity': metrics.capacity,
             'percentile_scope': 'trailing_window', 'stages': metrics.summary(),
             'resources': resource_stats,
@@ -290,8 +414,12 @@ def convert_video(
             'zero_copy': False,
             'scene_cut_resets': scene_cut_resets,
             'extra_cut_inferences': extra_cut_inferences,
-            'stereo': {'algorithm': 'forward_zbuffer_cpu',
-                       'flat_background_frames': synthesizer.flat_background_frames},
+            'extra_motion_inferences': extra_motion_inferences,
+            'local_motion_inferences': local_motion_inferences,
+            'stereo': {'algorithm': projection.algorithm if projection is not None else 'forward_zbuffer_cpu',
+                       'projection_resources': projection_stats,
+                       'flat_background_frames': synthesizer.flat_background_frames,
+                       'letterbox': synthesizer.padding.telemetry() if synthesizer.padding is not None else {'enabled': False}},
             'lifecycle_seconds': dict(lifecycle.seconds),
             'probe_seconds': probe_seconds,
             'job_elapsed_seconds': time.perf_counter() - job_started,

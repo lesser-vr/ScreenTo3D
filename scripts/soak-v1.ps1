@@ -3,7 +3,9 @@ param(
     [Parameter(Mandatory = $true)] [string]$SourcePath,
     [ValidateSet('performance', 'balanced', 'video-quality', 'offline-quality')]
     [string]$Mode = 'performance',
-    [ValidateRange(30, 86400)] [int]$TimeoutSeconds = 900
+    [ValidateRange(30, 86400)] [int]$TimeoutSeconds = 900,
+    [switch]$GpuPreview,
+    [ValidateSet('h264', 'hevc')] [string]$OutputCodec = 'h264'
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -11,6 +13,11 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $sourceVideo = (Resolve-Path -LiteralPath $SourcePath).Path
 $package = Join-Path $repoRoot 'out/release/DepthSBS'
 $exe = Join-Path $package 'DepthSBS.exe'
+if ($OutputCodec -ne 'h264' -and -not $GpuPreview) { throw 'HEVC soak requires the updated GPU preview package.' }
+if ($GpuPreview) {
+    $package = Join-Path $repoRoot 'out/gpu-preview/DepthSBS-GPU-Preview'
+    $exe = Join-Path $package 'DepthSBS-GPU-Preview.exe'
+}
 $probe = Join-Path $package '_internal/ffmpeg/ffprobe.exe'
 if (-not (Test-Path -LiteralPath $exe)) { throw 'Build the portable package first.' }
 if (-not (Test-Path -LiteralPath $probe)) { throw 'Bundled ffprobe is missing.' }
@@ -47,6 +54,7 @@ try {
     $treeTotalsWriter.WriteLine('sample_id,elapsed_seconds,state,private_bytes,descendant_private_bytes,process_count,error_kind')
     $writer.WriteLine('elapsed_seconds,private_bytes,working_set_bytes')
     $arguments = "--worker --input `"$sourceVideo`" --output `"$outputPath`" --mode $Mode --status-file `"$statusPath`""
+    if ($GpuPreview) { $arguments += " --output-codec $OutputCodec" }
     $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru -WindowStyle Hidden
     while (-not $process.HasExited) {
         if ($timer.Elapsed.TotalSeconds -gt $TimeoutSeconds) { throw 'Worker timeout.' }
@@ -115,8 +123,18 @@ try {
 $complete = Get-Content -LiteralPath $statusPath | ForEach-Object { $_ | ConvertFrom-Json } |
     Where-Object event -eq complete | Select-Object -Last 1
 if (-not $complete -or $samples -eq 0) { throw 'Missing completion or memory samples.' }
+if ($GpuPreview) {
+    $stereo = $complete.telemetry.stereo
+    if ($stereo.algorithm -ne 'forward_zbuffer_cuda_preview' -or
+        $stereo.projection_resources.completed_eye_calls -ne (2 * $complete.frames) -or
+        $stereo.projection_resources.zero_copy -ne $false -or
+        $null -ne $complete.telemetry.diagnostic_hashes) {
+        throw 'GPU preview projection accounting failed.'
+    }
+}
 $outputProbe = Read-Probe $outputPath
 $video = $outputProbe.streams | Where-Object codec_type -eq video | Select-Object -First 1
+if ($video.codec_name -ne $OutputCodec) { throw 'Output codec contract failed.' }
 if ([long]$video.nb_frames -ne [long]$inputVideo.nb_frames -or
     [long]$complete.frames -ne [long]$inputVideo.nb_frames -or
     [int]$video.width -ne ([int]$inputVideo.width * 2) -or
@@ -143,6 +161,9 @@ foreach ($stage in $complete.telemetry.stages.PSObject.Properties) {
 }
 $artifact = [ordered]@{
     schema_version = 2
+    gpu_preview = [bool]$GpuPreview
+    output_codec = $OutputCodec
+    executable_sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
     source_commit = (& git -C $repoRoot rev-parse HEAD).Trim()
     source_dirty = [bool](& git -C $repoRoot status --porcelain)
     package = Get-Content (Join-Path $package 'build-manifest.json') -Raw | ConvertFrom-Json
