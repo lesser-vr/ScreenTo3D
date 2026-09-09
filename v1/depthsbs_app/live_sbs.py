@@ -38,7 +38,8 @@ PROCESSED, INPUT_REPLACED, RESETS, PREPROCESS_NS, DEPTH_NS, STEREO_NS, TOTAL_NS 
 H2D_BYTES, D2H_BYTES, SYNCS = range(7, 10)
 INFERRED, REUSED = range(10, 12)
 INPUT_COPY_NS, INPUT_COLOR_NS, OUTPUT_COLOR_NS, OUTPUT_COPY_NS = range(20, 24)
-STAT_COUNT = 30
+RESET_START, RESET_RESIZE, RESET_GAP, RESET_CUT = range(30, 34)
+STAT_COUNT = 34
 DEFAULT_CAPTURE_INTERVAL_MS = 0
 
 
@@ -50,6 +51,18 @@ def reset_reason(previous_sequence, sequence, previous_shape, shape, cut):
     if sequence != previous_sequence + 1:
         return "gap"
     return "cut" if cut else None
+
+
+def record_reset(stats, reason):
+    """Count a completed reset without recording source identity or pixels.
+
+    Total/breakdown reads are not atomic while processing. These are selected
+    reset reasons, not independent counts of simultaneous events.
+    """
+    index = {"start": RESET_START, "resize": RESET_RESIZE,
+             "gap": RESET_GAP, "cut": RESET_CUT}[reason]
+    stats[index] += 1
+    stats[RESETS] += 1
 
 
 def validate_strength(value):
@@ -334,7 +347,7 @@ def sbs_worker(
                             projection,
                             paired_projection=projection.project_pair,
                         )
-                    stats[RESETS] += 1
+                    record_reset(stats, reason)
                 before = (
                     (projection.h2d, projection.d2h, projection.syncs)
                     if gpu_candidate

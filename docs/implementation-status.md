@@ -21,6 +21,24 @@ in [ROADMAP](ROADMAP.md). Unpassed acceptance is recorded below.
 
 ## Measured envelope, not general support
 
+The [P1 Small 392x700 experiment](evidence/p1-small-aspect.md) is **not selected
+for integration**: bounded native-4K-source depth tests showed no speed win,
+limited still review found a thin-object tradeoff, and numerical checks did not
+all pass. The original 518x518 product path is retained. This is one tested P1
+candidate, not completion of Distill Small or temporal/occlusion comparisons.
+
+The [P0 baseline intake and model-stage diagnostic](evidence/p0-depth-attribution.md)
+records installed iw3/LSFG settings and isolated VDA/oVDA timing. Continuous 4K
+depth wall medians are 49.94/60.38 ms, with CPU preprocessing accounting for about
+69%/64% of traced wall time. Earlier live run counters show near-per-frame history
+resets under those conditions. Product behavior is unchanged; actual matched
+iw3 + LSFG recordings, stereo attribution and Quest 3 review remain pending.
+The source worker now appends start/resize/gap/cut reset counters to its bounded
+processing metrics (indices 30–33), preserving existing stage indices and reset
+precedence. They count the selected reason after successful reset, not simultaneous
+events; live reads are asynchronous. This instrumentation has CPU regression
+coverage, not a new measured live reset distribution or a changed history policy.
+
 The [guarded native baseline](evidence/live-performance.md#record-result-live-guarded-baseline) records DA2
 Small on RTX 5090, 1920x1080 input / 1920x1080 per eye / 3840x1080 Full SBS,
 with native distinct-output rates of 59.70–59.99 fps across three legacy policy

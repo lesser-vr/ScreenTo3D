@@ -229,3 +229,25 @@ the installed executable, settings and renderer config and records only the
 quality-relevant saved profile fields plus GPU/driver and active power scheme.
 The snapshot is read-only and does not prove which profile was active during a
 capture; pair its hash with the capture contract and confirm the visible profile.
+
+For iw3 baseline intake, use `python v1/snapshot_iw3_baseline.py --help` to
+snapshot a supplied installation into a fresh output directory. This read-only
+tool uses a quality-setting allowlist and hashes relevant installed artifacts;
+it does not start capture or prove the saved settings were active.
+
+For isolated VDA/oVDA depth attribution in the prepared model environment, run
+`python v1/profile_model_stages.py --output <new-directory> --models vda ovda
+--noncommercial`. The oVDA flag requires the user's applicable personal-use
+confirmation. Defaults use 1080p and upscaled-4K prepared FloorballGame frames,
+continuous/reset-each-frame cases, 16 warmup frames and five ten-frame repeats.
+The report records source hashes, exact three-frame diagnostic parity, exclusive
+host regions, TRT stream intervals and instrumentation overhead. Model cleanup
+precedes final publication; `partial.json` is not a completed result. This is
+depth-only cost evidence, not native-4K quality, stereo/FG or complete-path FPS.
+
+`v1/compare_small_aspect.py` compares locally built, pinned-ONNX Small engines at
+518x518 and 392x700 using original checksum-pinned 4K public frames. It preserves
+the square preprocessing values, alternates shape order, records ORT reference
+checks and bounded timing samples, and exports paired depth stills. Its engine
+files must come from the controlled local build; the CLI precision label is not
+an artifact validator. See the [recorded build recipe and limits](evidence/p1-small-aspect.md).

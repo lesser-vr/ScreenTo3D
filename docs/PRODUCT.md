@@ -11,6 +11,11 @@ image, producing 7680x2160 Full SBS at final 60 fps. Frame generation is allowed
 fresh model inference at 60 Hz is not required. The complete model, postprocessing,
 FG and presentation path determines perceived quality and latency.
 
+The user's comparison setup is iw3 with 3840x2160 60 fps input, Lossless
+Scaling FG x2, and OpenVR / Desktop+ viewing on Quest 3. These identify the
+baseline components, not verified routing order, actual output rates or headset
+transport. Measure those rather than deriving them from the configured x2 factor.
+
 This is a target, not certified support. Exact 59.94/60.00 cadence, model/base/FG
 rates and output geometry must be declared in comparisons. A combined 4K SBS
 image or a 4K model input is not equivalent to 4K per eye.

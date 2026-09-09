@@ -8,6 +8,8 @@ Read only the records relevant to the current question.
 
 | Topic | Records |
 |---|---:|
+| [P1 Small rectangular input](p1-small-aspect.md) | 1 |
+| [P0 baseline intake and depth-stage attribution](p0-depth-attribution.md) | 1 |
 | [Capture and source isolation](capture.md) | 5 |
 | [Live performance and measurement conditions](live-performance.md) | 15 |
 | [Host and native presentation](presentation.md) | 10 |

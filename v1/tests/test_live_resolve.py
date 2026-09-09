@@ -19,7 +19,7 @@ class LiveResolveTests(unittest.TestCase):
         engine._device_check.assert_not_called()
 
     def test_metrics_remain_fixed_capacity(self):
-        self.assertEqual(STAT_COUNT, 30)
+        self.assertEqual(STAT_COUNT, 34)
 
     def test_exact_parallel_is_the_promoted_default(self):
         self.assertEqual(DEFAULT_RESOLVE, "parallel")
