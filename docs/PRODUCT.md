@@ -56,10 +56,12 @@ mode but do not redefine its model identity.
 
 The source desktop now snapshots and validates the model owned by the selected
 mode. Performance uses the existing fused DA2 Small live path. Balanced uses DA2
-Base, while Video Quality exposes only an explicit oVDA/VDA choice; these models
-currently cross a host-depth boundary before CUDA stereo and cannot select the
-experimental native-texture delivery. Offline Quality remains file-only. Missing,
-unlicensed or shape-incompatible artifacts fail visibly without model fallback.
+Base, while Video Quality exposes only an explicit oVDA/VDA choice. VDA and oVDA
+live sessions keep source-resolution depth on their owned CUDA stream and may
+explicitly select the experimental native-texture delivery; host output remains
+available. DA2 Base still uses its host-depth boundary and cannot select native
+delivery. Offline Quality remains file-only. Missing, unlicensed or
+shape-incompatible artifacts fail visibly without model fallback.
 See [current paths and limits](implementation-status.md).
 
 Current capture supports SDR BGRA8, source dimensions 16..4096 by 16..2160 and

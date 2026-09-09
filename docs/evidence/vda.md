@@ -6,6 +6,7 @@ Historical evidence by recorded checkpoint. Current support is in
 ## Records
 
 - [offline-centered-window-2026-09-08](#record-result-offline-centered-window-2026-09-08)
+- [vda-native-live-2026-09-09](#record-result-vda-native-live-2026-09-09)
 - [vda-device-live-promoted-2026-09-08](#record-result-vda-device-live-promoted-2026-09-08)
 - [streaming-model-candidate](#record-result-streaming-model-candidate)
 - [vda-device-boundary-2026-09-06](#record-result-vda-device-boundary-2026-09-06)
@@ -88,6 +89,37 @@ Historical evidence by recorded checkpoint. Current support is in
 > .\scripts\evaluate-offline-vda.ps1 -Clip OfficeWalk -CutClip ParkingGarage `
 >   -OutputReport out\new-offline-cut-proxy.json
 > ```
+
+<a id="record-result-vda-native-live-2026-09-09"></a>
+## vda-native-live-2026-09-09
+
+> Date: 2026-09-09. Clean commit `e9b27f0` connects the existing VDA device-depth
+> path to the explicitly selected `gpu-texture` delivery. The common texture-output
+> mixin changes only publication; file/Offline VDA keeps the host engine, live host
+> output remains available, and native delivery is still experimental.
+
+> The product-class diagnostic used the pinned public FloorballGame source and
+> matched the host reference's final SBS pixels exactly on 12/12 frames. All 12
+> alpha planes were opaque, all device-depth tokens completed, no token remained
+> pending and no depth download was recorded. Evidence:
+> `out/vda-native-product/public-floorball-20260909/report.json`.
+
+> The clean actual-GUI run used retained WGC input, both Qt/D3D11 consumers, a
+> 60 Hz target, six-second warmup and five six-second windows per geometry:
+>
+> | Per-eye input / Full SBS | Capture | Processed | Distinct native output |
+> |---|---:|---:|---:|
+> | 1920x1080 / 3840x1080 | 62.47 | 28.15 | 28.15 fps |
+> | 3840x2160 / 7680x2160 | 62.34 | 11.92 | 11.92 fps |
+>
+> Against the preceding clean device-depth/host-output medians, distinct output
+> is 17.35% higher at 1080p and 36.24% higher at eye-4K. Every session ended with
+> zero live pools/nodes. All 15 review captures per geometry had unique hashes;
+> inspected first/middle/last samples advanced, retained plausible Full SBS layout
+> and showed no black/frozen frame. These are downscaled output-window grabs, not
+> 1:1 eye-4K, continuous playback, physical scanout, VR or long-session acceptance.
+> Capture and model input remain host-mediated and `zero_copy=false`. Evidence:
+> `out/model-native-vda-clean-20260909`.
 
 <a id="record-result-vda-device-live-promoted-2026-09-08"></a>
 ## vda-device-live-promoted-2026-09-08

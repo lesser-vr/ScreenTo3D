@@ -28,6 +28,7 @@ general requirement to ask before tests.
 - [retained-capture-promoted](#record-result-retained-capture-promoted)
 - [model-defined-live-routing](#record-result-model-defined-live-routing)
 - [model-defined-live-performance](#record-result-model-defined-live-performance)
+- [ovda-native-live-promoted](#record-result-ovda-native-live-promoted)
 - [ovda-device-live-promoted](#record-result-ovda-device-live-promoted)
 - [live-gpu-idle-recheck](#record-result-live-gpu-idle-recheck)
 - [live-gpu-speed-results](#record-result-live-gpu-speed-results)
@@ -108,6 +109,39 @@ single review directory collided on the second mode. The `-v2` rerun completed
 but is superseded because it truthfully recorded the pending harness fix as a
 dirty worktree. Commit `d5efff6` scopes review directories by size and mode; the
 four accepted directories all record `dirty: false`.
+
+<a id="record-result-ovda-native-live-promoted"></a>
+## ovda-native-live-promoted
+
+Checkpoint date: 2026-09-09. Clean commit `e9b27f0` connects oVDA's existing
+source-resolution device-depth path to explicitly selected `gpu-texture` delivery.
+The common texture-output mixin changes publication only. The host-output choice,
+license confirmation, trusted plans, c16 cache contract and every-frame policy
+remain unchanged.
+
+The product-class diagnostic on pinned public FloorballGame matched host-reference
+final SBS pixels exactly on 12/12 frames. All alpha planes were opaque, all 12
+device tokens completed, no token remained pending and no depth download was
+recorded. Evidence: `out/ovda-native-product/public-floorball-20260909/report.json`.
+
+The clean actual-GUI run used retained WGC input, both Qt/D3D11 consumers, a 60 Hz
+target, six-second warmup and five six-second windows per geometry:
+
+| Per-eye input / Full SBS | Capture | Processed | Distinct native output |
+|---|---:|---:|---:|
+| 1920x1080 / 3840x1080 | 62.27 | 22.38 | 22.54 fps |
+| 3840x2160 / 7680x2160 | 62.09 | 9.44 | 9.44 fps |
+
+Against the preceding clean device-depth/host-output medians, distinct output is
+4.89% higher at 1080p and 29.71% higher at eye-4K. Five-window output ranges were
+19.38-25.53 and 7.94-9.77 fps respectively, so the medians do not establish a
+stable frame-time guarantee. Every session ended with zero live pools/nodes. All
+15 review captures per geometry had unique hashes; inspected first/middle/last
+samples advanced, retained plausible Full SBS layout and showed no black/frozen
+frame. These are downscaled output-window grabs, not 1:1 eye-4K, continuous
+playback, physical scanout, VR or long-session acceptance. Capture/model input
+remain host-mediated and `zero_copy=false`. Evidence:
+`out/model-native-ovda-clean-20260909`.
 
 <a id="record-result-ovda-device-live-promoted"></a>
 ## ovda-device-live-promoted

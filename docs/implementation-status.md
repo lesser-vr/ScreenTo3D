@@ -1,6 +1,6 @@
 # Current implementation status
 
-Reviewed 2026-09-08. The validated hybrid guided filter is now in the prepared-local
+Reviewed 2026-09-09. The validated hybrid guided filter is now in the prepared-local
 product DLL, and the SBS worker retains the owned WGC mapped frame instead of
 copying it into a second 4K BGRA buffer. Scoped regression coverage and measurements
 are connected below; they do not establish general 4K60 support.
@@ -14,8 +14,8 @@ in [ROADMAP](ROADMAP.md). Unpassed acceptance is recorded below.
 | C++ bootstrap | CMake/MSVC core, capability probe and mode contracts; CI/dev entry point exists | Not a complete native NVDEC-to-NVENC media pipeline; `CMakeLists.txt`, `.github/workflows/ci.yml`, `scripts/dev.ps1` |
 | Python file conversion | Mode-owned routing now enforces Performance/DA2 Small, Balanced/DA2 Base, Video Quality/explicit oVDA or VDA, and Offline Quality/VDA with a dedicated centered five-frame processor; SBS, FFmpeg/NVENC, audio/publication and cancellation remain shared | Offline is bounded, future-aware and file-only; it is not motion-warped or a new trained model. Artifact/shape/license-specific local use; [model specifications](PRODUCT.md#files-and-models) |
 | Live original preview | Explicit WGC window/monitor capture, source transitions and isolated worker | No depth in original mode; [original preview](PRODUCT.md) |
-| Live depth modes / host output | Immutable session routing selects Performance/DA2 Small, Balanced/DA2 Base, or Video Quality/explicit oVDA or VDA; retained same-process WGC input, 30/60 output targets and separate fullscreen output | DA2 Base/VDA/oVDA use a host-depth boundary before CUDA stereo; the fused/native-texture path remains Performance/DA2 Small-only. Offline Quality is file-only; correct artifacts, shapes and oVDA confirmation are required with no fallback |
-| Live native texture output | Explicit experimental `gpu-texture` transport into Qt/D3D11 windows, worker-owned bounded textures | Capture input still crosses host memory; native delivery promotion and broad visual acceptance remain open; [integration](evidence/presentation.md#record-result-live-native-dual-window) |
+| Live depth modes / host output | Immutable session routing selects Performance/DA2 Small, Balanced/DA2 Base, or Video Quality/explicit oVDA or VDA; VDA/oVDA live depth remains on its owner CUDA stream through GPU SBS | DA2 Base retains a host-depth boundary. Offline Quality is file-only; correct artifacts, shapes and oVDA confirmation are required with no fallback |
+| Live native texture output | Explicit experimental `gpu-texture` transport into Qt/D3D11 windows supports DA2 Small plus VDA/oVDA device-depth live sessions with worker-owned bounded textures | Capture/model input still crosses host memory; DA2 Base is ineligible; native delivery default promotion and broad visual acceptance remain open; [integration](evidence/presentation.md#record-result-live-native-dual-window) |
 | Temporal/model GPU experiments | Device boundaries and selected NVOF components have bounded evidence | Components are not general live model integration; fixed 1:2 NVOF cadence is rejected; [actual skip](evidence/nvof.md#record-result-ovda-nvof-actual-skip-2026-09-07) |
 | Post-SBS Streamline DLSSG proposal | Feasibility review completed | Current adapter rejected at input-contract boundary; not a rejection of all external RGB FG; [feasibility](evidence/frame-generation.md#record-result-dlssg-feasibility-2026-09-07) |
 
@@ -186,16 +186,16 @@ not sustained 60 fps or a quality comparison. See the
 [model performance record](evidence/live-performance.md#record-result-model-defined-live-performance).
 
 The source desktop now keeps explicitly selected oVDA live depth on the model's
-owned CUDA stream through temporal/guided postprocessing and stereo, then returns
-the SBS image through the existing host output. Public component parity was exact
-on 12/12 frames and the integrated wrapper completed 12/12 owned tokens without a
-pending result. A clean-commit actual-GUI run raised 1920x1080-per-eye median
+owned CUDA stream through temporal/guided postprocessing and stereo. Public
+component parity was exact on 12/12 frames and the integrated wrapper completed
+12/12 owned tokens without a pending result. A clean-commit actual-GUI run raised
+1920x1080-per-eye median
 processed/output submission from 7.77/7.78 to 21.35/21.49 fps. At 3840x2160 per
 eye and 7680x2160 Full SBS it raised both from about 2.48 to 7.27/7.28 fps.
-The path remains host RGB input/host SBS output and `zero_copy=false`; shared
-texture integration, 60 fps, sustained performance and continuous visual/VR
-acceptance remain open. See the
-[device-live record](evidence/live-performance.md#record-result-ovda-device-live-promoted).
+Explicit native delivery now raises output further to 22.54 and 9.44 fps at those
+geometries. The path still has host capture/model input and is `zero_copy=false`;
+60 fps, sustained performance and continuous visual/VR acceptance remain open.
+See the [native-live record](evidence/live-performance.md#record-result-ovda-native-live-promoted).
 
 VDA Small live sessions now use the same owned source-resolution device-depth
 contract while file and Offline sessions retain the host-depth engine. The public
@@ -204,8 +204,10 @@ the integrated product wrapper also matched 12/12 final SBS frames, completed
 every token and recorded no depth download. A clean actual-GUI run raised
 1920x1080-per-eye processed/output from 8.43/8.43 to 23.99/23.99 fps. At
 3840x2160 per eye and 7680x2160 Full SBS it raised 2.64/2.64 to 8.61/8.75 fps.
-The path is still host input/host output, `zero_copy=false`, and not 60 fps. See
-the [VDA device-live record](evidence/vda.md#record-result-vda-device-live-promoted-2026-09-08).
+Explicit native delivery now raises output further to 28.15 and 11.92 fps at
+those geometries. The path still has host capture/model input, is `zero_copy=false`,
+and is not 60 fps. See
+the [VDA native-live record](evidence/vda.md#record-result-vda-native-live-2026-09-09).
 
 The file-only Offline Quality path now uses VDA Small inference plus a scene-local
 centered five-frame processor. A final-code public 1080p60 FloorballGame conversion
@@ -259,6 +261,9 @@ Its optional product-baseline contract records and validates the workload,
 environment, exact path descriptions, geometry, five distinct pipeline rates,
 latency state and product review decisions. No matched Small + LSFG capture has
 yet been supplied, so this closes comparison setup ambiguity, not the quality gate.
+The 2026-09-09 native-output extension also passed 258 discovery tests, 27 live
+controller tests, scoped Ruff checks and Python bytecode compilation; its actual
+GPU/GUI evidence is recorded in the linked VDA/oVDA native-live records.
 
 ## Unpassed acceptance
 
@@ -266,7 +271,7 @@ yet been supplied, so this closes comparison setup ambiguity, not the quality ga
 |---|---|
 | Product mode contract | Mode routing, mismatch rejection, a license-confirmed public oVDA file/lifecycle run, the dedicated bounded Offline/VDA processor and short repeated actual-GUI live runs for all three non-Small choices are implemented. Offline is intentionally file-only; matched visual quality, broader content and sustained performance remain open |
 | Better depth than the user's baseline | Matched spatial/temporal/binocular review against Small + LSFG, including games and video |
-| Eye-4K final 60 fps | Baseline model-defined DA2 Base/VDA/oVDA host-output paths measured only 2.48/2.64/2.48 fps median at 3840x2160 per eye and 7680x2160 Full SBS. Integrated device-depth/GPU-SBS paths now measure 8.61/8.75 for VDA and 7.27/7.28 fps for oVDA. Earlier near-59 fps runs use native-texture DA2 Small with legacy policy labels. Non-Small native output, 1:1 fullscreen/physical-display behavior, applicable FG, broader content and sustained acceptance remain |
+| Eye-4K final 60 fps | Baseline model-defined DA2 Base/VDA/oVDA host-output paths measured only 2.48/2.64/2.48 fps median at 3840x2160 per eye and 7680x2160 Full SBS. Integrated device-depth/host-output paths reached 8.75 fps for VDA and 7.28 for oVDA; explicit native texture raises these to 11.92 and 9.44 fps. Earlier near-59 fps runs use native-texture DA2 Small with legacy policy labels. Model/cache cost, 1:1 fullscreen/physical-display behavior, applicable FG, broader content and sustained acceptance remain |
 | Native-texture default suitability | Guided-filter promotion is complete, but the native-texture transport itself remains experimental; continuous actual-UI playback/VR review and broader acceptance remain |
 | Broad content and VR comfort | Continuous playback and the applicable display/headset evaluation; scalar parity or stills alone are insufficient |
 | Long-session reliability / real device loss | Actual long-duration/device scenarios for that claim; short or injected tests do not establish it |
