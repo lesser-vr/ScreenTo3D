@@ -251,3 +251,10 @@ the square preprocessing values, alternates shape order, records ORT reference
 checks and bounded timing samples, and exports paired depth stills. Its engine
 files must come from the controlled local build; the CLI precision label is not
 an artifact validator. See the [recorded build recipe and limits](evidence/p1-small-aspect.md).
+
+For the isolated Distill Small model replacement, `v1/distill_small_experiment.py`
+verifies the pinned source/weights and exports a fixed square oracle;
+`v1/compare_distill_small.py` compares locally built FP32 engines using the same
+public frames and reference stereo path. `v1/review_distill_small.py` creates
+native-pixel eye crops from completed output. These are controlled diagnostics,
+not application model installers. See [provenance, build flags and limitations](evidence/p1-distill-small.md).

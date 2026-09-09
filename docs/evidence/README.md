@@ -8,6 +8,8 @@ Read only the records relevant to the current question.
 
 | Topic | Records |
 |---|---:|
+| [P1 motion-aligned depth history](p1-temporal-depth.md) | 1 |
+| [P1 Distill Small controlled comparison](p1-distill-small.md) | 1 |
 | [P1 Small rectangular input](p1-small-aspect.md) | 1 |
 | [P0 baseline intake and depth-stage attribution](p0-depth-attribution.md) | 1 |
 | [Capture and source isolation](capture.md) | 5 |

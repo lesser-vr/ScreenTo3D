@@ -16,9 +16,6 @@ every candidate; stop or reorder a branch when a small comparison falsifies it.
 |---|---|---|
 | P0 | Establish the matched Small + LSFG comparison | Reuse the existing harness; capture the actual baseline/settings on games and video, exact geometry/rates and latency. Include short binocular/HMD review early, not only at the end |
 | P0 | Separate high-quality model cost and history behavior | Measure preprocessing, GPU inference/cache, upscale/sync and stereo separately; inspect intentional sampling versus true discontinuity resets. Do not infer a model ceiling from aggregate depth timing |
-| P1 | A/B Distill Any Depth Small | Validate trusted weights, conversion, preprocessing and comparable runtime; compare spatial/temporal/binocular quality with stock DA2 Small before selecting a replacement |
-| P1 | A/B Small aspect-preserving input | Compare current 518x518 with HxW 392x700 while preserving full source/eye geometry; measure vertical-detail tradeoff and actual total cost |
-| P1 | Improve temporal/occlusion handling | Prototype motion-aligned history with confidence/occlusion rejection and consistent stereo fallback; compare ghosting, depth age and boundary stability, not only flicker proxies |
 | P2 | Evaluate Lightly DA3-relative-small if useful | Confirm artifact/license scope, output-depth direction and sky processing, then run the matched comparison; proceed only if it adds value over P1 candidates |
 | P2 | Prototype RGB60 + lower-rate high-quality depth | Use profiling to choose a viable model/cadence; propagate depth to the current RGB timestamp, jointly render eyes, bound queues and reject stale/unreliable history. 20–30Hz depth is an experiment target, not a supported rate |
 | P3 | Compare stable base30 + external FG x2 | Preserve 7680x2160, explicitly scope capturable output without feedback, measure GPU contention/latency/binocular artifacts; keep as a comparison branch rather than the default VR solution |
@@ -26,6 +23,12 @@ every candidate; stop or reorder a branch when a small comparison falsifies it.
 | P4 | Qualify the selected complete path | Sustained eye-4K cadence, actual display/headset quality and latency, lifecycle and packaging/license checks appropriate to the intended support claim; early visual checks remain part of P0–P3 |
 
 ## Other retained work areas
+
+The bounded P1 Small-model, aspect-input and temporal-history experiments have
+left this work list. Their decisions and unpassed acceptance are owned by
+[implementation status](implementation-status.md); candidate rejection does not
+constitute product quality acceptance. GPU motion-aligned history remains relevant
+to the P2 propagation experiment if its cost and quality justify it.
 
 These remain useful when relevant to the user's active request.
 

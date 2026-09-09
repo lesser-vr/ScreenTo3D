@@ -21,11 +21,29 @@ in [ROADMAP](ROADMAP.md). Unpassed acceptance is recorded below.
 
 ## Measured envelope, not general support
 
+The bounded P1 candidate experiments are concluded **without a default change**.
+The [Distill Small comparison](evidence/p1-distill-small.md) passed 12/12 FP32
+numerical checks; the longer GPU-postprocessor comparison produced 2,160 eye-4K
+SBS pairs from 1,080 unique public source frames and six six-second videos.
+DA2/Distill FP32 processing wall medians were 35.94–37.18 ms with host SBS readback
+and concurrent recording, not native presentation or a live FPS measurement.
+Distill remains an experimental reference, not a selected replacement: consistent
+quality superiority is unestablished. Both tested FP16 recipes failed all 18
+scoped FP32-preservation checks. No application model allowlist or package changed.
+
+The [P1 motion-aligned history prototype](evidence/p1-temporal-depth.md) passed
+a bounded synthetic ground-truth gate (21.17% MAE reduction), exact rejection/reset
+tests and a 540-frame real-depth diagnostic. CPU optical flow/filtering alone
+cost 25.84–26.17 ms P50, so this implementation is not selected for live integration.
+It uses a common monocular result and one previous raw depth frame, but has no
+stereo-renderer integration or natural-scene ground truth. Motion playback,
+games/HUD, actual matched iw3 + LSFG and fused headset quality remain unpassed;
+P1 experimental closure is not product quality or VR acceptance.
+
 The [P1 Small 392x700 experiment](evidence/p1-small-aspect.md) is **not selected
 for integration**: bounded native-4K-source depth tests showed no speed win,
 limited still review found a thin-object tradeoff, and numerical checks did not
-all pass. The original 518x518 product path is retained. This is one tested P1
-candidate, not completion of Distill Small or temporal/occlusion comparisons.
+all pass. The original 518x518 product path is retained.
 
 The [P0 baseline intake and model-stage diagnostic](evidence/p0-depth-attribution.md)
 records installed iw3/LSFG settings and isolated VDA/oVDA timing. Continuous 4K
