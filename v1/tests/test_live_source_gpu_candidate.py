@@ -4,6 +4,7 @@ from unittest.mock import Mock
 import numpy as np
 
 from depthsbs_app.live_source_gpu_candidate import LiveSourceGpuCandidate
+from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
 
 
 class LiveSourceGpuCandidateTests(unittest.TestCase):
@@ -42,6 +43,10 @@ class LiveSourceGpuCandidateTests(unittest.TestCase):
         candidate.engine.profile = None
         candidate.engine.input_shape = (1, 1, 3, 518, 924)
         self.assertEqual(candidate._input_bytes(), 3 * 518 * 924 * 4)
+
+    def test_native_source_path_keeps_source_depth_inference_contract(self):
+        self.assertTrue(issubclass(LiveSourceGpuTexture, LiveSourceGpuCandidate))
+        self.assertIs(LiveSourceGpuTexture.infer, LiveSourceGpuCandidate.infer)
 
 
 if __name__ == "__main__":

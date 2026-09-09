@@ -31,9 +31,14 @@ from .capture_sources import monitors, windows, validate_source
 from .capture_worker import capture_worker
 from .live_sbs import STAT_COUNT
 from .live_policy import LIVE_MODES
-from .live_backend import choices as live_model_choices, default_model as default_live_model
+from .live_backend import (
+    choices as live_model_choices,
+    default_model as default_live_model,
+)
 from .presentation_policy import PresentationCadence
 from .owned_preview_image import PreviewCopyPool
+
+NATIVE_MODELS = ("da2-small", "vda-small", "ovda-small-c16")
 
 
 class PreviewImages(QQuickImageProvider):
@@ -186,7 +191,10 @@ class LivePreview(QObject):
             dict(
                 key=key,
                 label=f"{profile.resolve().label} · "
-                + "/".join(self.desktop.models_label(model) for model in live_model_choices(key)),
+                + "/".join(
+                    self.desktop.models_label(model)
+                    for model in live_model_choices(key)
+                ),
             )
             for key, profile in LIVE_MODES.items()
         ]
@@ -257,7 +265,7 @@ class LivePreview(QObject):
 
     @Property(bool, notify=changed)
     def nativeCapable(self):
-        return self.sbs and self.live_model == "da2-small"
+        return self.sbs and self.live_model in NATIVE_MODELS
 
     @Property(int, notify=changed)
     def nativeSession(self):
@@ -283,8 +291,8 @@ class LivePreview(QObject):
             return
         if path not in ("gpu", "reference", "gpu-texture"):
             self.message = "지원하지 않는 처리 경로입니다."
-        elif path == "gpu-texture" and self.live_model != "da2-small":
-            self.message = "GPU 직접 출력은 현재 Performance · DA2 Small만 지원합니다."
+        elif path == "gpu-texture" and self.live_model not in NATIVE_MODELS:
+            self.message = "선택한 실시간 모델은 GPU 직접 출력을 지원하지 않습니다."
         else:
             try:
                 if path == "gpu-texture" and self.native is None:
@@ -318,7 +326,7 @@ class LivePreview(QObject):
                 if self.live_model not in live_model_choices(mode):
                     self.live_model = default_live_model(mode)
                     self.ovda_noncommercial = False
-                if self.live_model != "da2-small":
+                if self.live_model not in NATIVE_MODELS:
                     self.native_selected = False
             self.changed.emit()
 
@@ -327,7 +335,7 @@ class LivePreview(QObject):
         if not self.active and model in live_model_choices(self.mode):
             self.live_model = model
             self.ovda_noncommercial = False
-            if model != "da2-small":
+            if model not in NATIVE_MODELS:
                 self.native_selected = False
             self.changed.emit()
 
@@ -467,8 +475,10 @@ class LivePreview(QObject):
             from .live_backend import validate_snapshot
 
             validate_snapshot(backend_snapshot, self.mode)
-            if self.nativeEnabled and self.live_model != "da2-small":
-                raise ValueError("GPU 직접 출력은 현재 Performance · DA2 Small만 지원합니다.")
+            if self.nativeEnabled and self.live_model not in NATIVE_MODELS:
+                raise ValueError(
+                    "선택한 실시간 모델은 GPU 직접 출력을 지원하지 않습니다."
+                )
             if source["kind"] == "monitor" and not self.excluded:
                 raise ValueError(
                     "이 환경에서 미리보기 창의 재캡처를 차단하지 못했습니다. 창 캡처를 사용하세요."
@@ -505,7 +515,8 @@ class LivePreview(QObject):
                     self.strength,
                     self.mode,
                     self.gpu_candidate
-                    if self.live_model in (
+                    if self.live_model
+                    in (
                         "da2-small",
                         "vda-small",
                         "ovda-small-c16",
@@ -738,10 +749,14 @@ class LivePreview(QObject):
 
     def report(self):
         fused_live = self.live_model == "da2-small" and self.gpu_candidate
-        source_device_live = self.live_model in (
-            "vda-small",
-            "ovda-small-c16",
-        ) and self.gpu_candidate
+        source_device_live = (
+            self.live_model
+            in (
+                "vda-small",
+                "ovda-small-c16",
+            )
+            and self.gpu_candidate
+        )
         gpu_live = fused_live or source_device_live
         plan = (
             LIVE_MODES[self.mode].describe(self.strength, self.live_model)
@@ -807,7 +822,7 @@ class LivePreview(QObject):
                     24,
                 )
             }
-            if gpu_live
+            if fused_live
             else None,
             host_bridge_timing_scope="input ownership through shared output publication; excludes source wait and Qt",
             host_bridge_ms={
@@ -834,7 +849,7 @@ class LivePreview(QObject):
                     12,
                 )
             }
-            if fused_live
+            if gpu_live
             else None,
             explicit_cuda_h2d_bytes=self._stats()[7],
             explicit_cuda_d2h_bytes=self._stats()[8],

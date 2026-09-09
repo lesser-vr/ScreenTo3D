@@ -139,17 +139,21 @@ def sbs_worker(
         if type(gpu_candidate) is not bool:
             raise ValueError("Invalid GPU path snapshot")
         native = texture_mailbox is not None
-        if selected_model not in (
-            "da2-small",
-            "vda-small",
-            "ovda-small-c16",
-        ) and gpu_candidate:
+        if (
+            selected_model
+            not in (
+                "da2-small",
+                "vda-small",
+                "ovda-small-c16",
+            )
+            and gpu_candidate
+        ):
             raise ValueError(
                 "The live GPU path does not support the selected depth model"
             )
         if native and (
             not gpu_candidate
-            or selected_model != "da2-small"
+            or selected_model not in ("da2-small", "vda-small", "ovda-small-c16")
             or type(session) is not int
             or session <= 0
             or output.pixels is not None
@@ -256,10 +260,15 @@ def sbs_worker(
                     previous_sequence, m[SEQ], previous_shape, shape, cut
                 )
                 if shape != previous_shape:
-                    if previous_shape is not None and backend.input_validator is not None:
+                    if (
+                        previous_shape is not None
+                        and backend.input_validator is not None
+                    ):
                         backend.input_validator({"width": width, "height": height})
                         engine_scope.close()
-                        engine = engine_scope.enter_context(backend.engine_factory(None))
+                        engine = engine_scope.enter_context(
+                            backend.engine_factory(None)
+                        )
                     if native and projection is not None:
                         from .texture_mailbox import RETIRED
 
@@ -276,9 +285,14 @@ def sbs_worker(
 
                             gpu_factory = LiveGpuCandidate
                         if native:
-                            from .live_gpu_texture import LiveGpuTexture
-
-                            gpu_factory = LiveGpuTexture
+                            if selected_model in ("vda-small", "ovda-small-c16"):
+                                from .live_source_gpu_texture import (
+                                    LiveSourceGpuTexture as gpu_factory,
+                                )
+                            else:
+                                from .live_gpu_texture import (
+                                    LiveGpuTexture as gpu_factory,
+                                )
 
                         projection = projection_scope.enter_context(
                             gpu_factory(width, height, policy, engine)
@@ -346,7 +360,9 @@ def sbs_worker(
                             stats[D2H_BYTES] += engine.output_bytes
                         else:
                             input_shape = getattr(
-                                engine, "input_shape", (1, 3, *getattr(engine, "shape", frame.shape[:2]))
+                                engine,
+                                "input_shape",
+                                (1, 3, *getattr(engine, "shape", frame.shape[:2])),
                             )
                             stats[H2D_BYTES] += int(np.prod(input_shape) * 4)
                             stats[D2H_BYTES] += depth.nbytes

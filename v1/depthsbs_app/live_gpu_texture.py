@@ -8,7 +8,9 @@ BORROWED_LAYOUT_SHA256 = (
 )
 
 
-class LiveGpuTexture(LiveGpuCandidate):
+class TextureOutputMixin:
+    """Replace only the inherited host SBS output with the shared texture pool."""
+
     def __init__(self, width, height, policy, engine, *, diagnostic=False):
         if DLL_SHA256 != BORROWED_LAYOUT_SHA256:
             raise RuntimeError("Native delivery requires a validated borrowed layout")
@@ -63,3 +65,7 @@ class LiveGpuTexture(LiveGpuCandidate):
             error.add_note(str(failure))
         if error is not None:
             raise error
+
+
+class LiveGpuTexture(TextureOutputMixin, LiveGpuCandidate):
+    """DA2 Small device depth with native shared-texture delivery."""

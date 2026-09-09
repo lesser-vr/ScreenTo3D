@@ -78,11 +78,23 @@ class LiveControllerTests(unittest.TestCase):
         self.live.stop()
         self.live.native.end.assert_called_once()
 
-    def test_native_rejects_non_da2_small_mode(self):
+    def test_native_supports_device_depth_video_models(self):
         self.live.setSbs(True)
+        self.live.setMode("video-quality")
+        self.assertEqual(self.live.liveModel, "vda-small")
+        self.assertTrue(self.live.nativeCapable)
+        with patch("depthsbs_app.native_delivery.NativeDelivery"):
+            self.live.setProcessingPath("gpu-texture")
+        self.assertTrue(self.live.nativeEnabled)
+        self.live.setLiveModel("ovda-small-c16")
+        self.assertTrue(self.live.nativeEnabled)
+
+    def test_native_rejects_host_depth_model(self):
+        self.live.setSbs(True)
+        self.assertEqual(self.live.liveModel, "da2-base")
         self.live.setProcessingPath("gpu-texture")
         self.assertFalse(self.live.nativeEnabled)
-        self.assertIn("Performance", self.live.status)
+        self.assertIn("지원하지", self.live.status)
 
     def test_native_load_failure_does_not_select_or_start_it(self):
         self.live.setMode("performance")
