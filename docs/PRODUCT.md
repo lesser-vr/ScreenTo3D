@@ -52,6 +52,13 @@ Capture-only and legacy output APIs remain for explicit diagnostic callers.
 The prepared source launcher is `Run-DepthSBS.cmd`. Source-local features do not
 automatically appear in old portable packages. The present app uses one exclusive
 processing lease for live/file/installation work and snapshots settings at start.
+The prepared checkout also offers a local RowFlow symmetric trial through
+`powershell -File scripts/run-desktop.ps1 -RowFlow`. It requires Balanced/Base,
+GPU processing and strength at most 1.92; unsupported settings fail visibly.
+It changes stereo synthesis only, retaining Base TensorRT and depth processing.
+No new primary UI option is exposed. First use of a screen size can require
+compiler preparation; status explains the wait and Cancel remains available.
+Ordinary launch retains the CUDA renderer. This trial is not in portable packages.
 Utility navigation remains available during work; closing a utility does not
 cancel a job. Closing the main app during live SBS stops and waits for owned
 worker cleanup before exit. File-work cancellation still asks before quitting.
@@ -64,9 +71,22 @@ worker cleanup before exit. File-work cancellation still asks before quitting.
    A disappeared selection requires explicit reselection, even after subsequent
    refreshes; it does not silently select another source. Cursor
    inclusion remains on by default and is adjustable in the quality window.
-2. No output setup is needed before starting. Existing defaults
-   remain Balanced/DA2 Base, GPU host-output path, target 30Hz and strength 1.0;
-   UX simplification does not promote experimental native transport.
+2. No output setup is needed before starting. Prepared-local defaults are
+   Balanced/DA2 Base, GPU native-texture output, unlimited output FPS and strength 1.0.
+   Native output loads when SBS starts; opening the app alone does not load its
+   DLL. A preparation failure is visible and does not silently change paths.
+   Settings retains explicit GPU host-output and reference diagnostic choices;
+   the legacy reference environment override remains available.
+   Settings and diagnostics also offers an output FPS limit: unlimited (default),
+   30 or 60, changeable while stopped. The same publication limit applies to
+   native and host output; missed deadlines do not trigger catch-up bursts.
+   Resource release, retirement and failure checks continue while waiting for
+   output. Unlimited removes app pacing and requests Qt vsync off; source,
+   processing, driver and display constraints can still limit achieved FPS.
+   Small and Base window GPU sessions use GPU capture and preprocessing internally.
+   There is no new user-facing option. Whole-monitor capture and other models
+   retain their existing input path. This delivery change does not change the
+   depth model, stereo renderer, source resolution or capture exclusion.
 3. SBS 시작 starts conversion and opens the separate output. Invalid target
    selection rejects before capture; an output-open failure stops the owned job.
    Missing source selection or another owned job disables start with an adjacent
@@ -114,8 +134,8 @@ mode but do not redefine its model identity.
 The source desktop now snapshots and validates the model owned by the selected
 mode. Performance uses the existing fused DA2 Small live path. Balanced uses DA2
 Base, while Video Quality exposes only an explicit oVDA/VDA choice. Base, VDA and
-oVDA live GPU sessions keep source-resolution depth on their owned CUDA stream and may
-explicitly select the experimental native-texture delivery; host output remains
+oVDA live GPU sessions keep source-resolution depth on their owned CUDA stream and
+use native-texture delivery by default in the prepared checkout; host output remains
 available. Base's explicit reference path and file conversion keep host-depth
 output. Offline Quality remains file-only. Missing, unlicensed or
 shape-incompatible artifacts fail visibly without model fallback.
@@ -128,8 +148,8 @@ border and own-app capture exclusion prevent unintended capture/feedback.
 Recording/audio capture and OpenXR output are not implemented live features.
 
 Prepared-local GPU processing and explicit reference selection are distinct from
-host vs experimental native-texture delivery. A 30/60 Hz target is not achieved
-fps. Show capture, processing and output health without presenting callback counts
+host vs native-texture delivery. An output limit is not guaranteed achieved
+FPS or a physical monitor refresh setting. Show capture, processing and output health without presenting callback counts
 as physical display latency. See [current paths and limits](implementation-status.md).
 
 ## Files and models
@@ -157,6 +177,11 @@ implementation because H.264 output is width-limited. Short 4K fixtures establis
 compatibility only. Live overload replacement is not offline frame dropping.
 
 The source desktop resolves Performance to DA2 Small and Balanced to DA2 Base.
+Both use FP16 TensorRT model computation with FP32 input/output; Base preserves
+sensitive Resize/LayerNormalization/Softmax operations in FP32. Base's FP16
+default is an intentional precision/speed tradeoff, with no extra precision
+selector or automatic FP32 fallback. File and live Base sessions use the same
+trusted FP16 profiles; numerical and physical acceptance limits are in current status.
 Balanced fits non-native source ratios inside the validated Base model canvas;
 padding is internal to depth inference, not added to the source or SBS eyes.
 Video Quality permits only an explicit oVDA/VDA choice. Offline Quality resolves

@@ -15,7 +15,8 @@ Files: probe -> FFmpeg decode/host frames -> selected depth binding
        -> CPU or explicit CUDA SBS -> NVENC/FFmpeg
        -> drain/audio mux/validation -> atomic publication
 
-Live: selected WGC source -> retained mapped latest-frame slot (SBS)
+Live: selected WGC source -> owned D3D11/CUDA latest-frame slot (Small/Base window GPU paths)
+                           OR retained mapped latest-frame slot (other SBS paths)
                            OR bounded host BGRA mailbox (original preview)
       -> owned RGB/model input
       -> immutable model-defined binding
@@ -23,16 +24,20 @@ Live: selected WGC source -> retained mapped latest-frame slot (SBS)
          OR DA2 Base / VDA / explicit oVDA source-resolution device-depth path
          OR explicit reference host-depth path
       -> depth postprocessing / stereo
-      -> host mailbox + owned QImage -> Qt output
-      OR DA2 Small/Base/VDA/oVDA experimental native texture pool -> Qt/D3D11 private textures
+      -> DA2 Small/Base/VDA/oVDA native texture pool -> Qt/D3D11 private textures (local default)
+      OR explicit host mailbox + owned QImage -> Qt output
 ```
 
 C++ CMake core provides capability/mode foundations. It is not the complete native
-NVDEC/CUDA/NVENC pipeline originally proposed. Native output does not eliminate
-host capture/input transfers. Base/VDA/oVDA live device-depth paths can publish SBS
-through the same explicitly selected shared-texture GUI backend as DA2 Small;
-host output remains available. Processing-backend default and delivery-path default
-are separate decisions.
+NVDEC/CUDA/NVENC pipeline originally proposed. Small/Base window GPU sessions keep full
+capture/model input on the GPU; other model/monitor paths retain host capture.
+Base/VDA/oVDA live device-depth paths can publish SBS
+through the same shared-texture GUI backend as DA2 Small, now the prepared-local
+delivery default. Host output remains explicitly available. Selection is separate
+from readiness: native registration/loading happens at SBS start, and QML creates
+the native surface only after successful registration. Failure releases the live
+lease and reports an actionable error without selecting another transport.
+Processing-backend default and delivery-path default are separate decisions.
 
 ## Components and ownership
 
@@ -41,6 +46,11 @@ are separate decisions.
 - `live_policy.py` resolves immutable temporal/stereo policy. `live_backend.py`
   validates the mode-owned model snapshot and constructs only that binding.
   Backend/profile selection precedes output mutation.
+- `live_model.py` owns the live adapter registry: GPU capture capability,
+  optional capture-engine replacement, host/native renderer factories, RowFlow
+  eligibility and reference-path transfer accounting. The worker consumes this
+  adapter instead of branching on model names. License/profile validation stays
+  in the existing bindings; an unknown model or unsupported capture is rejected.
 - `depth_backend.py` provides model-independent binding/factory boundaries.
   Raw depth is finite float32 with declared shape/polarity; raw output and
   normalized display depth are distinct contracts. A binding may also declare a
@@ -56,6 +66,30 @@ are separate decisions.
   DA2 Base live tokens retain input and source-sized FP32 depth through consumer
   completion; source resize retires texture leases and destroys postprocessing
   before replacing the engine/stream. Base file conversion keeps host depth.
+- `gpu_runtime.py` provides a borrowed `GpuExecution` view of the engine-owned
+  stream and shared `GpuInputSupport` for pinned native loading, image validation
+  and thumbnail generation. Small supplies its ExternalStream view; Base supplies
+  its Torch stream. Frame/capture consumers use the same explicit interface.
+  This layer never creates/destroys engine streams or changes token completion.
+  Base and Small keep separate preprocessing algorithms and native library pins.
+- `gpu_capture.cpp` owns a two-frame WGC pool, one replaceable latest frame, one
+  acquired frame and a registered D3D11 bridge on the selected CUDA adapter.
+  WGC buffers have fixed 4096x2160 capacity (67.5 MiB for two BGRA buffers,
+  excluding driver overhead); only actual ContentSize pixels enter CUDA. Keeping
+  capacity bounded avoids pool recreation races on static-window resize.
+  Its worker-thread D3D-to-CUDA copy completes before releasing the WGC frame.
+  `gpu_capture.py` preserves HWND/PID, input-desktop, visibility and SDR checks.
+  `GpuFrame` owns same-stream RGB; `base_input.cu` preserves Base's float64 cubic
+  preprocessing arithmetic. Small wraps the existing TensorRT-owned raw stream
+  with a non-owning Torch ExternalStream; it does not change the FP16 model.
+  `small_gpu_input.py` computes bounded, shape-only IPP cubic coefficients once
+  per size. `small_input.cu` resizes captured RGB to uint8 518x518, then applies
+  the existing float32 normalization. `live_small_gpu_input.py` retains input and
+  coefficient tensors through stream completion and uses a separately pinned
+  DLL with the unchanged Small postprocessing/native borrowed layout.
+  Device buffers stay owned through SBS completion.
+  Exact 32x32 scene pixels and border samples cross to CPU; full RGB is read back
+  only for the existing conditional background refinement or explicit diagnostics.
 - Live worker/postprocessing owns normalization, EMA and stereo state. A CPU
   background-refinement bridge may remain explicitly counted, not silently removed.
 - Native delivery uses worker-owned bounded texture slots and per-consumer leases.
@@ -65,8 +99,31 @@ are separate decisions.
   non-persistent scene graph releases native nodes when Stop hides the window;
   cleanup does not depend on a later visible frame. Diagnostic dual-consumer
   transport remains an API capability, not an in-app preview control.
+- `PresentationCadence` owns the shared unlimited/30/60 FPS publication policy.
+  Native delivery checks it immediately before publishing a GPU frame; host
+  delivery checks it before copying/notifying a new image. Native metadata/health
+  polling and GPU release/retirement are independent of the deadline. Capped
+  delivery publishes at most one frame per deadline and schedules the next from
+  that publication, without catch-up bursts. The existing two texture slots bound
+  backpressure. Retirement drains unpublished leases without waiting for pacing;
+  no metadata-only release is introduced. Qt vsync is disabled by request at app
+  creation, while actual display scheduling remains outside this policy.
 
 ## State and time contracts
+
+The explicit local `rowflow-sym` adapter subclasses the source-depth consumer.
+Its pinned bridge copies the final normalized/guided depth and RGB into owned
+PyTorch tensors on the engine stream, including conditional background refinement.
+Resolution-specialized compiled RowFlow v3 symmetric produces a calibrated
+right/left swap into DepthSBS eye order. Finite checks precede uint8 publication.
+Host output reads back the full SBS; native output packs into the existing
+two-slot keyed-mutex protocol. Neither path changes Base TensorRT inference.
+The worker snapshots renderer selection and compiles before offering a pool;
+resize retires the old pool/consumer before replacing the engine. Compiler work
+and descendants belong to a worker-owned Windows kill-on-close job. Preparation
+status is advisory shared memory without a lock that forced cancellation could
+strand. The existing watchdog cancels that owned worker; normal CUDA sessions
+do not load RowFlow, its checkpoint or Triton. Artifact pins live in `rowflow.py`.
 
 | State | Owner / boundary |
 |---|---|
@@ -97,11 +154,13 @@ remove recurrent drift.
 
 ## GPU measurement details
 
-File pipes and live capture/input still cross host memory. The SBS capture thread
+File pipes and live paths other than Small/Base window GPU input still cross host memory. Their SBS capture thread
 retains the ownership-bearing WGC mapped NumPy view in one latest-frame slot until
 RGB conversion completes; original preview still copies into bounded shared BGRA.
 This removes one same-process 4-byte-per-pixel memcpy, not the WGC readback or RGB
-host-to-device transfer. GPU postprocessing
+host-to-device transfer. Small/Base window GPU capture instead performs D3D/CUDA device
+copies and one completion wait per accepted capture; this is not a zero-copy path.
+GPU postprocessing
 borrows TensorRT output/stream through owner/thread/generation checks. Eligible
 CPU background refinement remains explicitly counted. Host delivery copies owned
 BGRA/QImage data; native delivery returns a slot only after the last GPU lease.

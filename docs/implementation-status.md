@@ -1,9 +1,17 @@
 # Current implementation status
 
-Reviewed 2026-09-10. The validated hybrid guided filter is now in the prepared-local
-product DLL, and the SBS worker retains the owned WGC mapped frame instead of
-copying it into a second 4K BGRA buffer. Scoped regression coverage and measurements
-are connected below; they do not establish general 4K60 support.
+Reviewed 2026-11-05. Small/Base window GPU sessions now use owned WGC/D3D11/CUDA capture
+and exact GPU preprocessing. VDA/oVDA and monitor paths retain mapped capture;
+the hybrid guided filter remains. Native output is now the prepared-local default;
+host output is an explicit diagnostic choice. Native mixed-size restart is fixed.
+Base now defaults to user-selected mixed-FP16 TensorRT plans with FP32 I/O;
+Small was already FP16. Precision promotion and its checks are recorded below.
+Output now defaults to unlimited; settings offers unlimited/30/60 FPS. Native
+publication obeys the selected cap while release/error/retirement servicing stays
+active. The verification record is linked below.
+Additional Base profiling and the iw3 renderer comparison retain TensorRT and
+CUDA stereo as defaults. Scoped regression coverage and
+measurements below do not establish general 4K60 support.
 
 This page owns current path status and measured-envelope summaries. Product goals
 are in [the live specification](PRODUCT.md); work areas are
@@ -15,41 +23,211 @@ in [ROADMAP](ROADMAP.md). Unpassed acceptance is recorded below.
 | Python file conversion | Mode-owned routing now enforces Performance/DA2 Small, Balanced/DA2 Base, Video Quality/explicit oVDA or VDA, and Offline Quality/VDA with a dedicated centered five-frame processor; SBS, FFmpeg/NVENC, audio/publication and cancellation remain shared | Offline is bounded, future-aware and file-only; it is not motion-warped or a new trained model. Artifact/shape/license-specific local use; [model specifications](PRODUCT.md#files-and-models) |
 | Capture-only diagnostic | Explicit WGC window/monitor capture, source transitions and isolated worker retained for diagnostic callers | Removed from user-facing mode selection; GUI defaults to SBS, with no automatic capture; [desktop behavior](PRODUCT.md#live-capture-and-output) |
 | Live depth modes / host output | Immutable session routing selects Performance/DA2 Small, Balanced/DA2 Base, or Video Quality/explicit oVDA or VDA; Base/VDA/oVDA live GPU depth remains on its owner CUDA stream through GPU SBS | Explicit reference and file paths retain host depth. Offline Quality is file-only; correct artifacts, shapes and oVDA confirmation are required with no fallback |
-| Live native texture output | Explicit experimental `gpu-texture` transport into Qt/D3D11 windows supports DA2 Small plus Base/VDA/oVDA device-depth live sessions with worker-owned bounded textures | Capture/model input still crosses host memory; native delivery default promotion and broad visual acceptance remain open; [integration](evidence/presentation.md#record-result-live-native-dual-window) |
+| Live native texture output | Prepared-local default `gpu-texture` transport into Qt/D3D11 windows supports DA2 Small plus Base/VDA/oVDA device-depth live sessions with worker-owned bounded textures | Small/Base window input stays on GPU; VDA/oVDA and monitor inputs retain host capture. Native dependencies load at Start; failure is visible without automatic fallback. Broad display/game/VR acceptance remains separate; [default validation](evidence/native-default-20261105.md) |
 | Temporal/model GPU experiments | Device boundaries and selected NVOF components have bounded evidence | Components are not general live model integration; fixed 1:2 NVOF cadence is rejected; [actual skip](evidence/nvof.md#record-result-ovda-nvof-actual-skip-2026-09-07) |
 | Post-SBS Streamline DLSSG proposal | Feasibility review completed | Current adapter rejected at input-contract boundary; not a rejection of all external RGB FG; [feasibility](evidence/frame-generation.md#record-result-dlssg-feasibility-2026-09-07) |
 
 ## Measured envelope, not general support
 
-DA2 Base now uses owned source-resolution FP32 device depth for normal live GPU
-postprocessing and explicitly selectable native texture output (2026-11-05).
-The original plan hashes, preprocessing, model-only padding/unpadding, source
-geometry and file host-depth implementation are preserved. A 24-case real-engine
-comparison across 1920x1080, 3440x1440, 1080x1920 and 3840x2160 passed: raw depth and
-GPU-host versus native SBS were exact; legacy CPU-post/CUDA-SBS comparisons passed
-the existing live-GPU numerical limits. 60 scoped unit tests passed. Actual Base
-native lifecycle tests passed resize/texture retirement, hidden consumers,
-fullscreen/Escape, stop/clear, restart/source loss and worker-crash cleanup with
-zero remaining native pools/nodes after shutdown.
+DA2 Base window GPU sessions now keep captured RGB, exact preprocessing and
+source-resolution FP32 depth on the owned CUDA path (2026-11-05). The capture
+optimization preserved then-current FP32 plans; the subsequent authorized FP16
+promotion changes model precision while preserving preprocessing arithmetic,
+model-only padding/unpadding, geometry, stereo policy and file host-depth I/O. Whole-monitor
+and VDA/oVDA capture still use the existing mapped path; Small's later GPU input
+promotion is recorded below. Native delivery is
+the prepared-local default; host and reference output remain explicit choices.
+The [default validation](evidence/native-default-20261105.md) separates default
+startup/lifecycle, bounded continuous playback and outstanding physical acceptance.
+The earlier FP32 default-path public 4K run completed 603.59 measured seconds in one session
+with median native output 23.65fps (23.59–23.80 range), about 1.45MiB worker
+private-memory growth, and zero pools/nodes after shutdown. This is bounded local
+playback evidence, not real-game, multi-hour, device-loss or physical VR acceptance.
+The follow-up default-path Small run also passed movement across both connected
+screens and preparation cancellation with no stale resources. 97 scoped unit/
+measurement tests and actual Qt interaction checks pass; the Qt run has zero
+warnings. Normal launch needs no output-path selection; old packages need rebuilding.
 
-Matched current-working-tree RTX 5090 / driver 621.14 measurements used the same
-public FloorballGame source process, 6s discarded warmup then five 6s windows,
-target 60Hz and unchanged model/policy. Median output submissions:
+66 preprocessing/thumbnail cases, including pitched BGRA, match the CPU reference
+exactly. A 24-case real-engine comparison across 1080p, ultrawide, portrait and
+4K passes exact raw-depth, GPU-input/CPU-input SBS and host/native SBS checks,
+including cuts and background refinement. 39 scoped unit tests pass. Thirty
+repeated static-window captures cover resize/restart. Actual GUI tests cover
+start/stop, fullscreen/Escape, cancellation, hidden/restored output, input resize,
+source loss and worker-crash cleanup; native shutdown leaves zero pools/nodes.
 
-| Input / per eye | Existing reference | GPU depth + host output (default) | GPU depth + native output (explicit) |
-|---|---:|---:|---:|
-| 1920x1080 | 10.43 fps | 18.02 fps | 20.67 fps |
-| 3840x2160 | 2.15 fps | 6.46 fps | 8.43 fps |
+Matched RTX 5090 / driver 621.14 measurements use the public FloorballGame source
+process, 6s discarded warmup then five 6s windows, target 60Hz and unchanged
+model/policy. Median output submissions:
 
-The 4K native case reduced sampled SBS-stage median from 323.41ms to 15.84ms;
-the aggregate depth stage (including CPU preprocessing, model execution and
-source-depth resizing/validation) still took 98.46ms. This is not a pure-model
-ceiling. Host output is a callback proxy; native output counts distinct Qt
-afterFrameEnd IDs. 4K source pixels are an upscaled public 1080p excerpt, with
-7680x2160 Full SBS processing but a fitted output window, not 1:1 scanout. Rates
-remain below 30/60fps and do not certify sustained playback or Owl3D/HMD acceptance.
-The TensorRT device-plan compatibility warning remains. Evidence and failed
-harness attempts are retained in [Base device-path record](evidence/da2-base-device-20261105.md).
+| Input / per eye | Previous input + host output | GPU input + host output | Previous input + native output | GPU input + native output (now local default) |
+|---|---:|---:|---:|---:|
+| 1920x1080 | 18.21 fps | 26.69 fps | 21.20 fps | 32.33 fps |
+| 3840x2160 | 6.78 fps | 12.56 fps | 9.27 fps | 23.87 fps |
+
+At 4K/native, the aggregate depth stage falls from 90.80 to 31.97ms and sampled
+worker total is 42.87ms. This stage includes preprocessing, inference, resizing
+and validation; it is not pure-model time. Normal-background input avoids full
+RGB host transfers, with exact scene/border samples read back; conditional CPU
+background refinement remains counted. Host output still reads full SBS back.
+
+Host output is a callback proxy; native counts distinct Qt afterFrameEnd IDs.
+The 4K fixture is an upscaled 1080p excerpt, with 7680x2160 Full SBS processing in
+a fitted window, not 1:1 scanout. The earlier input-comparison native benchmarks
+used separate processes per size after a texture-wrapping failure. That restart
+issue is now fixed by retiring output graphics with the scene graph. Six mixed
+1080p/4K/portrait sessions and desktop hide/restore/resize/source-loss/crash checks
+pass, including zero pools/nodes after stop. The TensorRT device-plan warning
+remains. These are not sustained 4K30/60, physical-display or Owl3D/HMD acceptance
+results.
+
+Detailed copies, build pins, failed attempts and scoped evidence are in the
+[GPU input record](evidence/base-gpu-input-20261105.md). The earlier device-depth
+optimization is recorded [separately](evidence/da2-base-device-20261105.md).
+
+The follow-up [restart/profile/iw3 record](evidence/native-restart-base-profile-iw3-20261105.md)
+separates isolated Base preprocessing (~0.39ms), model GPU execution (~23ms),
+upscale (~0.05–0.19ms) and native stereo cost. An opt-in CUDA graph candidate
+passes 24 exact-depth/input/native parity cases and cleanup/lifecycle checks, but
+matched native output changes only 32.15→32.51 fps at 1080p and 23.86→24.00 fps at
+4K with overlapping ranges. It stays off by default; no practical additional
+speedup is established.
+
+RowFlow v3 symmetric, RowFlow v3 and MLBW small were run on the same final Base
+depth/RGB for 180 public-video frames plus a ground-truth synthetic scene. After
+calibrating opposite eye naming, learned warps smooth some diagonals but introduce
+thin-structure/edge tradeoffs. That initial cost comparison was eager-only.
+The [torch.compile follow-up](evidence/iw3-torch-compile-20261105.md) measures
+1.39–1.52x renderer speedup at 1080p and 1.82–1.96x at 4K when compiling separately
+for each fixed resolution. Default automatic shape generalization after 1080p→4K
+instead regresses 4K performance. Compilation has startup cost and small nonzero
+pixel differences; these are renderer-only timings, not application FPS or exact
+parity. The current CUDA renderer remains. Reduced stereo-field resolution,
+optimized model export and continuous binocular review were not tested; no iw3
+weights or compiler dependency are part of the normal runtime or distribution.
+
+The [app integration review](references/2026-11-05-torch-compile-app-review.md)
+also tests Base directly: on the same FP32 518x924 GPU input, model-only median
+times are TensorRT 25.00ms, PyTorch eager 44.13ms and compiled PyTorch 37.77ms.
+Three public stills produce finite, close but non-identical raw depth; full SBS
+parity and app throughput for that replacement are not established. The tested
+compile candidate does not justify replacing Base TensorRT. The subsequent
+[RowFlow symmetric app trial](evidence/rowflow-live-20261105.md) now connects only
+that learned renderer to the existing Base TensorRT/depth path through an
+explicit local launcher flag. Ordinary launch and portable packages retain CUDA.
+Twelve real-engine cases across 1080p, 4K, portrait and ultrawide match compiled
+host/native pixels exactly; compiled/eager results are not identical. Actual
+native lifecycle tests cover resize, restart, hide/restore, source loss and worker
+crash. Native output median is 29.36 fps at 1080p and 16.25 fps at 4K, below the
+same-condition CUDA baseline of 32.15 and 23.86 fps. This is a quality trial,
+not a speed improvement or physical binocular-display acceptance. Matched
+host output changes 26.96→26.83 and 12.55→12.41 fps, with overlapping ranges.
+Preparation cancellation followed by host-output restart passes without an error
+dialog; owned compiler-descendant cleanup and 49 scoped unit tests pass.
+The user deferred direct RowFlow quality/binocular comparison to the backlog on
+2026-11-05. The local trial remains available; CUDA stereo stays the default.
+
+The [precision/quantization review](references/2026-11-05-base-precision-review.md)
+initially retained Base FP32. A bounded same-input model-only probe measured TensorRT FP32
+23.37ms, PyTorch FP32 42.70ms, AMP FP16 24.28ms and AMP BF16 25.10ms. Thirty-six
+public frames plus three constants are finite for each path; TensorRT passes
+39/39 historical raw-depth checks, while both AMP paths pass 0/39. This is not
+a visual ranking or a test of FP16/BF16 TensorRT plans. The follow-up
+[actual TensorRT FP16 experiment](evidence/base-trt-fp16-20261105.md) built two
+isolated 518x924 plans: mixed FP16 measured 4.20ms and selective FP16 5.35ms,
+against a matched FP32 control of 25.32ms (model-only, not app FPS). Each produced
+186/186 finite outputs but passed 0/186 historical raw-depth parity checks;
+FP32 passed 186/186. Selective FP16 improves public-frame maximum errors but is
+worse on the portrait and some constant cases.
+
+The follow-up [native SBS/temporal comparison](evidence/base-fp16-native-20261105.md)
+measures actual Qt native output at a diagnostic 60Hz target: FP32/mixed/selective
+medians are 30.00/59.63/59.79fps at 1080p and 20.52/54.78/48.88fps at 4K, five 6s
+windows per configuration. All six sessions stop with zero native pools/nodes.
+Separately, 392 matched inputs produce 1176 full native texture outputs through
+independent live postprocessing histories. At 4K, mixed/selective mean RGB errors
+are 0.08045/0.05583 on the 0–255 scale, mean left-right disparity differences
+0.02989/0.01910px, and within-clip temporal RGB error changes 0.10727/0.08607.
+Maximum pointwise disparity differences reach 3.25/3.56px; lower averages do not
+establish pointwise parity. Static tails are unchanged and four synthetic cuts
+match the control at each size. These are measured proxies, not binocular quality
+acceptance, sustained 4K60, 518x896-profile, real-game or broad lifecycle support.
+Three trial-loader integrity tests pass. INT8/FP8 remain unbuilt/unmeasured.
+
+After reviewing that comparison, the user selected mixed FP16 as the Base default.
+The [promotion and Small review](evidence/base-fp16-default-20261105.md) records
+installed 518x896/518x924 FP16 pins, correct precision telemetry and preserved
+FP32 controls. Both live and file Base paths now use FP16 with FP32 I/O, without
+a new precision option or automatic fallback. 35 scoped unit tests, 24 real-engine
+input/host/native parity cases, ordinary native startup/resize/restart/source-loss/
+crash/cancel checks, and two fully decoded file conversions pass. Long-session,
+real-game and physical binocular acceptance for these engines remain unestablished;
+the then-default 30Hz target and CUDA renderer were unchanged. Portable packages need
+rebuilding; running source GUI instances should restart.
+
+Small's existing model is already FP16 (334 FLOAT16 initializers and FP16 Conv/
+MatMul/Softmax inputs), with FP32 I/O. Its current model GPU median is 1.359ms
+for the fixed-input diagnostic. Before GPU input, Native Performance output measured 58.34fps at
+1080p and 49.35fps at 4K under the same five-window/60Hz benchmark method; its
+input path and mode differ from Base, so this is not a model-quality ranking.
+At 4K, sampled stereo submit/wait is 12.74ms versus 2.66ms depth submission;
+Small's asynchronous inference can charge GPU wait to the stereo interval, so
+these are not isolated GPU kernel times.
+
+Small window GPU sessions now use owned WGC/D3D11/CUDA capture, CUDA uint8 cubic
+resize/normalization and device RGB postprocessing. The existing FP16 model,
+Performance policy, source geometry and output defaults are unchanged. The
+[Small GPU input record](evidence/small-gpu-input-20261105.md) covers 27 preprocessing
+cases and 72 public-image cases across 1080p, ultrawide, portrait and 4K: model
+input, raw depth, postprocessing and native/host SBS are bit-exact against the
+existing path on this corpus. Coefficients are bounded shape-only setup; captured
+pixels do not enter CPU model preprocessing. Monitor/file/reference paths retain
+their existing input. Runtime and native-layout checks reject unsupported local
+artifacts rather than falling back. Running source GUIs should restart; portable
+packages have not been rebuilt. Matched Performance/native runs at a 60Hz target
+measure 59.96→60.14fps at 1080p and 50.90→59.92fps at 4K per eye (five six-second
+windows after warmup); the final pinned DLL confirms the 4K result. Native
+startup/resize/restart/source-loss/crash/cancel checks, 27 scoped unit tests and
+six actual Base regression cases pass. These are fitted-window/public-video
+measurements, not physical 4K60, real-game or long-session acceptance.
+
+The [common live GPU refactor](evidence/gpu-modular-refactor-20261105.md) now
+shares explicit stream access, owner/image checks, pinned input-library loading
+and thumbnail generation across Small/Base. A live model adapter registry owns
+capture/renderer wiring and capabilities; the worker no longer repeats model-name
+branches for these choices. Model preprocessing, native DLLs, precision and
+resource ownership remain unchanged. 53 unit tests, 66 Base and 27 Small input
+cases, 24 Base and 72 Small real-engine parity cases, and both default native
+lifecycle runs pass. Current 4K/60Hz-target native medians are 59.92fps for Small
+and 57.36fps for Base. No regression was observed against reused baseline runs;
+the Base difference is not a demonstrated refactor speedup. Runtime coverage
+for VDA/oVDA was not repeated; their adapter matrix is unit-tested.
+
+The [uncapped diagnostic](evidence/uncapped-native-20261105.md) removes the
+benchmark deadline and source timer limit and requests Qt vsync off, without
+changing ordinary app settings. Five six-second live-capture windows on RTX 5090
+measure median Small/Base native output at 140.96/92.42fps for 1080p per eye and
+76.24/54.13fps for 4K per eye. Small reaches the public test window's supply rate;
+these are observed fitted-window output submissions, not the model ceiling or
+physical display refresh. All processed frames use fresh inference, and native
+pools/nodes return to zero after stop. Broader content and sustained acceptance
+remain separate.
+The supplementary GPU public-frame replay excludes WGC/decode/window painting;
+its completed rerun measures Small/Base medians 230.71/127.43fps at 1080p and
+127.27/77.43fps at 4K. This is processing/delivery headroom, not live-capture FPS.
+An initial replay attempt stopped during the next session's warmup with an
+unrecorded underlying reason; the record retains it and the improved failure
+diagnostics. The successful rerun does not establish long-session reliability.
+
+The subsequent [output control change](evidence/output-limit-controls-20261105.md)
+promotes unlimited to the app default and applies 30/60 FPS publication caps to
+native delivery as well as host output. Sixty-one scoped tests, actual settings
+keyboard interaction with no Qt warnings, and Base/30 plus Small/unlimited native
+lifecycle checks pass. Five-window 1080p medians are 29.53/57.79/135.94fps for
+30/60/unlimited; the 4K unlimited check reaches 75.81fps with the earlier, coarser
+benchmark pump. All capped windows remain below their selected limit, and native
+pools/nodes return to zero after stop. Limits are upper bounds, not guaranteed
+achieved FPS. Running source apps need restarting; portable packages are not rebuilt.
 
 The 2026-11-05 minimal Qt/QML redesign replaces the sidebar and live settings
 dashboard with a 420x260 control window: explicit source selection and start/stop,
@@ -430,8 +608,9 @@ machine.
 The [scoped regression entry points](BENCHMARKS.md#scoped-regression-entry-points)
 connect CPU contracts, current profiles, synthetic quality/protocol checks,
 real FFmpeg fixtures and explicit local GPU/Qt checks. CI configuration includes
-CPU and media jobs; remote execution is not confirmed until these local changes
-are committed/pushed. Worker error privacy, path alias protection and cleanup
+CPU, Qt and media jobs. The [CI repair record](evidence/ci-contract-registration-20261105.md)
+records the previous classification failure and local checks; remote run status
+is tracked in GitHub Actions. Worker error privacy, path alias protection and cleanup
 before final publication are implemented in the source app. Existing packages
 require a rebuild to inherit these changes. The comparison harness records
 predeclared thresholds and review frames while keeping visual acceptance pending.
@@ -449,8 +628,8 @@ GPU/GUI evidence is recorded in the linked VDA/oVDA native-live records.
 |---|---|
 | Product mode contract | Mode routing, mismatch rejection, a license-confirmed public oVDA file/lifecycle run, the dedicated bounded Offline/VDA processor and short repeated actual-GUI live runs for all three non-Small choices are implemented. Offline is intentionally file-only; matched visual quality, broader content and sustained performance remain open |
 | Better depth than the user's baseline | Matched spatial/temporal/binocular review against Small + LSFG, including games and video |
-| Eye-4K final 60 fps | Baseline model-defined DA2 Base/VDA/oVDA host-output paths measured only 2.48/2.64/2.48 fps median at 3840x2160 per eye and 7680x2160 Full SBS. Integrated device-depth/host-output paths reached 8.75 fps for VDA and 7.28 for oVDA; explicit native texture raises these to 11.92 and 9.44 fps. Earlier near-59 fps runs use native-texture DA2 Small with legacy policy labels. Model/cache cost, 1:1 fullscreen/physical-display behavior, applicable FG, broader content and sustained acceptance remain |
-| Native-texture default suitability | Guided-filter promotion is complete, but the native-texture transport itself remains experimental; continuous actual-UI playback/VR review and broader acceptance remain |
+| Eye-4K final 60 fps | Short uncapped fitted-window live runs measure about 54.1fps for Base FP16 and 76.2fps for Small FP16/GPU input at 3840x2160 per eye; Small reaches the test source's supply rate. GPU replay headroom is separate from capture. Earlier VDA/oVDA runs reached 11.92/9.44fps. These are not physical high-quality 4K60 acceptance. 1:1 fullscreen/display behavior, applicable FG, broader content and sustained acceptance remain |
+| Broad native-texture suitability | Native transport is the prepared-local default after scoped default-start/lifecycle and continuous-playback validation. Real games, multi-hour use, monitor unplug/device loss and physical 3D/VR acceptance remain unestablished |
 | Broad content and VR comfort | Continuous playback and the applicable display/headset evaluation; scalar parity or stills alone are insufficient |
 | Long-session reliability / real device loss | Actual long-duration/device scenarios for that claim; short or injected tests do not establish it |
 | Public/other-GPU support | Declared hardware/runtime envelope, clean-machine and packaging/license evidence |

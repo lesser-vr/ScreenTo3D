@@ -70,6 +70,24 @@ instruction to start a GPU job. Preserve the user's
 [guarded-run condition](evidence/live-performance.md#guarded-run-condition)
 when reproducing that specific recurrence test.
 
+For an uncapped native throughput diagnostic, use `benchmark_live_modes.py
+--hz 0 --source-interval-ms 0 --source-process --path gpu-texture` with the
+usual source, size, mode and output arguments. Zero selects the app's unlimited
+default; `--hz 30` and `--hz 60` exercise its capped publication path. The legacy
+`--uncapped` flag is an alias for unlimited and remains required for GPU replay.
+The app polls at 1ms and requests Qt vsync off; this does not guarantee physical
+scanout. The benchmark pumps events more frequently than that timer, so its own
+sleep does not impose a coarser rate limit. Report source paint rate alongside
+distinct native output IDs because the public source can become the bottleneck.
+Adding `--gpu-replay` instead feeds a bounded cache of 60 public frames directly
+from GPU memory into the ordinary Small/Base pipeline. It excludes decoding,
+window painting and WGC, so label its result pipeline headroom, not live capture
+FPS. Keep cache setup outside timed windows; verify fresh inference, no depth
+reuse, bounded native delivery and zero pools/nodes after stop. See the
+[uncapped measurement](evidence/uncapped-native-20261105.md).
+The subsequent [output control verification](evidence/output-limit-controls-20261105.md)
+covers app defaults, capped native publication, settings and cleanup.
+
 `analyze_live_gpu_boundary.py --runs <runs.json> --output <new-json>` checks the
 cumulative CUDA byte/synchronization formulas and summarizes all retained GPU and
 host stage samples. CUDA event intervals can include host enqueue gaps, so their
@@ -176,9 +194,12 @@ Always verify `native_after_stop.live_pools/live_nodes == 0` for sequential mode
 ## Scoped regression entry points
 
 Install `tools/requirements-contracts.txt` in a separate Python 3.12 environment.
+The `qt` group also needs `tools/requirements-qt-contracts.txt` (pinned PySide6).
 `python scripts/test-contracts.py --group cpu --report <json>` runs all GPU-free
-groups; use `--group core`, `platform`, `profiles` or `quality` for affected work.
-CI runs these separately. Missing/import-failed/empty/skipped required modules fail.
+groups including Qt; use `--group core`, `platform`, `profiles`, `quality` or `qt`
+for affected work. CI runs these separately and installs Qt only for its own job.
+Tests importing TensorRT/CUDA/Torch stay in the explicit local `runtime` group.
+Missing/import-failed/empty/skipped required modules fail.
 The runner owns classification; current-profile expectations can change with
 intentional product changes and do not freeze future models or algorithms.
 

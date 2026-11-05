@@ -1,6 +1,6 @@
 # Current work
 
-User-directed priorities, 2026-09-09. Choose the next useful task within the current
+User-directed priorities, updated 2026-11-05. Choose the next useful task within the current
 request; these are independent work areas, not a mandatory staged sequence.
 The outcome is defined in [PRODUCT](PRODUCT.md), delivered facts and unpassed
 acceptance in [implementation status](implementation-status.md).
@@ -23,6 +23,12 @@ every candidate; stop or reorder a branch when a small comparison falsifies it.
 | P4 | Qualify the selected complete path | Sustained eye-4K cadence, actual display/headset quality and latency, lifecycle and packaging/license checks appropriate to the intended support claim; early visual checks remain part of P0–P3 |
 
 ## Other retained work areas
+
+RowFlow symmetric's direct quality/binocular comparison is deferred at the user's
+request (2026-11-05). Keep the explicit local experiment and its evidence available;
+resume the comparison when direct viewing is practical. It is not a prerequisite
+for precision/quantization work, and no default renderer promotion is pending now.
+See [current implementation status](implementation-status.md) for completed tests.
 
 The bounded P1 Small-model, aspect-input and temporal-history experiments have
 left this work list. Their decisions and unpassed acceptance are owned by

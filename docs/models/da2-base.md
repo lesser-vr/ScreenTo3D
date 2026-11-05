@@ -1,12 +1,29 @@
 # DA2 Base local use
 
-Live Balanced uses the same validated FP32 plans and aspect-preserving model
-padding through a device-depth adapter. The normal GPU path keeps depth and SBS
-postprocessing on the engine's stream; advanced `GPU 직접 출력 · 실험` also publishes
-the SBS texture directly to Qt. The explicit reference path remains available for
-comparison. File conversion and its host-depth contract are unchanged. Restart
+Balanced uses validated mixed-FP16 TensorRT plans with FP32 input/output and
+aspect-preserving model padding. Live sessions use a device-depth adapter.
+The normal GPU path keeps depth and SBS
+postprocessing on the engine's stream; default `GPU 직접 출력` publishes
+the SBS texture directly to Qt. Explicit host/reference paths remain available for
+comparison. File conversion uses the same FP16 plans and retains its host-depth contract. Restart
 the source GUI to load updates; the portable bundle is not rebuilt automatically.
 See [measured results and limits](../implementation-status.md).
+
+Base live window GPU paths use owned WGC/D3D11-to-CUDA capture and CUDA
+preprocessing with the same float64 cubic/normalization arithmetic as the CPU
+reference. Source-local builds require `scripts/build-base-input.ps1` and
+`scripts/build-gpu-capture.ps1`, plus the current `build-live-depth.ps1` artifact
+and validated loader pins. The preprocessing binary's OpenCV notice is generated
+beside the DLL. No upstream Veyra/iw3 runtime code or dependency is bundled.
+
+For explicit developer A/B runs, `DEPTHSBS_GPU_CAPTURE=0` selects the existing
+mapped capture; `DEPTHSBS_BASE_INPUT=cpu` then selects original CPU preprocessing.
+`DEPTHSBS_BASE_INPUT=gpu` is the preprocessing default. Setting GPU capture to `1`
+requires Base GPU processing, GPU preprocessing, and the default fused/0ms input
+settings; unsupported combinations fail explicitly. Callback-event recording
+currently requires mapped capture. The implemented native monitor adapter remains
+an explicit diagnostic candidate; normal monitor capture uses the existing path.
+These settings are process-start diagnostics, not additional GUI controls.
 
 
 Implemented 2026-09-05 on the current Windows RTX 5090 development machine.
@@ -35,8 +52,14 @@ content before upsampling. Thin/very wide content gets fewer effective model pix
 Source bounds remain 16..4096 pixels wide and 16..2160 high; encoder constraints
 still apply. Other GPUs and TensorRT versions require separately validated builds.
 Unsupported geometry is rejected before output mutation. Full SBS preserves
-per-eye source dimensions; it doubles width. FP32 inference uses a dedicated
-CUDA stream; CPU stereo synthesis and media pipes remain in use.
+per-eye source dimensions; it doubles width. Mixed-FP16 inference uses a dedicated
+CUDA stream with FP32 I/O. File conversion's CPU stereo synthesis and media pipes
+remain in use.
+
+The normal loader selects `518x896-fp16/model.plan` and `518x924-fp16/model.plan`.
+The retained `*-fp32` folders are historical controls and are not automatic fallback
+engines. Install both FP16 profiles to preserve the prepared checkout's complete
+profile selection. Missing or modified FP16 artifacts fail explicitly.
 
 The application accepts only the exact locally validated plan hash and byte size
 listed in `v1/depthsbs_app/da2_base.py`, and checks GPU, runtime and tensor signatures.
@@ -46,5 +69,16 @@ installer. No upstream source/checkpoint is imported at application runtime.
 
 For eye-4K Full SBS file conversion, select HEVC with `-OutputCodec hevc`.
 Recorded numerical/FP16 results are in [DA2 Base evidence](../evidence/da2-base.md).
-The current application uses validated FP32; changing precision is a candidate
-implementation/evaluation, not prohibited research.
+The FP16 default is an intentional precision/speed tradeoff authorized after the
+[native output/error comparison](../evidence/base-fp16-native-20261105.md), not
+FP32 numerical parity. Resize, LayerNormalization and Softmax remain FP32;
+preprocessing, depth postprocessing and I/O remain unchanged. See the
+[promotion record](../evidence/base-fp16-default-20261105.md) for installation pins
+and checks. No additional user-facing precision option is introduced.
+
+For developer diagnostics, `DEPTHSBS_BASE_STAGE_PROFILE=1` records CUDA stage
+events in the device engine. `DEPTHSBS_BASE_GRAPH=1` selects an experimental
+fixed-buffer TensorRT CUDA graph and requires GPU preprocessing. Both default to
+off; neither adds a GUI control. Graph values other than `0` and `1` are rejected.
+See [current status](../implementation-status.md) for their measured scope and
+default decision. File conversion does not use these device-engine switches.
