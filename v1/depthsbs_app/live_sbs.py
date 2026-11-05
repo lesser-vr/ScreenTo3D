@@ -156,6 +156,7 @@ def sbs_worker(
             selected_model
             not in (
                 "da2-small",
+                "da2-base",
                 "vda-small",
                 "ovda-small-c16",
             )
@@ -166,7 +167,7 @@ def sbs_worker(
             )
         if native and (
             not gpu_candidate
-            or selected_model not in ("da2-small", "vda-small", "ovda-small-c16")
+            or selected_model not in ("da2-small", "da2-base", "vda-small", "ovda-small-c16")
             or type(session) is not int
             or session <= 0
             or output.pixels is not None
@@ -232,15 +233,9 @@ def sbs_worker(
                     if fused:
                         frame = capture_rgb(incoming.pixels, width, height)
                     else:
-                        bgra = (
-                            np.frombuffer(
-                                incoming.pixels,
-                                dtype=np.uint8,
-                                count=width * height * 4,
-                            )
-                            .reshape(height, width, 4)
-                            .copy()
-                        )
+                        from .live_host_bridge import capture_bgra
+
+                        bgra = capture_bgra(incoming.pixels, width, height).copy()
                     incoming.meta[ACK] = m[SEQ]
                     stats[INPUT_COPY_NS] = (
                         0 if fused else time.perf_counter_ns() - copy_start
@@ -278,18 +273,19 @@ def sbs_worker(
                         and backend.input_validator is not None
                     ):
                         backend.input_validator({"width": width, "height": height})
-                        engine_scope.close()
-                        engine = engine_scope.enter_context(
-                            backend.engine_factory(None)
-                        )
                     if native and projection is not None:
                         from .texture_mailbox import RETIRED
 
                         texture_mailbox.retire(session, generation)
                         wait_texture(lambda: texture_mailbox.state() == RETIRED)
                     projection_scope.close()
+                    # The CUDA consumer borrows the engine's stream. Destroy it
+                    # (and retire native leases) before replacing that owner.
+                    if previous_shape is not None and backend.input_validator is not None:
+                        engine_scope.close()
+                        engine = engine_scope.enter_context(backend.engine_factory(None))
                     if gpu_candidate:
-                        if selected_model in ("vda-small", "ovda-small-c16"):
+                        if selected_model in ("da2-base", "vda-small", "ovda-small-c16"):
                             from .live_source_gpu_candidate import (
                                 LiveSourceGpuCandidate as gpu_factory,
                             )
@@ -298,7 +294,7 @@ def sbs_worker(
 
                             gpu_factory = LiveGpuCandidate
                         if native:
-                            if selected_model in ("vda-small", "ovda-small-c16"):
+                            if selected_model in ("da2-base", "vda-small", "ovda-small-c16"):
                                 from .live_source_gpu_texture import (
                                     LiveSourceGpuTexture as gpu_factory,
                                 )

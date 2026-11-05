@@ -83,6 +83,14 @@ class LiveBackendRoutingTests(unittest.TestCase):
         self.assertIs(result, backend)
         self.assertTrue(create.call_args.kwargs["device_depth"])
 
+    def test_live_base_requests_device_depth_without_changing_file_default(self):
+        backend = Mock()
+        with patch("depthsbs_app.da2_base.binding", return_value=backend) as create:
+            self.assertIs(binding(self.snapshot("da2-base"), "balanced",
+                                  {"width": 3440, "height": 1440}, Mock(), Mock()), backend)
+        self.assertTrue(create.call_args.kwargs["device_depth"])
+        backend.input_validator.assert_called_once_with({"width": 3440, "height": 1440})
+
 
 if __name__ == "__main__":
     unittest.main()

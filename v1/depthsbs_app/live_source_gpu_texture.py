@@ -5,4 +5,4 @@ from .live_source_gpu_candidate import LiveSourceGpuCandidate
 
 
 class LiveSourceGpuTexture(TextureOutputMixin, LiveSourceGpuCandidate):
-    """VDA/oVDA device depth with the validated native output boundary."""
+    """Base/VDA/oVDA device depth with the validated native output boundary."""

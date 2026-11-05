@@ -55,7 +55,7 @@ def binding(snapshot, mode, metadata, da2_engine_factory, da2_prepare):
     elif model == "da2-base":
         from .da2_base import binding as create
 
-        result = create(Path(selected["engine"]), Path(selected["runtime"]))
+        result = create(Path(selected["engine"]), Path(selected["runtime"]), device_depth=True)
     elif model == "vda-small":
         from .depth_backend import vda_binding
 

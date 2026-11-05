@@ -17,18 +17,40 @@ PROFILES = {
 }
 
 
-def validate_input(metadata, shape=(518,896)):
-    from .vda_artifacts import validate_input as validate_profile
-    validate_profile(metadata, shape)
+def content_rect(width, height, shape):
+    """Top, left, height, width of source content in a trusted model canvas."""
+    if (type(width) is not int or type(height) is not int or
+            not (16 <= width <= 4096 and 16 <= height <= 2160)):
+        raise ValueError('DA2 Base source must be 16..4096 pixels wide and 16..2160 high')
+    if shape not in PROFILES:
+        raise ValueError('Unvalidated DA2 Base engine shape')
+    h, w = shape
+    # Keep the original upstream patch-rounded resize exactly for legacy inputs.
+    scale = 518 / min(width, height)
+    if (max(width, height)/min(width, height) <= 1.78 and
+            tuple(max(518, round(n*scale/14)*14) for n in (height, width)) == shape):
+        return 0, 0, h, w
+    scale = min(w / width, h / height)
+    rh, rw = max(1, round(height*scale)), max(1, round(width*scale))
+    return (h-rh)//2, (w-rw)//2, rh, rw
 
 
 def preprocess(frame, shape=(518,896)):
     if not isinstance(frame, np.ndarray) or frame.dtype != np.uint8 or frame.ndim != 3 or frame.shape[2] != 3:
         raise ValueError('DA2 Base requires uint8 RGB')
-    validate_input(dict(width=frame.shape[1], height=frame.shape[0]), shape)
+    top, left, rh, rw = content_rect(frame.shape[1], frame.shape[0], shape)
     # DA2 upstream divides uint8 by 255 before resize (float64, unlike VDA).
-    image = cv2.resize(frame / 255.0, (shape[1], shape[0]), interpolation=cv2.INTER_CUBIC)
+    image = cv2.resize(frame / 255.0, (rw, rh), interpolation=cv2.INTER_CUBIC)
+    if (rh, rw) != shape:
+        image = cv2.copyMakeBorder(image, top, shape[0]-rh-top, left, shape[1]-rw-left,
+                                   cv2.BORDER_REPLICATE)
     return np.ascontiguousarray(((image-[.485,.456,.406])/[.229,.224,.225]).transpose(2,0,1), dtype=np.float32)
+
+
+def depth_content(depth, width, height):
+    """Slice off model-only padding before interpolating to source pixels."""
+    y, x, h, w = content_rect(width, height, tuple(depth.shape[-2:]))
+    return depth[..., y:y+h, x:x+w]
 
 
 def checked_plan(directory, shape=(518,896)):
@@ -66,7 +88,7 @@ def profiles(directory):
     return found
 
 
-def binding(directory, runtime_dir):
+def binding(directory, runtime_dir, *, device_depth=False):
     from .depth_backend import BackendBinding, BackendSpec
     if directory is None or runtime_dir is None:
         raise ValueError('DA2 Base requires engine and TensorRT runtime directories')
@@ -76,19 +98,21 @@ def binding(directory, runtime_dir):
     selected = next(iter(installed)) if len(installed) == 1 else None
     def validate(metadata):
         nonlocal selected
-        from .vda_artifacts import profile_shape
         selected = None
-        shape = profile_shape(metadata['width'], metadata['height'])
-        if shape not in installed:
-            raise ValueError(f'No DA2 Base engine for {shape}; select the matching profile root')
-        validate_input(metadata, shape)
-        selected = shape
+        def occupancy(shape):
+            _, _, h, w = content_rect(metadata['width'], metadata['height'], shape)
+            return (h*w)/(shape[0]*shape[1])
+        selected = max(installed, key=occupancy)
     def factory(progress):
         if selected is None:
             raise ValueError('Select DA2 Base profile with input preflight first')
         if progress:
             progress(dict(event='da2_base_profile', input_shape=[1,3,*selected]))
-        return Da2BaseEngine(installed[selected], runtime_dir, selected)
+        engine_type = Da2BaseEngine
+        if device_depth:
+            from .da2_base_device import Da2BaseDeviceEngine
+            engine_type = Da2BaseDeviceEngine
+        return engine_type(installed[selected], runtime_dir, selected)
     return BackendBinding(BackendSpec('da2-base', 'tensorrt-fp32'), factory, lambda frame: frame, validate)
 
 
@@ -155,7 +179,8 @@ class Da2BaseEngine:
                     raise RuntimeError('DA2 Base buffer binding failed')
                 if not self.context.execute_async_v3(self.stream.cuda_stream):
                     raise RuntimeError('DA2 Base execution failed')
-                result = self.torch.nn.functional.interpolate(self.output[:,None], frame.shape[:2],
+                content = depth_content(self.output[:, None], frame.shape[1], frame.shape[0])
+                result = self.torch.nn.functional.interpolate(content, frame.shape[:2],
                     mode='bilinear', align_corners=True)[:,0].cpu().numpy().copy()
             self.stream.synchronize()
             if not np.isfinite(result).all():

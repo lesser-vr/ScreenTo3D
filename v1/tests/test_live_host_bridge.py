@@ -3,10 +3,26 @@ import unittest
 import cv2
 import numpy as np
 
-from depthsbs_app.live_host_bridge import capture_rgb, publish_rgb
+from depthsbs_app.live_host_bridge import capture_bgra, capture_rgb, publish_rgb
 
 
 class HostBridgeTests(unittest.TestCase):
+    def test_row_padded_mapped_frame_preserves_pixels_and_ownership(self):
+        for width in (127, 480, 1921):
+            storage = np.random.default_rng(7).integers(256, size=(19, width+32, 4), dtype=np.uint8)
+            source = storage[:, :width]
+            self.assertFalse(source.flags.c_contiguous)
+            original = source.copy()
+            borrowed = capture_bgra(source, width, 19)
+            self.assertIs(borrowed, source)
+            reference = borrowed.copy()
+            rgb = capture_rgb(source, width, 19)
+            np.testing.assert_array_equal(reference, original)
+            np.testing.assert_array_equal(rgb, cv2.cvtColor(original, cv2.COLOR_BGRA2RGB))
+            storage.fill(0)
+            np.testing.assert_array_equal(reference, original)
+            np.testing.assert_array_equal(rgb, cv2.cvtColor(original, cv2.COLOR_BGRA2RGB))
+
     def test_capture_exact_owned_and_source_unchanged(self):
         rng = np.random.default_rng(928)
         for width, height in ((16, 16), (127, 69), (1920, 1080)):

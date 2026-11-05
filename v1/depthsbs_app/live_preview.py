@@ -38,7 +38,7 @@ from .live_backend import (
 from .presentation_policy import PresentationCadence
 from .owned_preview_image import PreviewCopyPool
 
-NATIVE_MODELS = ("da2-small", "vda-small", "ovda-small-c16")
+NATIVE_MODELS = ("da2-small", "da2-base", "vda-small", "ovda-small-c16")
 
 
 class PreviewImages(QQuickImageProvider):
@@ -518,6 +518,7 @@ class LivePreview(QObject):
                     if self.live_model
                     in (
                         "da2-small",
+                        "da2-base",
                         "vda-small",
                         "ovda-small-c16",
                     )
@@ -752,6 +753,7 @@ class LivePreview(QObject):
         source_device_live = (
             self.live_model
             in (
+                "da2-base",
                 "vda-small",
                 "ovda-small-c16",
             )
