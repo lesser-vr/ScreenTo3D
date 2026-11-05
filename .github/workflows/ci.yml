@@ -27,16 +27,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [core, platform, profiles, quality]
+        group: [core, platform, profiles, quality, qt]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: tools/requirements-contracts.txt
+          cache-dependency-path: |
+            tools/requirements-contracts.txt
+            tools/requirements-qt-contracts.txt
       - name: Install CPU contract dependencies
         run: python -m pip install -r tools/requirements-contracts.txt
+      - name: Install Qt contract dependencies
+        if: matrix.group == 'qt'
+        run: python -m pip install -r tools/requirements-qt-contracts.txt
       - name: Run required scoped contracts
         run: python scripts/test-contracts.py --group ${{ matrix.group }} --report artifacts/contracts.json
       - name: Check owned process selection
