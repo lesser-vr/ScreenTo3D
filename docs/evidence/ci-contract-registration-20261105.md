@@ -45,3 +45,14 @@ retained in the individual 2026-11-05 records rather than rerunning unrelated GP
 experiments for this test-inventory fix. No model weights, built native binaries,
 private captures or local `out/` artifacts are added to Git. Final remote job
 results are reported against the pushed commit in GitHub Actions.
+
+## Clean-runner follow-up
+
+[Run 42024853127](https://github.com/lesser-vr/DepthSBS/actions/runs/42024853127)
+cleared the inventory failure and passed core/platform/quality/Qt and C++ checks.
+The profiles job then exposed three previously hidden fixture problems: DA2/VDA
+expected temporary paths were not normalized when the runner supplied a Windows
+8.3 user alias, and the FP16 trial test relied on the developer's local Base model
+directory existing. The expected fixture paths now resolve canonically, and the
+trial test creates its own isolated checkout/model directory and checks both
+accepted and rejected directories. Production path validation remains unchanged.

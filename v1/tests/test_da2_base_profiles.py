@@ -11,7 +11,7 @@ class ProfileTests(unittest.TestCase):
     def test_default_precision_and_no_fp32_folder_fallback(self):
         self.assertEqual(da2_base.PRECISION, 'fp16')
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+            root = Path(temporary).resolve(strict=True)
             (root / '518x896-fp32').mkdir()
             with self.assertRaisesRegex(ValueError, 'FP16'):
                 da2_base.profiles(root)

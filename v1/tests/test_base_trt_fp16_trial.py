@@ -13,10 +13,13 @@ class TrialTrustTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.path = Path(temporary.name)
+        self.path = Path(temporary.name).resolve(strict=True)
+        self.root = self.path / 'checkout'
+        self.trusted_directory = self.root / 'out/da2-base-local'
+        self.trusted_directory.mkdir(parents=True)
         self.payload = b'local fixture, never deserialized'
         (self.path / 'mixed.plan').write_bytes(self.payload)
-        for name, value in (('ARTIFACTS', self.path), ('PINS', {'mixed': (
+        for name, value in (('ROOT', self.root), ('ARTIFACTS', self.path), ('PINS', {'mixed': (
                 hashlib.sha256(self.payload).hexdigest(), len(self.payload))})):
             patcher = patch.object(trial, name, value)
             patcher.start()
@@ -31,6 +34,7 @@ class TrialTrustTests(unittest.TestCase):
                     base.checked_plan(self.path, (518, 896))
                 with self.assertRaises(ValueError):
                     base.profiles(self.path)
+                self.assertEqual(base.profiles(self.trusted_directory), {(518, 924): self.path})
                 raise RuntimeError('intentional')
         self.assertEqual(original, (base.checked_plan, base.profiles, base.PROFILES, device.Da2BaseDeviceEngine))
 

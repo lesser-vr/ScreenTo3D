@@ -35,7 +35,7 @@ class VdaProfileTests(unittest.TestCase):
 
     def test_catalog_and_explicit_artifact_select_exact_profile(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve(strict=True)
             original = self.artifact(root, '518x896')
             wide = self.artifact(root, '518x924')
             profiles = artifacts.artifact_profiles(root)
@@ -47,7 +47,7 @@ class VdaProfileTests(unittest.TestCase):
 
     def test_mislabeled_or_corrupt_profiles_fail(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve(strict=True)
             wide = self.artifact(root, '518x924')
             path = wide/'manifest.json'
             data = json.loads(path.read_text())
