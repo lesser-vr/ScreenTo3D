@@ -433,6 +433,11 @@ def main():
                     desktop.main_window.showNormal()
                     pump(0.1)
                 live.start()
+                assert live.active, live.status
+                # The minimal shell has no in-app result consumer.
+                # Prime the actual output consumer before waiting for frames.
+                live.showOutput(0, False)
+                live.output_window.resize(1400, 650)
                 if args.poll_ms is not None:
                     if args.legacy_poll:
                         raise ValueError(
@@ -444,8 +449,6 @@ def main():
                     args.startup_timeout,
                 )
                 assert live.active, live.status
-                live.showOutput(0, False)
-                live.output_window.resize(1400, 650)
                 if args.abort_output_below_fps is not None:
                     output_guard = OutputRateGuard(
                         args.abort_output_below_fps, time.perf_counter(), output_count()

@@ -28,6 +28,12 @@ Recording is off by default and unsupported by the current live profile; no
 implicit audio recording/download/build is added. Explicitly designed future
 features must retain provenance, destination and privacy controls.
 
+The main UI, utility window, error window and SBS output use capture exclusion.
+Utility/error exclusion is checked before showing them; an error-dialog exclusion
+failure keeps the dialog hidden and stops live capture while retaining its error
+in status. The application
+does not offer an option to clear SBS capture protection for external applications.
+
 Cross-process GPU transport needs validated process identity, access control,
 resource/adapter properties and lifetime. The current path uses unnamed handles;
 an alternative transport can be implemented with equivalent isolation. Request

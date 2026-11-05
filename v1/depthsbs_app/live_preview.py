@@ -57,6 +57,12 @@ class PreviewImages(QQuickImageProvider):
 class LivePreview(QObject):
     changed = Signal()
     frameChanged = Signal()
+    errorOccurred = Signal(str)
+
+    def reportError(self, message):
+        self.message = str(message) or "SBS 처리 중 알 수 없는 오류가 발생했습니다."
+        self.changed.emit()
+        self.errorOccurred.emit(self.message)
 
     def __init__(self, desktop):
         super().__init__(desktop)
@@ -67,11 +73,12 @@ class LivePreview(QObject):
         self.items = []
         self.kind = "window"
         self.selected = -1
+        self.selection_required = False
         self.cursor = True
         self.process = self.mailbox = None
         self.capture_telemetry = None
         self.stopping = False
-        self.message = "원본 미리보기 · 아직 SBS 변환하지 않습니다."
+        self.message = "볼 창을 선택하세요."
         self.session = 0
         self.version = 0
         self.meta = [0] * 12
@@ -85,7 +92,7 @@ class LivePreview(QObject):
         self.source = None
         self.excluded = False
         self.preview_visible = True
-        self.sbs = False
+        self.sbs = True
         self.mode = "balanced"
         self.live_model = default_live_model(self.mode)
         self.ovda_noncommercial = False
@@ -98,6 +105,10 @@ class LivePreview(QObject):
         self.processing_stats = None
         self.final_processing_stats = [0] * STAT_COUNT
         self.output_window = None
+        from .desktop_jobs import ROOT
+        from .output_placement import OutputPlacement
+        self.output_placement = OutputPlacement(ROOT / "out" / "desktop-output-placement.json")
+        self._restore_output = False
         self.output_excluded = False
         self.output_presented = 0
         self.output_pending = None
@@ -121,6 +132,13 @@ class LivePreview(QObject):
     @Property(int, notify=changed)
     def selectedIndex(self):
         return self.selected
+
+    @Property(str, notify=changed)
+    def sourceIcon(self):
+        row = self.items[self.selected] if 0 <= self.selected < len(self.items) else {}
+        if row.get("kind") != "window":
+            return ""
+        return f"image://windowicons/{row.get('id', 0)}/{row.get('pid', 0)}"
 
     @Property(bool, notify=changed)
     def cursorIncluded(self):
@@ -187,16 +205,13 @@ class LivePreview(QObject):
 
     @Property("QVariantList", notify=changed)
     def liveModes(self):
+        labels = {
+            "performance": "빠른 처리",
+            "balanced": "균형",
+            "video-quality": "영상 품질",
+        }
         return [
-            dict(
-                key=key,
-                label=f"{profile.resolve().label} · "
-                + "/".join(
-                    self.desktop.models_label(model)
-                    for model in live_model_choices(key)
-                ),
-            )
-            for key, profile in LIVE_MODES.items()
+            dict(key=key, label=labels[key]) for key in LIVE_MODES
         ]
 
     @Property("QVariantList", notify=changed)
@@ -290,9 +305,9 @@ class LivePreview(QObject):
         if self.active:
             return
         if path not in ("gpu", "reference", "gpu-texture"):
-            self.message = "지원하지 않는 처리 경로입니다."
+            self.reportError("지원하지 않는 처리 경로입니다.")
         elif path == "gpu-texture" and self.live_model not in NATIVE_MODELS:
-            self.message = "선택한 실시간 모델은 GPU 직접 출력을 지원하지 않습니다."
+            self.reportError("선택한 실시간 모델은 GPU 직접 출력을 지원하지 않습니다.")
         else:
             try:
                 if path == "gpu-texture" and self.native is None:
@@ -302,7 +317,7 @@ class LivePreview(QObject):
                 self.native_selected = path == "gpu-texture"
                 self.gpu_candidate = path != "reference"
             except Exception as error:
-                self.message = f"GPU 직접 출력 준비 실패: {error}"
+                self.reportError(f"GPU 직접 출력 준비 실패: {error}")
         self.changed.emit()
 
     @Slot(int)
@@ -313,14 +328,14 @@ class LivePreview(QObject):
             self.cadence = PresentationCadence(hz)
             self.timer.setInterval(self.cadence.poll_ms)
         except ValueError as error:
-            self.message = str(error)
+            self.reportError(error)
         self.changed.emit()
 
     @Slot(str)
     def setMode(self, mode):
         if not self.active:
             if mode not in LIVE_MODES:
-                self.message = "지원하지 않는 실시간 모드입니다. Offline Quality는 파일 전용입니다."
+                self.reportError("지원하지 않는 실시간 모드입니다. Offline Quality는 파일 전용입니다.")
             else:
                 self.mode = mode
                 if self.live_model not in live_model_choices(mode):
@@ -347,7 +362,13 @@ class LivePreview(QObject):
 
     @Property("QStringList", notify=changed)
     def outputScreens(self):
-        return [screen.name() for screen in QGuiApplication.screens()]
+        return [
+            f"모니터 {index + 1} · {screen.name()}"
+            f" · {round(screen.size().width() * screen.devicePixelRatio())}"
+            f" × {round(screen.size().height() * screen.devicePixelRatio())}"
+            + (" · 기본" if screen == QGuiApplication.primaryScreen() else "")
+            for index, screen in enumerate(QGuiApplication.screens())
+        ]
 
     @Slot(bool)
     def setSbs(self, enabled):
@@ -364,27 +385,60 @@ class LivePreview(QObject):
             self.changed.emit()
 
     @Slot(int, bool)
+    def requestOutput(self, index, fullscreen):
+        try:
+            self.showOutput(index, fullscreen)
+        except Exception as error:
+            if self.output_window is not None:
+                self.output_window.hide()
+            self.abort(error)
+
+    @Slot(int, bool)
     def showOutput(self, index, fullscreen):
         from .capture_sources import exclude_preview
+        from .output_placement import fit_rect
 
         screens = QGuiApplication.screens()
         if self.output_window is None or not 0 <= index < len(screens):
             return
         window = self.output_window
         window.setScreen(screens[index])
-        window.setPosition(screens[index].geometry().topLeft())
+        if self._restore_output:
+            window.setGeometry(fit_rect(self.output_placement.rect, screens[index].availableGeometry()))
+        else:
+            window.setPosition(screens[index].geometry().topLeft())
         self.output_excluded = exclude_preview(window.winId())
         if not self.output_excluded:
-            self.message = (
+            self.reportError(
                 "SBS 출력 창의 재캡처 차단에 실패했습니다. 출력 창을 열지 않습니다."
             )
-            self.changed.emit()
             return
         window.showFullScreen() if fullscreen else window.showNormal()
         self.output_excluded = exclude_preview(window.winId())
         if not self.output_excluded:
             window.hide()
             self.abort("출력 창 캡처 제외 실패로 중단했습니다.")
+
+    @Slot()
+    def rememberOutput(self):
+        from PySide6.QtGui import QWindow
+
+        window = self.output_window
+        if window is not None and window.visibility() == QWindow.Windowed:
+            self.output_placement.rect = window.geometry()
+            self.output_placement.screen_name = window.screen().name()
+
+    @Slot()
+    def startMinimal(self):
+        screens = QGuiApplication.screens()
+        main = getattr(self.desktop, "main_window", None)
+        preferred = main.screen() if main is not None else QGuiApplication.primaryScreen()
+        index = self.output_placement.screen_index(screens, preferred)
+        self._restore_output = True
+        try:
+            self.startSbs(0, index)
+        finally:
+            self._restore_output = False
 
     @Slot()
     def outputFrameSwapped(self):
@@ -403,7 +457,6 @@ class LivePreview(QObject):
     @Slot()
     def outputVisibilityChanged(self):
         from .capture_sources import exclude_preview
-
         if self.output_window is not None and self.output_window.isVisible():
             self.output_excluded = exclude_preview(self.output_window.winId())
             if not self.output_excluded:
@@ -414,22 +467,36 @@ class LivePreview(QObject):
 
     @Slot()
     def screensChanged(self):
-        # Never silently move an active output to a different display.
+        # Capture/GPU topology still needs a new validated session. Restore a
+        # visible control window rather than leaving the user on a lost display.
         if self.output_window is not None and self.output_window.isVisible():
-            self.output_window.hide()
-            self.abort("디스플레이 구성이 변경되었습니다. 출력 화면을 다시 선택하세요.")
+            self.abort("디스플레이 구성이 변경되어 중지했습니다. SBS를 다시 시작하세요.")
+            if not self.active:
+                self.output_window.hide()
+        main = getattr(self.desktop, "main_window", None)
+        if main is not None and QGuiApplication.screens():
+            from .output_placement import fit_rect
+            screen = main.screen() or QGuiApplication.primaryScreen()
+            main.setGeometry(fit_rect(main.geometry(), screen.availableGeometry()))
+            main.showNormal()
         self.changed.emit()
 
     @Slot(str)
     def setKind(self, kind):
         if not self.active and kind in ("window", "monitor"):
+            if kind != self.kind:
+                self.items, self.selected = [], -1
+                self.selection_required = False
             self.kind = kind
+            self.message = "볼 창을 선택하세요." if kind == "window" else "볼 모니터를 선택하세요."
             self.refresh()
 
     @Slot(int)
     def select(self, index):
         if not self.active and 0 <= index < len(self.items):
             self.selected = index
+            self.selection_required = False
+            self.message = "시작 대기"
             self.changed.emit()
 
     @Slot(bool)
@@ -442,12 +509,35 @@ class LivePreview(QObject):
     def refresh(self):
         if self.active:
             return
+        previous = (
+            self.items[self.selected] if 0 <= self.selected < len(self.items) else None
+        )
+
+        def identity(row):
+            # Titles and enumeration order can change. HWND + PID guards reuse;
+            # monitor device names survive enumeration-order changes.
+            if row.get("kind") == "monitor":
+                return ("monitor", row.get("device"))
+            return (row.get("kind"), row.get("id"), row.get("pid"))
+
         try:
             self.items = windows() if self.kind == "window" else monitors()
-            self.selected = 0 if self.items else -1
+            if previous is not None:
+                self.selected = next(
+                    (i for i, row in enumerate(self.items) if identity(row) == identity(previous)),
+                    -1,
+                )
+                if self.selected < 0:
+                    self.selection_required = True
+                    self.message = "선택한 화면이 목록에서 사라졌습니다. 캡처할 대상을 다시 선택하세요."
+            else:
+                self.selected = -1
+            if not self.items:
+                self.message = "선택할 대상이 없습니다. 볼 앱을 연 뒤 목록을 다시 여세요."
         except Exception as error:
+            self.selection_required = self.selection_required or previous is not None
             self.items, self.selected = [], -1
-            self.message = str(error)
+            self.reportError(error)
         self.changed.emit()
 
     @Slot(bool)
@@ -455,6 +545,39 @@ class LivePreview(QObject):
         self.preview_visible = visible
         if not visible:
             self.pending_present = None
+
+    @Slot(int, int)
+    def startSbs(self, output_style, screen_index):
+        """User-facing start; capture-only remains a diagnostic API, never a mode."""
+        if self.active or self.desktop.busy:
+            self.reportError(
+                "SBS가 이미 실행 중입니다. 중지 후 다시 시작하세요."
+                if self.active else "다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 SBS를 시작하세요."
+            )
+            return
+        if not 0 <= self.selected < len(self.items):
+            self.reportError("볼 창을 선택하세요. 선택 목록을 열면 다시 확인합니다.")
+            return
+        if output_style not in (0, 1, 2) or (
+            output_style != 2 and not 0 <= screen_index < len(QGuiApplication.screens())
+        ):
+            self.reportError("사용 가능한 출력 화면을 선택하세요.")
+            return
+        self.setSbs(True)
+        self.message = "SBS 시작 준비 중… 캡처 대상과 출력 화면을 확인합니다."
+        self.changed.emit()
+        self.start()
+        try:
+            if self.active and output_style != 2:
+                self.showOutput(screen_index, output_style == 1)
+                if not self.stopping and (
+                    self.output_window is None or not self.output_window.isVisible()
+                ):
+                    self.abort("출력 창을 열지 못해 SBS를 중단했습니다.")
+            elif self.active and self.output_window is not None:
+                self.output_window.hide()
+        except Exception as error:
+            self.abort(f"출력 준비 실패로 SBS를 중단했습니다: {error}")
 
     @Slot()
     def start(self):
@@ -558,16 +681,22 @@ class LivePreview(QObject):
         except Exception as error:
             if self.nativeEnabled and self.native is not None:
                 self.native.end()
-            self.message = str(error)
             if self.desktop.lease.owner == "live":
                 self.desktop.lease.release("live")
             self.process = self.mailbox = None
+            if self.output_window is not None:
+                self.output_window.hide()
+            self.reportError(error)
         self.desktop.changed.emit()
         self.changed.emit()
 
     @Slot()
     def stop(self):
         if self.active and not self.stopping:
+            self.rememberOutput()
+            self.output_placement.save()
+            if self.output_window is not None:
+                self.output_window.hide()
             self.stopping = True
             self.stop_started = time.perf_counter()
             self.mailbox.stop.set()
@@ -583,8 +712,7 @@ class LivePreview(QObject):
 
     def abort(self, message):
         self.stop()
-        self.message = str(message)
-        self.changed.emit()
+        self.reportError(message)
 
     def poll(self):
         if not self.active:
@@ -596,13 +724,15 @@ class LivePreview(QObject):
             # Child has exited: metadata is stable even if a crash held its lock.
             self.meta = list(self.mailbox.meta)
             code = self.process.exitcode
+            failure = None
             if not self.stopping:
                 error = bytes(self.mailbox.error.value).decode("utf-8", "replace")
                 self.message = (
                     error or f"캡처가 중단되었습니다 ({code}). 대상을 다시 선택하세요."
                 )
+                failure = self.message
             elif self.message == "캡처 종료 중…":
-                self.message = "캡처 종료 · 화면과 임시 프레임을 비웠습니다."
+                self.message = "SBS를 중지했습니다."
             self.process.join(timeout=0)
             self.process.close()
             self.final_processing_stats = self._stats()
@@ -620,6 +750,8 @@ class LivePreview(QObject):
             self.frameChanged.emit()
             self.changed.emit()
             self.desktop.changed.emit()
+            if failure is not None:
+                self.reportError(failure)
             if self.desktop.closing:
                 self.desktop.exitReady.emit()
             return
@@ -627,7 +759,9 @@ class LivePreview(QObject):
             if now - self.stop_started > 5:
                 # Only this session's isolated worker. No output files to lose.
                 self.process.terminate()
-                self.message = "캡처 응답 지연으로 캡처 프로세스를 종료했습니다. 다시 시작할 수 있습니다."
+                message = "캡처 응답 지연으로 캡처 프로세스를 종료했습니다. 다시 시작할 수 있습니다."
+                if self.message != message:
+                    self.reportError(message)
             return
         if now - self.last_health > 0.25:
             self.last_health = now

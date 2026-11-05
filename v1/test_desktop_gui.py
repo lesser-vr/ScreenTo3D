@@ -29,6 +29,7 @@ def main():
     )
     window = engine.rootObjects()[0]
     pattern = window.findChild(QQuickWindow, "patternWindow")
+    tools = window.findChild(QQuickWindow, "toolsWindow")
 
     def pump(seconds):
         until = time.monotonic() + seconds
@@ -37,7 +38,7 @@ def main():
             time.sleep(0.01)
 
     pump(1)
-    assert window.findChild(QObject, "modePicker").property("currentText") == "Balanced"
+    assert window.findChild(QObject, "modePicker").property("currentText") == "균형"
     assert (
         window.findChild(QObject, "modelPicker").property("currentText") == "DA2 Base"
     )
@@ -60,7 +61,7 @@ def main():
             controller.setOption("engine", str(args.output))
         controller.changed.emit()
     pump(0.5)
-    window.grabWindow().save(str(args.output / "files.png"))
+    tools.grabWindow().save(str(args.output / "files.png"))
     controller.setOption("mode", "offline-quality")
     window.setProperty("page", 2)
     pump(0.2)
@@ -68,7 +69,7 @@ def main():
         window.findChild(QObject, "modelPicker").property("currentText")
         == "VDA Small · 5프레임 Offline"
     )
-    window.grabWindow().save(str(args.output / "settings-offline.png"))
+    tools.grabWindow().save(str(args.output / "settings-offline.png"))
     controller.setOption("mode", "balanced")
     controller.checkSetup()
     until = time.monotonic() + 45
@@ -76,7 +77,7 @@ def main():
         pump(0.1)
     assert not controller.busy, "Setup timed out"
     pump(0.2)
-    window.grabWindow().save(str(args.output / "settings.png"))
+    tools.grabWindow().save(str(args.output / "settings.png"))
     pattern.show()
     pump(0.5)
     assert pattern.rendererInterface().graphicsApi() == QSGRendererInterface.Direct3D11
@@ -88,10 +89,10 @@ def main():
     pattern.showNormal()
     pump(0.2)
     pattern.hide()
-    window.resize(980, 700)
+    window.resize(380, 260)
     pump(0.3)
     window.grabWindow().save(str(args.output / "minimum-size.png"))
-    window.resize(1180, 800)
+    window.resize(420, 260)
     window.setProperty("page", 1)
     if args.input:
         pump(0.2)
@@ -99,7 +100,7 @@ def main():
         point = button.mapToScene(
             QPointF(button.width() / 2, button.height() / 2)
         ).toPoint()
-        QTest.mouseClick(window, Qt.LeftButton, Qt.NoModifier, point)
+        QTest.mouseClick(tools, Qt.LeftButton, Qt.NoModifier, point)
         pump(0.1)
         assert controller.busy, controller.status
         if args.cancel:
@@ -113,7 +114,7 @@ def main():
         assert controller.canOpen == (expected == "완료")
         assert controller.temp is None and controller.lease.owner is None
         pump(0.2)
-        window.grabWindow().save(str(args.output / "result.png"))
+        tools.grabWindow().save(str(args.output / "result.png"))
     assert not warnings, warnings
     report = {
         "graphics": graphics,

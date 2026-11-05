@@ -22,6 +22,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--hz", type=int, choices=(30, 60), default=30)
+    parser.add_argument("--mode", choices=("performance", "balanced"), default="performance")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     app, engine, desktop = create_app()
@@ -30,6 +31,7 @@ def main():
     oracle = ClockOracle("FloorballGame")
     oracle.show()
     live = desktop.live
+    live.output_placement.path = args.output / "placement.json"
 
     def pump(seconds=0.1):
         until = time.monotonic() + seconds
@@ -62,11 +64,14 @@ def main():
         ]
         live.selected = 0
         live.setSbs(True)
+        live.setMode(args.mode)
+        # The minimal shell has one output consumer and no in-app preview.
         live.setProcessingPath("gpu-texture")
         assert live.processingPath == "gpu-texture", live.status
         live.setPresentationHz(args.hz)
-        live.start()
-        wait(lambda: native()["main"]["submitted_frames"] >= 5)
+        live.startSbs(0, 0)
+        wait(lambda: native()["output"]["submitted_frames"] >= 5)
+        assert native()["main"]["submitted_frames"] == 0
         assert live.mailbox.pixels is None and live.provider.image.isNull()
         live.setProcessingPath("gpu")
         assert live.processingPath == "gpu-texture"
@@ -124,10 +129,6 @@ def main():
         desktop.main_window.showNormal()
         live.showOutput(0, False)
         wait(
-            lambda: native()["main"]["submitted_frames"]
-            > both["main"]["submitted_frames"] + 3
-        )
-        wait(
             lambda: native()["output"]["submitted_frames"]
             > both["output"]["submitted_frames"] + 3
         )
@@ -137,10 +138,7 @@ def main():
         pump(0.3)
         assert native()["main"]["submitted_frames"] == page["main"]["submitted_frames"]
         desktop.main_window.setProperty("page", 0)
-        wait(
-            lambda: native()["main"]["submitted_frames"]
-            > page["main"]["submitted_frames"]
-        )
+        assert native()["main"]["submitted_frames"] == 0
         live.showOutput(0, True)
         pump(0.3)
         assert (
@@ -154,10 +152,9 @@ def main():
         expected_width = round(400 * oracle.devicePixelRatioF()) * 2
         wait(lambda: live.meta[WIDTH] == expected_width and live.native.has_frame, 20)
         first_resized_sequence = live.native.last_sequence
-        wait(lambda: native()["main"]["last_submitted_id"] >= first_resized_sequence)
         wait(lambda: native()["output"]["last_submitted_id"] >= first_resized_sequence)
         wait(lambda: native()["live_pools"] == 1, 10)
-        assert native()["live_nodes"] == 2
+        assert native()["live_nodes"] == 1
         assert live._stats()[2] > 1
         assert desktop.main_window.grabWindow().save(str(args.output / "gui.png"))
         report = live.report()
@@ -169,21 +166,20 @@ def main():
         live.stop()
         assert not live.hasFrame and desktop.lease.owner == "live"
         pump(0.15)
-        blank = live.output_window.grabWindow().convertToFormat(QImage.Format_RGB888)
-        assert np.mean(np.frombuffer(blank.bits(), np.uint8)) < 10
+        assert not live.output_window.isVisible()
         wait(lambda: not live.active, 15)
         assert desktop.lease.owner is None
         pump(0.15)
         assert native()["live_pools"] == native()["live_nodes"] == 0
-        live.start()
-        wait(lambda: native()["main"]["submitted_frames"] >= 2)
+        live.startSbs(0, 0)
+        wait(lambda: native()["output"]["submitted_frames"] >= 2)
         oracle.showMinimized()
         wait(lambda: not live.active, 15)
         assert not live.hasFrame and desktop.lease.owner is None
         oracle.showNormal()
         pump(0.2)
-        live.start()
-        wait(lambda: native()["main"]["submitted_frames"] >= 2)
+        live.startSbs(0, 0)
+        wait(lambda: native()["output"]["submitted_frames"] >= 2)
         live.process.terminate()
         wait(lambda: not live.active, 15)
         pump(0.2)

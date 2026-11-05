@@ -64,6 +64,7 @@ def main():
     args.output = args.output.resolve()
     args.output.mkdir(parents=True, exist_ok=False)
     app, engine, desktop = create_app()
+    desktop.live.setSbs(False)  # Capture-only diagnostic, not a user-facing mode.
     main_window = engine.rootObjects()[0]
     main_window.setPosition(0, 0)
     main_window.resize(980, 700)

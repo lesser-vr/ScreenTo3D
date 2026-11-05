@@ -16,6 +16,7 @@ from PySide6.QtCore import (
     QUrl,
     Signal,
     Slot,
+    Qt,
 )
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
@@ -60,6 +61,7 @@ class DesktopController(QObject):
         self.cancelling = False
         self.closing = False
         self.checking = False
+        self.check_target = ""
         self.status_text = "파일을 추가하고 변환할 영상을 선택하세요."
         self.progress_value = 0.0
         self.detail_text = "Full SBS · 원본 크기와 오디오 유지 · 자동 크기 변경 없음"
@@ -111,7 +113,13 @@ class DesktopController(QObject):
 
     @Property("QVariantList", constant=True)
     def modes(self):
-        return [dict(key=k, label=v.label) for k, v in MODES.items()]
+        labels = {
+            "performance": "빠른 처리",
+            "balanced": "균형",
+            "video-quality": "영상 품질",
+            "offline-quality": "오프라인 품질",
+        }
+        return [dict(key=k, label=labels[k]) for k in MODES]
 
     @Property(str, notify=changed)
     def licenseNotice(self):
@@ -406,7 +414,8 @@ class DesktopController(QObject):
             try:
                 report = json.loads(self.check_buffer)
                 self.setup_text = (
-                    ("설치 항목 확인됨" if report["ready"] else "설치 확인 필요")
+                    self.check_target + " · "
+                    + ("설치 항목 확인됨" if report["ready"] else "설치 확인 필요")
                     + "\n"
                     + report["message"]
                     + "\n엔진 실행·성능 보증이 아닌 설치 점검 결과입니다."
@@ -472,21 +481,32 @@ class DesktopController(QObject):
 
     @Slot()
     def checkSetup(self):
+        self.checkSetupFor("file")
+
+    @Slot(str)
+    def checkSetupFor(self, target):
         if self.busy:
             return
+        if target not in ("live", "file"):
+            return
+        v = dict(self.values)
+        if target == "live":
+            v["model"] = self.live.liveModel
+            v["engine"] = self.engine_paths.get(v["model"], "")
+            v["renderer"] = "cuda"
+        self.check_target = ("실시간 SBS" if target == "live" else "파일 변환") + " / " + self.models_label(v["model"])
         self.lease.acquire("check")
         self.checking = True
         self.check_buffer = b""
         self.error_text = ""
-        self.setup_text = "설치 항목을 확인하고 있습니다…"
-        v = self.values
+        self.setup_text = self.check_target + " · 설치 항목을 확인하고 있습니다…"
         try:
             self._spawn(
                 "depthsbs_app.desktop_check",
                 [v[k] for k in ("model", "engine", "runtime", "media", "renderer")],
             )
         except Exception as error:
-            self.setup_text = str(error)
+            self.setup_text = self.check_target + " · " + str(error)
             self._cleanup()
         self.changed.emit()
 
@@ -505,11 +525,22 @@ class DesktopController(QObject):
             QUrl.fromLocalFile(str(ROOT / "experiments/ovda/LICENSE"))
         )
 
+    @Slot()
+    def openResultFolder(self):
+        if self.canOpen and not QDesktopServices.openUrl(
+            QUrl.fromLocalFile(str(Path(self.destination).parent))
+        ):
+            self.inform("결과 폴더를 열 수 없습니다. 저장 위치를 확인하세요.")
+
     @Slot(result=bool)
     def requestClose(self):
         if not self.busy:
             return True
         if self.closing:
+            return False
+        if self.lease.owner == "live":
+            self.closing = True
+            self.live.stop()
             return False
         answer = QMessageBox.question(
             None,
@@ -526,6 +557,23 @@ class DesktopController(QObject):
                 self.cancel()
         return False
 
+    @Slot(QObject, result=bool)
+    def protectWindow(self, window):
+        from .capture_sources import exclude_preview
+
+        if not exclude_preview(window.winId()):
+            window.hide()
+            self.live.reportError("보조 창의 캡처 차단에 실패해 창을 닫았습니다.")
+            return False
+        return True
+
+    @Slot(str)
+    def showLiveError(self, message):
+        if not self.error_dialog.showError(message):
+            self.live.stop()
+            self.live.message = str(message) + " · 오류 창 캡처 차단에 실패해 창을 표시하지 않았습니다."
+            self.live.changed.emit()
+
 
 def create_app():
     # Qt 6.10.2's DXGI VBlank service can stall update delivery on this local
@@ -536,6 +584,7 @@ def create_app():
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("DepthSBS")
     app.setOrganizationName("DepthSBS")
+    app.styleHints().setColorScheme(Qt.ColorScheme.Light)
     from PySide6.QtQuickControls2 import QQuickStyle
 
     QQuickStyle.setStyle("Basic")
@@ -550,12 +599,21 @@ def create_app():
     engine.rootContext().setContextProperty("desktop", controller)
     engine.rootContext().setContextProperty("live", controller.live)
     engine.addImageProvider("live", controller.live.provider)
+    from .window_icons import WindowIcons
+    engine.addImageProvider("windowicons", WindowIcons(controller.live))
     engine.load(QUrl.fromLocalFile(str(Path(__file__).with_name("qml") / "Main.qml")))
     if not engine.rootObjects():
         raise RuntimeError("GUI 화면을 불러오지 못했습니다.")
     window = engine.rootObjects()[0]
     controller.main_window = window
+    from .error_dialog import LiveErrorDialog
+
+    controller.error_dialog = LiveErrorDialog(window)
+    controller.live.errorOccurred.connect(controller.showLiveError)
     controller.live.output_window = window.findChild(QQuickWindow, "sbsOutput")
+    # Hiding the only output on Stop must retire native scene-graph nodes even
+    # when Qt will never render another frame for this window.
+    controller.live.output_window.setPersistentSceneGraph(False)
     controller.live.output_window.frameSwapped.connect(
         controller.live.outputFrameSwapped
     )
@@ -570,6 +628,7 @@ def create_app():
     from .capture_sources import exclude_preview
 
     controller.live.excluded = exclude_preview(window.winId())
+    controller.protectWindow(window.findChild(QQuickWindow, "toolsWindow"))
     controller.exitReady.connect(app.quit)
     return app, engine, controller
 

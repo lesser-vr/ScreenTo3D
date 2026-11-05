@@ -1,6 +1,6 @@
 # Current implementation status
 
-Reviewed 2026-09-09. The validated hybrid guided filter is now in the prepared-local
+Reviewed 2026-09-10. The validated hybrid guided filter is now in the prepared-local
 product DLL, and the SBS worker retains the owned WGC mapped frame instead of
 copying it into a second 4K BGRA buffer. Scoped regression coverage and measurements
 are connected below; they do not establish general 4K60 support.
@@ -13,13 +13,155 @@ in [ROADMAP](ROADMAP.md). Unpassed acceptance is recorded below.
 |---|---|---|
 | C++ bootstrap | CMake/MSVC core, capability probe and mode contracts; CI/dev entry point exists | Not a complete native NVDEC-to-NVENC media pipeline; `CMakeLists.txt`, `.github/workflows/ci.yml`, `scripts/dev.ps1` |
 | Python file conversion | Mode-owned routing now enforces Performance/DA2 Small, Balanced/DA2 Base, Video Quality/explicit oVDA or VDA, and Offline Quality/VDA with a dedicated centered five-frame processor; SBS, FFmpeg/NVENC, audio/publication and cancellation remain shared | Offline is bounded, future-aware and file-only; it is not motion-warped or a new trained model. Artifact/shape/license-specific local use; [model specifications](PRODUCT.md#files-and-models) |
-| Live original preview | Explicit WGC window/monitor capture, source transitions and isolated worker | No depth in original mode; [original preview](PRODUCT.md) |
-| Live depth modes / host output | Immutable session routing selects Performance/DA2 Small, Balanced/DA2 Base, or Video Quality/explicit oVDA or VDA; VDA/oVDA live depth remains on its owner CUDA stream through GPU SBS | DA2 Base retains a host-depth boundary. Offline Quality is file-only; correct artifacts, shapes and oVDA confirmation are required with no fallback |
-| Live native texture output | Explicit experimental `gpu-texture` transport into Qt/D3D11 windows supports DA2 Small plus VDA/oVDA device-depth live sessions with worker-owned bounded textures | Capture/model input still crosses host memory; DA2 Base is ineligible; native delivery default promotion and broad visual acceptance remain open; [integration](evidence/presentation.md#record-result-live-native-dual-window) |
+| Capture-only diagnostic | Explicit WGC window/monitor capture, source transitions and isolated worker retained for diagnostic callers | Removed from user-facing mode selection; GUI defaults to SBS, with no automatic capture; [desktop behavior](PRODUCT.md#live-capture-and-output) |
+| Live depth modes / host output | Immutable session routing selects Performance/DA2 Small, Balanced/DA2 Base, or Video Quality/explicit oVDA or VDA; Base/VDA/oVDA live GPU depth remains on its owner CUDA stream through GPU SBS | Explicit reference and file paths retain host depth. Offline Quality is file-only; correct artifacts, shapes and oVDA confirmation are required with no fallback |
+| Live native texture output | Explicit experimental `gpu-texture` transport into Qt/D3D11 windows supports DA2 Small plus Base/VDA/oVDA device-depth live sessions with worker-owned bounded textures | Capture/model input still crosses host memory; native delivery default promotion and broad visual acceptance remain open; [integration](evidence/presentation.md#record-result-live-native-dual-window) |
 | Temporal/model GPU experiments | Device boundaries and selected NVOF components have bounded evidence | Components are not general live model integration; fixed 1:2 NVOF cadence is rejected; [actual skip](evidence/nvof.md#record-result-ovda-nvof-actual-skip-2026-09-07) |
 | Post-SBS Streamline DLSSG proposal | Feasibility review completed | Current adapter rejected at input-contract boundary; not a rejection of all external RGB FG; [feasibility](evidence/frame-generation.md#record-result-dlssg-feasibility-2026-09-07) |
 
 ## Measured envelope, not general support
+
+DA2 Base now uses owned source-resolution FP32 device depth for normal live GPU
+postprocessing and explicitly selectable native texture output (2026-11-05).
+The original plan hashes, preprocessing, model-only padding/unpadding, source
+geometry and file host-depth implementation are preserved. A 24-case real-engine
+comparison across 1920x1080, 3440x1440, 1080x1920 and 3840x2160 passed: raw depth and
+GPU-host versus native SBS were exact; legacy CPU-post/CUDA-SBS comparisons passed
+the existing live-GPU numerical limits. 60 scoped unit tests passed. Actual Base
+native lifecycle tests passed resize/texture retirement, hidden consumers,
+fullscreen/Escape, stop/clear, restart/source loss and worker-crash cleanup with
+zero remaining native pools/nodes after shutdown.
+
+Matched current-working-tree RTX 5090 / driver 621.14 measurements used the same
+public FloorballGame source process, 6s discarded warmup then five 6s windows,
+target 60Hz and unchanged model/policy. Median output submissions:
+
+| Input / per eye | Existing reference | GPU depth + host output (default) | GPU depth + native output (explicit) |
+|---|---:|---:|---:|
+| 1920x1080 | 10.43 fps | 18.02 fps | 20.67 fps |
+| 3840x2160 | 2.15 fps | 6.46 fps | 8.43 fps |
+
+The 4K native case reduced sampled SBS-stage median from 323.41ms to 15.84ms;
+the aggregate depth stage (including CPU preprocessing, model execution and
+source-depth resizing/validation) still took 98.46ms. This is not a pure-model
+ceiling. Host output is a callback proxy; native output counts distinct Qt
+afterFrameEnd IDs. 4K source pixels are an upscaled public 1080p excerpt, with
+7680x2160 Full SBS processing but a fitted output window, not 1:1 scanout. Rates
+remain below 30/60fps and do not certify sustained playback or Owl3D/HMD acceptance.
+The TensorRT device-plan compatibility warning remains. Evidence and failed
+harness attempts are retained in [Base device-path record](evidence/da2-base-device-20261105.md).
+
+The 2026-11-05 minimal Qt/QML redesign replaces the sidebar and live settings
+dashboard with a 420x260 control window: explicit source selection and start/stop,
+plus a secondary menu. File conversion, quality controls and diagnostics open in
+a separate utility window. There is no in-app preview consumer or output-location
+picker. The sole output window supports normal movement, remembered placement,
+F11/Escape and X-to-stop. Model, strength, resolution and processing defaults are
+unchanged. Source selection starts empty and refresh cannot silently replace it.
+
+48 controller/placement tests passed. Actual Qt input checks passed at measured
+DPR 1.0, 1.5 and 2.0; final 1.0/2.0 runs additionally cover minimized utility
+reopening and injected error-exclusion failure. The runs had no Qt warnings and
+cover selection refresh/identity loss, keyboard focus, long titles, preparation/
+running captions, cancellation and native error Close/Escape/Ctrl+C. Real generated
+source WGC + DA2 Base tests passed host and native output, F11/Escape, minimizing,
+X-to-stop, restored geometry, restart and preparation cancellation. Native lifecycle
+coverage also passed input resize/pool retirement, hidden output restoration,
+source loss and worker crash, with zero remaining native pools/nodes after cleanup.
+The first native lifecycle run caught retained scene-graph nodes after hiding;
+disabling persistent output scene graphs fixed the regression and the rerun passed.
+The separate file window also completed an actual fixture conversion with no Qt
+warnings (`out/minimal-file-gui-20261105`). Independent finish review scored its
+material findings resolved; physical-device and user acceptance remain separate.
+Evidence and precise limitations: [minimal UI record](evidence/minimal-qt-ux-20261105.md).
+
+The subsequent 2026-11-05 visual pass applies the user-approved macOS-inspired
+light utility style without changing the minimal flow or model/presentation
+defaults. A bounded selected-window icon provider adds OS application icons,
+with identity checking and no client-pixel capture. 51 controller/placement/icon
+tests passed, including real owned-window HICON conversion. Actual Qt checks
+passed at measured DPR ~1.0, 1.5 and 2.0 with zero warnings; the final 1.0/2.0 runs
+include checked-checkbox keyboard focus and Space toggling. A generated-source
+Base host-output run passed start, stop, preparation cancellation, F11/Escape,
+minimize and placement restore. Independent finish review scored its focus-ring
+finding resolved. [Visual-pass evidence](evidence/macos-light-ui-20261105.md)
+
+External-3D capture permission remains removed. Historical external-mode and
+in-app-preview results under `out/` describe earlier layouts, not current controls.
+Existing TensorRT device-plan compatibility warnings remain; the short real
+tests do not certify sustained playback, monitor unplug/device loss or Owl3D/HMD
+acceptance.
+
+The corrected 2026-11-05 error UI uses a separate native QDialog with its own
+HWND and the main window as transient owner. It replaces the earlier QML layer
+and copy button. One explicit 닫기 button, title-bar close and Escape dismiss it;
+Ctrl+C copies the entire error without requiring selection, with either text or
+button focus. The non-blocking modal window preserves worker cleanup and the
+status text; repeated errors reuse it. The native error window is capture-excluded.
+Actual Qt tests clicked the visible close button, checked separate HWND identity,
+Escape/close behavior, exact Ctrl+C clipboard content from both controls, and
+absence of a copy button or QML overlay, with no warnings
+(`out/native-error-window-verified-20261105`). Original clipboard formats were
+restored after testing. Controller tests cover worker
+failure notification, cleanup ordering, normal stop and output reopen failure.
+Capture/inference behavior is unchanged by this presentation update.
+
+The 2026-11-05 SBS-start regression check reproduced a first-frame failure with
+an actual generated WGC window: `ndarray is not C-contiguous`. Retained D3D
+capture views can have padded rows; both fused RGB conversion and the reference
+BGRA copy now preserve their NumPy strides instead of flattening the buffer.
+Exact-pixel tests cover padded rows and owned conversion results. The start
+action also explains missing/stale selections and another job's lease instead
+of silently ignoring or disabling the request. The user's original no-text-change
+state was not reproduced in the fresh GUI, so these are confirmed defects and
+tested fixes, not a confirmed diagnosis of that running instance.
+
+63 scoped controller/capture/bridge/guard tests passed, and actual Qt clicks
+verified normal/external startup rejection text, missing-source and busy
+messages without QML warnings (`out/start-click-ux-fixed-20261105`).
+`v1/test_sbs_start.py` exercised real QML clicks, WGC capture of a generated
+window in a separate process, DA2 Base inference and 1440x480 Full SBS output:
+four frames in-app and three frames on a separate fullscreen monitor, with
+same-monitor rejection and stop/lease cleanup passing
+(`out/sbs-start-real-fixed-20261105/report.json`). This is a bounded startup
+check, not sustained playback or Owl3D activation acceptance. Running GUI
+processes must be restarted to load the source changes.
+
+Balanced/DA2 Base supports model-only padding and depth unpadding in the shared
+file/live binding. RTX 5090 two-frame HEVC conversions at 3440x1440, 1080x1920,
+1920x1200, 1024x768 and 1920x1080 decoded at exactly twice source width and
+unchanged height. Live binding plus CUDA paired projection also produced the
+expected SBS dimensions on ultrawide and portrait fixture frames, without desktop
+capture. These are geometry/execution checks, not new VR or sustained FPS evidence.
+
+The [2026-09-19 MoGe-2 Small tests](evidence/moge-small.md) remain **not promoted**.
+The initial probe measured 13.585 ms median for PyTorch autocast FP16/1200-token
+inference, postprocessing and host-depth return versus 5.294 ms for DA2 Small
+TensorRT FP32 (different runtimes/preprocessing, not architecture parity).
+The follow-up processed 1,080 unique public RGB frames into 2,160 eye-4K SBS pairs
+and six fully decoded six-second 60fps videos. Flow-aligned depth residuals were
+2.52x/1.79x/1.44x DA2 in sports/office/parking; these are proxies, not perceptual
+flicker ratios. Sampled sheets retained thin-object concerns and did not establish
+consistent quality superiority. The slow host reference renderer is not a live
+performance measurement. Defaults/loaders are unchanged; continuous playback,
+headset, live/FG and MoGe TensorRT integration remain unverified.
+
+The 2026-09-10 source GUI revision removes the Original mode selector, groups
+source/output/mode/strength, adds one start/stop action with explicit output
+selection, collapsible SBS result demand and advanced/diagnostic sections.
+File model selection is local to the file page; both action footers stay visible
+at minimum window size. Model/processing/codec defaults, artifact checks, capture
+exclusion, mode identity and job leases are retained. An output-open failure now
+stops the newly owned live job without releasing its lease before cleanup.
+
+34 no-capture controller tests and 13 desktop-job tests passed. The actual Qt
+D3D11 `v1/test_desktop_ux.py` run passed page navigation, hidden advanced options,
+SBS-only start dispatch, slider initial value, collapsed preview demand and
+footer-bound checks at 1180x900 and 980x700 logical sizes. Six screenshots and
+the report are in `out/ux-simplification-reviewed-20260910`; no model/capture was
+run. This UI check is not new live performance, native-output or VR evidence.
+Packaged copies require rebuilding; automatic codec selection, persistence and
+batch processing remain outside this first UX revision.
 
 The bounded P1 candidate experiments are concluded **without a default change**.
 The [Distill Small comparison](evidence/p1-distill-small.md) passed 12/12 FP32

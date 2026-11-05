@@ -1,6 +1,6 @@
 # DepthSBS product
 
-Current product intent and local user behavior, 2026-09-08. Implemented limits
+Current product intent and local user behavior, 2026-09-10. Implemented limits
 below describe the current build, not permanent restrictions on future designs.
 
 ## Goal
@@ -22,25 +22,77 @@ image or a 4K model input is not equivalent to 4K per eye.
 
 ## Desktop experience
 
-One Korean desktop app provides Live, Files and Settings. Game/video intent and
-clear source/output choices should lead the UX; model/profile details can remain
-advanced settings. Existing mode IDs need not dictate a future interface.
+The Qt/QML desktop opens a compact 420x260 logical-pixel control window (minimum
+380x260). Its primary controls are an explicit source picker and SBS start/stop.
+A small menu opens 화질과 입체감, 파일 변환, or 설정과 진단 in a separate utility
+window, and allows switching to whole-monitor capture. There is no sidebar,
+original preview, in-app SBS preview, output-style picker or output-monitor picker.
+Mode/strength/cursor controls live in the quality window; technical paths and
+target cadence live in Settings. Shared controls retain keyboard focus and
+long-label tooltips. Existing mode IDs and model defaults are unchanged.
+The visual direction is a restrained, macOS-inspired light utility: warm light
+gray, white input surfaces, blue primary action, thin borders and compact type.
+Windows title-bar controls remain native and in their usual positions. The menu
+uses a labeled, keyboard-accessible ellipsis button. The selected source shows
+its application icon when available, otherwise a neutral window symbol. Icon
+lookup reads only OS icon metadata, is bounded and never captures a thumbnail.
+The quality, file, settings and separate error windows share the light treatment;
+the SBS video surface itself remains black. QML color tokens live in Theme.qml.
+Display names are 빠른 처리 / 균형 / 영상 품질 / 오프라인 품질. These are model
+class choices, not certified performance or perceptual rankings.
+
+The sole SBS result window can be moved normally and toggled fullscreen with F11
+or its context menu; Escape exits fullscreen. Last normal output geometry and
+screen identity are remembered locally, with bounds clamped to an available
+screen on restart. No source titles or captured pixels enter that preference.
+Main, utility, error and SBS windows remain excluded from capture. There is no
+external-3D capture-permission option or input/output monitor-separation rule.
+Capture-only and legacy output APIs remain for explicit diagnostic callers.
 
 The prepared source launcher is `Run-DepthSBS.cmd`. Source-local features do not
 automatically appear in old portable packages. The present app uses one exclusive
 processing lease for live/file/installation work and snapshots settings at start.
-Navigation remains available during work; it does not silently cancel a job.
+Utility navigation remains available during work; closing a utility does not
+cancel a job. Closing the main app during live SBS stops and waits for owned
+worker cleanup before exit. File-work cancellation still asks before quitting.
 
 ## Live capture and output
 
-1. Select an explicit window or monitor, Original preview or DA2 Small SBS, and
-   cursor inclusion (currently on by default). Refresh enumerates sources only.
-2. Select a live policy, depth strength and output target. Stop before changing
-   source/session settings. Original preview performs no depth inference.
-3. Start and view the preview or separate fullscreen output. Escape exits
-   fullscreen; output closure/hiding follows the implemented window behavior.
-4. Stop releases the owned session and clears stale pixels. Source loss, incompatible
+1. Select an explicit window or monitor; there is no initial automatic selection.
+   Opening the picker refreshes the list without capturing. Refresh
+   preserves the selected HWND/PID or monitor device identity across reordering.
+   A disappeared selection requires explicit reselection, even after subsequent
+   refreshes; it does not silently select another source. Cursor
+   inclusion remains on by default and is adjustable in the quality window.
+2. No output setup is needed before starting. Existing defaults
+   remain Balanced/DA2 Base, GPU host-output path, target 30Hz and strength 1.0;
+   UX simplification does not promote experimental native transport.
+3. SBS 시작 starts conversion and opens the separate output. Invalid target
+   selection rejects before capture; an output-open failure stops the owned job.
+   Missing source selection or another owned job disables start with an adjacent
+   explanation. Closing the output stops SBS; minimizing it keeps the session
+   alive. Stop before changing session settings.
+   Before the first available SBS frame, the status reports preparation and the
+   action is 취소; after a frame arrives it becomes SBS 중지. It does not invent
+   model-load progress or an estimated completion time.
+4. Stop hides output, clears stale pixels and releases the owned session. Hidden
+   Qt output scene graphs are not retained, so GPU nodes retire without waiting
+   for another presentation. Source loss, incompatible
    color/topology changes and errors are visible; there is no silent source fallback.
+   Live setup/start/output/runtime failures open a separate native SBS error
+   window with a title-bar close control and an explicit 닫기 button. Escape also
+   closes it. Ctrl+C copies the entire plain-text error without selecting text,
+   whether the text or close button has focus. There is no copy button or QML
+   overlay. The status line retains a short message; repeated notifications reuse
+   one window. Error-window capture exclusion is rechecked before display; on
+   failure the dialog remains hidden, live capture stops and status retains the
+   original error plus the display failure.
+   Normal progress and user-requested stop do not open it. The dialog does not
+   block worker cleanup or release the processing lease early.
+5. Display topology changes stop an active output session and restore a reachable
+   control window. Restart validates capture again and fits saved output placement
+   to the available screen. Automatic continuation across device/topology changes
+   is not certified.
 
 The four product modes are defined by their depth-model class and purpose, not only
 by temporal/stereo policy labels:
@@ -61,11 +113,11 @@ mode but do not redefine its model identity.
 
 The source desktop now snapshots and validates the model owned by the selected
 mode. Performance uses the existing fused DA2 Small live path. Balanced uses DA2
-Base, while Video Quality exposes only an explicit oVDA/VDA choice. VDA and oVDA
-live sessions keep source-resolution depth on their owned CUDA stream and may
+Base, while Video Quality exposes only an explicit oVDA/VDA choice. Base, VDA and
+oVDA live GPU sessions keep source-resolution depth on their owned CUDA stream and may
 explicitly select the experimental native-texture delivery; host output remains
-available. DA2 Base still uses its host-depth boundary and cannot select native
-delivery. Offline Quality remains file-only. Missing, unlicensed or
+available. Base's explicit reference path and file conversion keep host-depth
+output. Offline Quality remains file-only. Missing, unlicensed or
 shape-incompatible artifacts fail visibly without model fallback.
 See [current paths and limits](implementation-status.md).
 
@@ -87,6 +139,17 @@ The current file picker/drop list accepts supported MP4/MKV/MOV/M4V inputs, up t
 destinations are confirmed; successful finalization publishes the result, while
 failure/cancellation preserves the previous output. Native calls can delay
 cooperative cancellation; file workers do not inherit the capture watchdog.
+File-specific model choice and license confirmation are on the file page, next
+to its processing settings. Conversion/progress actions remain outside the
+scrolling settings area. Completed files offer video and parent-folder opening.
+Settings contains environment checking and collapsed diagnostics/paths. The user
+selects live SBS (initial choice) or file conversion as the installation-check
+target; the check snapshots that task's model and paths and labels its result.
+The existing no-argument diagnostic API still checks file conversion. Installation
+inventory does not execute a model or certify GPU performance. Advanced model-path
+editing continues to use the model selected on the file page.
+Automatic codec selection, persistent preferences and batch execution are not
+introduced by this UI revision.
 
 H.264/HEVC input uses the current FFmpeg path and source frame/cadence/audio policy.
 Full SBS doubles width. Eye-4K file output requires explicit HEVC in the current
@@ -94,6 +157,8 @@ implementation because H.264 output is width-limited. Short 4K fixtures establis
 compatibility only. Live overload replacement is not offline frame dropping.
 
 The source desktop resolves Performance to DA2 Small and Balanced to DA2 Base.
+Balanced fits non-native source ratios inside the validated Base model canvas;
+padding is internal to depth inference, not added to the source or SBS eyes.
 Video Quality permits only an explicit oVDA/VDA choice. Offline Quality resolves
 to VDA Small plus its dedicated centered five-frame processor: it buffers at most
 two prior and two future depth observations within a scene, emits every source

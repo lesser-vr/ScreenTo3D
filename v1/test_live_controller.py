@@ -18,12 +18,85 @@ class LiveControllerTests(unittest.TestCase):
         self.desktop = DesktopController()
         self.live = LivePreview(self.desktop)
         self.desktop.live = self.live
+        # Tests exercise an explicitly selected synthetic source, never the
+        # user's first enumerated window. Initial selection is now empty.
+        self.live.items = [dict(kind="window", id=11, pid=1, label="Fixture")]
+        self.live.selected = 0
+        self.live.output_placement.save = Mock()
 
     def test_file_work_prevents_capture(self):
         self.desktop.lease.acquire("file")
         self.live.start()
         self.assertFalse(self.live.active)
         self.assertEqual(self.desktop.lease.owner, "file")
+
+    def test_initial_refresh_never_selects_a_window(self):
+        with patch("depthsbs_app.live_preview.windows", return_value=[dict(kind="window", id=11, pid=1, label="A")]):
+            live = LivePreview(self.desktop)
+            live.refresh()
+            self.assertEqual(live.selectedIndex, -1)
+            self.assertFalse(live.active)
+
+    def test_close_live_app_stops_without_confirmation_and_keeps_lease(self):
+        self.fake_active()
+        with patch("depthsbs_app.desktop.QMessageBox.question") as question:
+            self.assertFalse(self.desktop.requestClose())
+            question.assert_not_called()
+        self.assertTrue(self.desktop.closing)
+        self.assertTrue(self.live.stopping)
+        self.assertTrue(self.desktop.busy)
+        self.live.process.is_alive.return_value = False
+        exited = Mock()
+        self.desktop.exitReady.connect(exited)
+        self.live.poll()
+        exited.assert_called_once()
+        self.assertFalse(self.desktop.busy)
+
+    def test_refresh_preserves_identity_and_requires_selection_after_loss(self):
+        a = dict(kind="window", id=11, pid=1, label="A")
+        b = dict(kind="window", id=22, pid=2, label="B")
+        self.live.items, self.live.selected = [a, b], 1
+        renamed = dict(b, label="Changed title")
+        with patch("depthsbs_app.live_preview.windows", return_value=[renamed, a]):
+            self.live.refresh()
+        self.assertEqual(self.live.selectedIndex, 0)
+        self.assertEqual(self.live.items[0]["label"], "Changed title")
+        # Reused HWND in another process is not the same source.
+        with patch("depthsbs_app.live_preview.windows", return_value=[dict(b, pid=9), a]):
+            self.live.refresh()
+            self.assertEqual(self.live.selectedIndex, -1)
+            self.live.refresh()
+            self.assertEqual(self.live.selectedIndex, -1)
+        self.assertIn("다시 선택", self.live.status)
+        self.live.select(1)
+        self.assertFalse(self.live.selection_required)
+
+    def test_refresh_preserves_monitor_device_when_enumeration_changes(self):
+        self.live.kind = "monitor"
+        self.live.items = [dict(kind="monitor", id=1, device="DISPLAY_A", label="A")]
+        self.live.selected = 0
+        with patch("depthsbs_app.live_preview.monitors", return_value=[
+            dict(kind="monitor", id=1, device="DISPLAY_B", label="B"),
+            dict(kind="monitor", id=2, device="DISPLAY_A", label="A"),
+        ]):
+            self.live.refresh()
+        self.assertEqual(self.live.selectedIndex, 1)
+
+    def test_setup_check_uses_explicit_target_without_changing_file_options(self):
+        self.live.setMode("performance")
+        original = dict(self.desktop.values)
+        with patch.object(self.desktop, "_spawn") as spawn:
+            self.desktop.checkSetupFor("live")
+            args = spawn.call_args.args[1]
+            self.assertEqual(args[0], "da2-small")
+            self.assertIn("실시간 SBS", self.desktop.setup)
+            self.assertEqual(self.desktop.values, original)
+        self.desktop._cleanup()
+        with patch.object(self.desktop, "_spawn") as spawn:
+            self.desktop.checkSetupFor("file")
+            self.assertEqual(spawn.call_args.args[1][0], original["model"])
+            self.assertIn("파일 변환", self.desktop.setup)
+        self.desktop._cleanup()
 
     def test_local_gui_defaults_to_gpu(self):
         with patch("depthsbs_app.live_preview.os.environ", {}):
@@ -34,7 +107,7 @@ class LiveControllerTests(unittest.TestCase):
     def test_model_owned_mode_selection(self):
         self.assertEqual(self.live.liveMode, "balanced")
         self.assertEqual(self.live.liveModel, "da2-base")
-        self.assertEqual(self.live.report()["plan"], None)
+        self.assertTrue(self.live.sbsEnabled)
         self.live.setSbs(True)
         self.assertEqual(self.live.report()["plan"]["model"], "da2-base")
         self.assertEqual(
@@ -46,6 +119,85 @@ class LiveControllerTests(unittest.TestCase):
         self.assertEqual(self.live.liveModel, "vda-small")
         self.live.setLiveModel("ovda-small-c16")
         self.assertEqual(self.live.liveModel, "ovda-small-c16")
+
+    def test_user_start_rejects_invalid_output_without_capture(self):
+        with patch.object(self.live, "start") as start:
+            self.live.startSbs(9, 0)
+            self.live.startSbs(0, -1)
+            start.assert_not_called()
+        self.assertFalse(self.live.active)
+
+    def test_user_start_forces_sbs_without_changing_model(self):
+        self.live.setSbs(False)
+        self.live.items = [dict(label="Test source")]
+        self.live.selected = 0
+        with patch.object(self.live, "start") as start:
+            self.live.startSbs(2, -1)
+            start.assert_called_once()
+        self.assertTrue(self.live.sbsEnabled)
+        self.assertEqual(self.live.liveModel, "da2-base")
+
+    def test_user_start_does_not_change_busy_diagnostic(self):
+        self.live.setSbs(False)
+        self.desktop.lease.acquire("file")
+        with patch.object(self.live, "start") as start:
+            self.live.startSbs(2, -1)
+            start.assert_not_called()
+        self.assertFalse(self.live.sbsEnabled)
+        self.assertIn("다른 작업", self.live.status)
+
+    def test_user_start_explains_missing_or_stale_selection(self):
+        self.live.items = []
+        for index in (-1, 0, 5):
+            self.live.selected = index
+            with patch.object(self.live, "start") as start:
+                self.live.startSbs(2, -1)
+                start.assert_not_called()
+            self.assertIn("볼 창을 선택", self.live.status)
+
+    def test_user_start_output_failure_stops_owned_worker(self):
+        self.live.output_window = Mock()
+        self.live.output_window.isVisible.return_value = False
+        with patch.object(self.live, "start", side_effect=self.fake_active), patch.object(
+            self.live, "showOutput"
+        ) as show:
+            self.live.startSbs(0, 0)
+            show.assert_called_once_with(0, False)
+        self.assertTrue(self.live.stopping)
+        self.assertTrue(self.desktop.busy)
+        self.assertIn("출력 창", self.live.status)
+        self.live.process.is_alive.return_value = False
+        self.live.poll()
+        self.assertFalse(self.desktop.busy)
+
+    def test_failed_start_never_opens_output(self):
+        with patch.object(self.live, "start"), patch.object(self.live, "showOutput") as show:
+            self.live.startSbs(1, 0)
+            show.assert_not_called()
+
+    def test_output_exception_stops_owned_worker(self):
+        with patch.object(self.live, "start", side_effect=self.fake_active), patch.object(
+            self.live, "showOutput", side_effect=RuntimeError("display lost")
+        ):
+            self.live.startSbs(0, 0)
+        self.assertTrue(self.live.stopping)
+        self.assertIn("display lost", self.live.status)
+        self.assertTrue(self.desktop.busy)
+        self.live.process.is_alive.return_value = False
+        self.live.poll()
+        self.assertFalse(self.desktop.busy)
+
+    def test_user_start_requests_fullscreen_explicitly(self):
+        self.live.output_window = Mock()
+        self.live.output_window.isVisible.return_value = True
+        with patch.object(self.live, "start", side_effect=self.fake_active), patch.object(
+            self.live, "showOutput"
+        ) as show:
+            self.live.startSbs(1, 0)
+            show.assert_called_once_with(0, True)
+        self.live.stop()
+        self.live.process.is_alive.return_value = False
+        self.live.poll()
 
     def test_file_mode_selection_updates_owned_model(self):
         self.assertEqual(self.desktop.settings["model"], "da2-base")
@@ -89,12 +241,16 @@ class LiveControllerTests(unittest.TestCase):
         self.live.setLiveModel("ovda-small-c16")
         self.assertTrue(self.live.nativeEnabled)
 
-    def test_native_rejects_host_depth_model(self):
+    def test_base_uses_source_device_depth_and_supports_explicit_native(self):
         self.live.setSbs(True)
         self.assertEqual(self.live.liveModel, "da2-base")
-        self.live.setProcessingPath("gpu-texture")
-        self.assertFalse(self.live.nativeEnabled)
-        self.assertIn("지원하지", self.live.status)
+        self.assertEqual(self.live.report()["processing_path"], "model-device-depth-gpu-stereo-host-output")
+        with patch("depthsbs_app.native_delivery.NativeDelivery"):
+            self.live.setProcessingPath("gpu-texture")
+        self.assertTrue(self.live.nativeEnabled)
+        self.assertEqual(self.live.report()["processing_path"], "gpu-texture")
+        self.live.setProcessingPath("reference")
+        self.assertEqual(self.live.report()["processing_path"], "model-host-depth-cuda-stereo")
 
     def test_native_load_failure_does_not_select_or_start_it(self):
         self.live.setMode("performance")
@@ -288,6 +444,45 @@ class LiveControllerTests(unittest.TestCase):
             self.live.showOutput(0, True)
         self.live.output_window.showFullScreen.assert_not_called()
         self.assertFalse(self.live.output_excluded)
+
+    def test_start_failure_emits_error_without_worker(self):
+        errors = []
+        self.live.errorOccurred.connect(errors.append)
+        self.live.items = [dict(label='Fixture')]
+        self.live.selected = 0
+        with patch('depthsbs_app.live_preview.validate_source', side_effect=ValueError('Rejected source')):
+            self.live.startSbs(2, -1)
+        self.assertEqual(errors, ['Rejected source'])
+        self.assertFalse(self.live.active)
+
+    def test_worker_failure_notifies_once_after_cleanup(self):
+        errors = []
+        self.live.errorOccurred.connect(lambda message: errors.append((message, self.desktop.busy)))
+        self.fake_active()
+        self.live.mailbox.error.value = b'Worker failed'
+        self.live.process.is_alive.return_value = False
+        self.live.poll()
+        self.live.poll()
+        self.assertEqual(errors, [('Worker failed', False)])
+
+    def test_normal_stop_does_not_show_error(self):
+        errors = []
+        self.live.errorOccurred.connect(errors.append)
+        self.fake_active()
+        self.live.stop()
+        self.live.process.is_alive.return_value = False
+        self.live.poll()
+        self.assertEqual(errors, [])
+
+    def test_reopen_failure_reports_and_stops(self):
+        errors = []
+        self.live.errorOccurred.connect(errors.append)
+        self.fake_active()
+        self.live.output_window = Mock()
+        with patch.object(self.live, 'showOutput', side_effect=ValueError('Unsafe output')):
+            self.live.requestOutput(0, True)
+        self.assertTrue(self.live.stopping)
+        self.assertEqual(errors, ['Unsafe output'])
 
     def test_screen_topology_change_stops_visible_output(self):
         self.fake_active()

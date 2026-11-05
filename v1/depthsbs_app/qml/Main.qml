@@ -5,28 +5,42 @@ import QtQuick.Window
 
 ApplicationWindow {
     id: root
+    readonly property Theme theme: Theme {}
     property var liveController: live
     objectName: "mainWindow"
-    width: 1180; height: 800
-    minimumWidth: 980; minimumHeight: 700
+    width: 420; height: 260
+    minimumWidth: 380; minimumHeight: 260
     visible: true
     title: "DepthSBS"
-    color: "#10141c"
-    font.family: "Malgun Gothic"
+    color: theme.window
+    font.family: theme.family
     font.pixelSize: 14
     property int page: 0
-    readonly property bool previewActive: root.visible && root.page === 0
-    onPreviewActiveChanged: live.setPreviewVisible(previewActive)
-    readonly property color ink: "#f3f4fa"
-    readonly property color muted: "#aab3c6"
-    readonly property color accent: "#9c91ff"
-    palette.window: "#10141c"
+    function openPage(index) {
+        if (page === index) { tools.showNormal(); tools.raise(); tools.requestActivate() }
+        else page = index
+    }
+    onPageChanged: {
+        if (page > 0) {
+            if (!desktop.protectWindow(tools)) return
+            tools.minimumWidth = page === 3 ? 460 : 760
+            tools.minimumHeight = page === 3 ? 430 : 620
+            tools.width = page === 3 ? 480 : 860
+            tools.height = page === 3 ? 460 : 740
+            tools.showNormal(); tools.raise(); tools.requestActivate()
+        }
+        else tools.hide()
+    }
+    readonly property color ink: theme.ink
+    readonly property color muted: theme.muted
+    readonly property color accent: theme.blue
+    palette.window: theme.window
     palette.windowText: ink
     palette.text: ink
-    palette.button: "#293246"
+    palette.button: theme.surface
     palette.buttonText: ink
-    palette.base: "#111720"
-    palette.highlight: "#7166d8"
+    palette.base: theme.surface
+    palette.highlight: theme.blue
     palette.highlightedText: "white"
     onClosing: function(close) { close.accepted = desktop.requestClose() }
 
@@ -37,159 +51,56 @@ ApplicationWindow {
         lineHeight: 1.3
     }
     component Heading: Label {
-        color: root.ink; font.pixelSize: 30; font.bold: true
+        color: root.ink; font.pixelSize: 22; font.weight: Font.DemiBold
         Layout.fillWidth: true
     }
-    component Action: Button {
-        id: action
-        property bool primary: false
-        implicitHeight: 44
-        leftPadding: 18; rightPadding: 18
-        background: Rectangle {
-            radius: 9
-            color: !action.enabled ? "#202633" : action.down ? "#6559c5" : action.primary ? "#8275ee" : action.hovered ? "#344057" : "#273145"
-            border.width: action.activeFocus ? 2 : 0
-            border.color: "#cdc6ff"
-        }
-        contentItem: Text {
-            text: action.text; font: action.font
-            color: action.enabled ? "#ffffff" : "#7a8497"
-            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-        }
-    }
+    component Action: ActionButton {}
     component Card: Rectangle {
-        color: "#191f2b"; radius: 14
-        border.color: "#2a3345"
+        color: root.theme.surface; radius: 12
+        border.color: root.theme.border
         Layout.fillWidth: true
     }
-    component Picker: ComboBox {
-        id: picker
-        implicitHeight: 44
-        Layout.fillWidth: true
-        background: Rectangle { radius: 9; color: "#273145"; border.color: picker.activeFocus ? root.accent : "#364157" }
-        indicator: Label { text: "⌄"; color: root.muted; anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter }
-    }
+    component Picker: ChoicePicker {}
 
-    Rectangle {
-        width: 216; anchors.top: parent.top; anchors.bottom: parent.bottom
-        color: "#141a25"
-        ColumnLayout {
-            anchors.fill: parent; anchors.margins: 20; spacing: 12
-            Label { text: "◈  DepthSBS"; color: root.ink; font.pixelSize: 23; font.bold: true; Layout.topMargin: 14 }
-            Label { text: "A NEW DIMENSION"; color: root.muted; font.pixelSize: 10; font.letterSpacing: 2; Layout.bottomMargin: 38 }
-            Repeater {
-                model: ["실시간 SBS", "파일 변환", "설정"]
-                delegate: Button {
-                    required property int index
-                    required property string modelData
-                    Layout.fillWidth: true; implicitHeight: 48
-                    text: modelData
-                    onClicked: root.page = index
-                    background: Rectangle { radius: 10; color: root.page === index ? "#302c4e" : parent.hovered ? "#202938" : "transparent"; border.color: parent.activeFocus ? root.accent : "transparent" }
-                    contentItem: Text { text: parent.text; color: root.page === index ? "#c8c0ff" : root.muted; font: parent.font; leftPadding: 16; verticalAlignment: Text.AlignVCenter }
-                }
-            }
-            Item { Layout.fillHeight: true }
-            Rectangle { Layout.fillWidth: true; height: 1; color: "#2a3345" }
-            Copy { text: live.active ? "●  화면 캡처 중" : desktop.busy ? "●  작업 실행 중" : "●  로컬 처리"; font.pixelSize: 12 }
-            Copy { text: "Desktop Preview\n배포 전 개발 버전"; font.pixelSize: 11 }
-        }
-    }
+    LivePage { anchors.fill: parent }
 
-    StackLayout {
-        anchors.fill: parent; anchors.leftMargin: 216
-        currentIndex: root.page
-
-        ScrollView {
-            contentWidth: availableWidth
-            ColumnLayout {
-                width: parent.width; spacing: 18
-                anchors.margins: 32
-                Item { height: 16 }
-                Heading { text: "화면에 깊이를 더하세요"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                Copy { text: "화면 캡처 → 선택 모드의 깊이 모델 → Full SBS · SDR 전용 / 로컬 GPU 처리"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                RowLayout {
-                    Layout.leftMargin: 32; Layout.rightMargin: 32
-                    Picker { objectName: "liveMode"; enabled: !live.active; model: ["원본 미리보기", "모델별 Full SBS"]; currentIndex: live.sbsEnabled ? 1 : 0; onActivated: live.setSbs(currentIndex === 1) }
-                    Picker { objectName: "livePolicy"; enabled: !live.active && live.sbsEnabled; model: live.liveModes; textRole: "label"; valueRole: "key"; currentIndex: live.liveModes.map(function(m) { return m.key }).indexOf(live.liveMode); onActivated: live.setMode(currentValue) }
-                    Picker { objectName: "liveModel"; visible: live.sbsEnabled && live.liveModels.length > 1; enabled: !live.active; model: live.liveModels; textRole: "label"; valueRole: "key"; currentIndex: live.liveModels.map(function(m) { return m.key }).indexOf(live.liveModel); onActivated: live.setLiveModel(currentValue) }
-                    Label { text: "입체감 " + live.depthStrength.toFixed(2) + "×"; color: root.muted }
-                    Slider { objectName: "liveStrength"; enabled: !root.liveController.active && root.liveController.sbsEnabled; from: 0.25; to: 2.0; stepSize: 0.25; value: root.liveController.depthStrength; onMoved: root.liveController.setStrength(value); Layout.preferredWidth: 130 }
-                }
-                CheckBox { visible: live.sbsEnabled && live.liveModel === "ovda-small-c16"; enabled: !live.active; text: "oVDA 개인·비상업적 사용 및 라이선스 조건 확인"; checked: live.ovdaConfirmed; onClicked: live.setOvdaConfirmed(checked); Layout.leftMargin: 32 }
-                RowLayout {
-                    Layout.leftMargin: 32; Layout.rightMargin: 32
-                    Picker { Layout.preferredWidth: 140; Layout.fillWidth: false; enabled: !live.active; model: ["창", "모니터"]; currentIndex: live.sourceKind === "window" ? 0 : 1; onActivated: live.setKind(currentIndex === 0 ? "window" : "monitor") }
-                    Picker { objectName: "captureSource"; enabled: !live.active; model: live.sources; textRole: "label"; currentIndex: live.selectedIndex; onActivated: live.select(currentIndex) }
-                    Action { text: "새로고침"; enabled: !live.active; onClicked: live.refresh() }
-                }
-                RowLayout {
-                    Layout.leftMargin: 32; Layout.rightMargin: 32
-                    Picker { objectName: "liveProcessingPath"; enabled: !live.active && live.sbsEnabled; model: live.nativeCapable ? ["GPU 가속 · 로컬 기본", "기존 처리 · 비교용", "GPU 직접 출력 · 실험"] : ["GPU 가속 · 모델 호스트 경계", "기존 처리 · 비교용"]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]) }
-                    Picker { objectName: "livePresentationHz"; enabled: !live.active; model: ["출력 목표 30 fps", "출력 목표 60 fps"]; currentIndex: live.presentationHz === 60 ? 1 : 0; onActivated: live.setPresentationHz(currentIndex === 1 ? 60 : 30) }
-                }
-                Card {
-                    Layout.margins: 32; Layout.topMargin: 10; Layout.bottomMargin: 4
-                    implicitHeight: 330
-                    Image { objectName: "captureImage"; anchors.fill: parent; anchors.margins: 4; source: root.previewActive && !live.nativeEnabled ? live.imageUrl : ""; fillMode: Image.PreserveAspectFit; cache: false; asynchronous: false }
-                    Loader {
-                        id: nativeMain; anchors.fill: parent; anchors.margins: 4
-                        active: live.nativeEnabled; source: active ? "NativeFrame.qml" : ""
-                        Binding { target: nativeMain.item; property: "consumer"; value: 0; when: nativeMain.status === Loader.Ready }
-                        Binding { target: nativeMain.item; property: "demand"; value: root.previewActive; when: nativeMain.status === Loader.Ready }
-                    }
-                    ColumnLayout {
-                        visible: !live.hasFrame
-                        anchors.centerIn: parent; width: parent.width - 64; spacing: 18
-                        Label { text: "◈"; color: root.accent; font.pixelSize: 62; Layout.alignment: Qt.AlignHCenter }
-                        Label { text: live.active ? "캡처 연결 중" : "미리 볼 화면을 선택하세요"; color: root.ink; font.pixelSize: 23; font.bold: true; Layout.alignment: Qt.AlignHCenter }
-                        Copy { text: "시작하기 전에는 캡처하지 않습니다.\n화면은 녹화하거나 저장하지 않습니다."; horizontalAlignment: Text.AlignHCenter }
-                    }
-                }
-                RowLayout {
-                    Layout.leftMargin: 32; Layout.rightMargin: 32
-                    CheckBox { text: "커서 포함"; enabled: !live.active; checked: live.cursorIncluded; onClicked: live.setCursor(checked) }
-                    Item { Layout.fillWidth: true }
-                    Action { text: "정지"; enabled: live.active && !live.stoppingNow; onClicked: live.stop() }
-                    Action { objectName: "captureStart"; text: live.active ? "캡처 중" : "미리보기 시작"; primary: true; enabled: !desktop.busy && live.selectedIndex >= 0; onClicked: live.start() }
-                }
-                Copy { objectName: "captureStatus"; text: live.status; color: root.ink; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                Copy { text: live.policyDescription; font.pixelSize: 12; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                Copy { text: live.supportStatus; font.pixelSize: 12; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                Copy { text: live.metrics; font.pixelSize: 12; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                RowLayout {
-                    Layout.leftMargin: 32; Layout.rightMargin: 32
-                    Picker { id: outputScreen; model: live.outputScreens }
-                    Action { text: "별도 출력"; onClicked: live.showOutput(outputScreen.currentIndex, false) }
-                    Action { text: "전체 화면"; onClicked: live.showOutput(outputScreen.currentIndex, true) }
-                }
-                Copy { text: "입체감 변경은 정지 후 적용 · 전체 화면 Esc: 창 모드 · 출력은 녹화되지 않습니다."; font.pixelSize: 12; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                Item { height: 16 }
-            }
-        }
-
-        ScrollView {
+    ApplicationWindow {
+        id: tools; objectName: "toolsWindow"
+        width: 860; height: 740; minimumWidth: 760; minimumHeight: 620
+        visible: false; color: root.color
+        font: root.font; palette: root.palette
+        title: root.page === 1 ? "DepthSBS · 파일 변환" : root.page === 3 ? "DepthSBS · 화질과 입체감" : "DepthSBS · 설정과 진단"
+        onClosing: function(close) { close.accepted = false; root.page = 0 }
+        onVisibleChanged: { if (visible) desktop.protectWindow(tools) }
+        StackLayout {
+            anchors.fill: parent
+            currentIndex: Math.max(0, root.page - 1)
+        Item {
             objectName: "filesPage"
-            contentWidth: availableWidth
+            ColumnLayout {
+                anchors.fill: parent; spacing: 8
+                FocusScrollView {
+                    Layout.fillWidth: true; Layout.fillHeight: true
+                    contentWidth: availableWidth
             ColumnLayout {
                 width: parent.width; spacing: 16
                 Item { height: 16 }
-                Heading { text: "영상, 새로운 시선으로"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                Heading { text: "파일 변환"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 Copy { text: "원본 영상에서 Full SBS 영상을 만듭니다. 파일은 이 PC에서만 처리됩니다."; Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 Card {
                     Layout.leftMargin: 32; Layout.rightMargin: 32
                     implicitHeight: 94
-                    border.color: drop.containsDrag ? root.accent : "#3c465c"
+                    border.color: drop.containsDrag ? root.accent : root.theme.border
                     DropArea { id: drop; anchors.fill: parent; onDropped: function(event) { if (event.hasUrls) { desktop.dropFiles(event.urls); event.acceptProposedAction() } } }
                     RowLayout {
                         anchors.fill: parent; anchors.margins: 20
-                        ColumnLayout { Layout.fillWidth: true; Label { text: "영상을 여기에 놓으세요"; color: root.ink; font.bold: true; font.pixelSize: 17 } Copy { text: "MP4 · MKV · MOV · M4V   /   목록 최대 32개"; font.pixelSize: 12 } }
+                        ColumnLayout { Layout.fillWidth: true; Label { text: "영상을 여기에 놓으세요"; color: root.ink; font.bold: true; font.pixelSize: 17 } Copy { text: "MP4 · MKV · MOV · M4V  /  선택한 영상 1개씩 변환"; font.pixelSize: 12 } }
                         Action { objectName: "addFiles"; text: "파일 추가"; onClicked: desktop.chooseFiles() }
                     }
                 }
                 Card {
                     Layout.leftMargin: 32; Layout.rightMargin: 32
-                    implicitHeight: 146
+                    implicitHeight: desktop.jobs.length ? 146 : 76
                     ListView {
                         id: fileList
                         anchors.fill: parent; anchors.margins: 8; clip: true
@@ -205,7 +116,7 @@ ApplicationWindow {
                             Keys.onReturnPressed: desktop.select(index)
                             Keys.onSpacePressed: desktop.select(index)
                             border.color: activeFocus ? root.accent : "transparent"
-                            color: index === desktop.selectedIndex ? "#2c304b" : "transparent"
+                            color: index === desktop.selectedIndex ? root.theme.selection : "transparent"
                             RowLayout { anchors.fill: parent; anchors.margins: 12; Label { text: modelData.name; color: root.ink; elide: Text.ElideMiddle; Layout.fillWidth: true } Label { text: modelData.state; color: root.accent; font.pixelSize: 12 } }
                             MouseArea { anchors.fill: parent; onClicked: desktop.select(index) }
                         }
@@ -223,54 +134,69 @@ ApplicationWindow {
                     Action { text: "저장 위치"; enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.chooseOutput() }
                     Action { text: "제거"; enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.removeSelected() }
                 }
+                ColumnLayout {
+                    Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true
+                    Copy { text: "선택한 파일 변환 모델 · " + desktop.models.filter(function(m) { return m.key === desktop.settings.model })[0].label; font.pixelSize: 12 }
+                    Picker { objectName: "modelPicker"; visible: desktop.models.length > 1; enabled: !desktop.busy; model: desktop.models; textRole: "label"; valueRole: "key"; currentIndex: desktop.models.map(function(m) { return m.key }).indexOf(desktop.settings.model); onActivated: desktop.setOption("model", currentValue) }
+                    Copy { text: desktop.settings.mode === "offline-quality" ? "파일 전용 · VDA의 장면별 5프레임 문맥 사용" : "모델 자동 다운로드·대체 없음"; font.pixelSize: 12 }
+                    RowLayout {
+                        visible: desktop.settings.model === "ovda-small-c16"
+                        CheckOption { text: "개인·비상업적 사용 및 라이선스 조건 확인"; checked: desktop.settings.noncommercial; enabled: !desktop.busy; onClicked: desktop.setOption("noncommercial", checked) }
+                        Action { text: "라이선스 읽기"; onClicked: desktop.openLicense() }
+                    }
+                }
                 Copy { text: desktop.details; font.pixelSize: 12; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+            }
+                }
                 ProgressBar {
                     id: conversionProgress
                     from: 0; to: 100; value: desktop.progress
                     Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32
-                    background: Rectangle { implicitHeight: 6; radius: 3; color: "#293246" }
+                    background: Rectangle { implicitHeight: 6; radius: 3; color: root.theme.disabled }
                     contentItem: Item { implicitHeight: 6; Rectangle { width: conversionProgress.visualPosition * parent.width; height: parent.height; radius: 3; color: root.accent } }
                 }
                 Copy { objectName: "jobStatus"; text: desktop.status; color: root.ink; Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 RowLayout {
-                    Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.bottomMargin: 28
-                    Copy { text: desktop.licenseNotice + "\n모델 · 렌더러 변경은 설정에서"; font.pixelSize: 12 }
-                    Action { text: "결과 열기"; visible: desktop.canOpen; onClicked: desktop.openResult() }
+                    Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.bottomMargin: 20
+                    Copy { text: desktop.licenseNotice; font.pixelSize: 12 }
+                    Action { text: "영상 열기"; visible: desktop.canOpen; onClicked: desktop.openResult() }
+                    Action { text: "폴더 열기"; visible: desktop.canOpen; onClicked: desktop.openResultFolder() }
                     Action { text: desktop.cancellingNow ? "정리 중…" : "취소"; enabled: desktop.canCancel; onClicked: desktop.cancel() }
                     Action { objectName: "convertButton"; text: "선택 영상 변환"; primary: true; enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.start() }
                 }
             }
         }
 
-        ScrollView {
+        FocusScrollView {
             contentWidth: availableWidth
             ColumnLayout {
                 width: parent.width; spacing: 16
                 Item { height: 16 }
-                Heading { text: "내 작업에 맞게"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                Copy { text: "모델과 실행 환경을 관리합니다. 작업 중에는 설정이 잠깁니다."; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                Heading { text: "설정"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                Copy { text: "실행 환경과 진단 도구를 관리합니다. 처리 모드는 각 작업 화면에서 선택하세요."; Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 ColumnLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true; spacing: 12
-                    Copy { text: "깊이 모델" }
-                    Picker { objectName: "modelPicker"; enabled: !desktop.busy; model: desktop.models; textRole: "label"; valueRole: "key"; currentIndex: desktop.models.map(function(m) { return m.key }).indexOf(desktop.settings.model); onActivated: desktop.setOption("model", currentValue) }
-                    Copy { text: desktop.licenseNotice; color: root.accent }
-                    Copy { text: "모드가 깊이 모델을 지정합니다. Video Quality에서만 oVDA/VDA를 명시적으로 선택할 수 있습니다. Offline Quality는 VDA의 장면별 5프레임 앞·뒤 문맥을 사용합니다. 모델은 자동 다운로드하거나 다른 모델로 대체하지 않습니다."; font.pixelSize: 12 }
+                    Label { text: "설치 환경 확인"; color: root.ink; font.bold: true }
+                    Picker { id: setupTarget; objectName: "setupTarget"; enabled: !desktop.busy; model: ["실시간 SBS", "파일 변환"]; Accessible.name: "설치 확인 대상" }
+                    Copy { objectName: "setupModel"; text: "확인할 모델 · " + (setupTarget.currentIndex === 0 ? live.liveModelLabel : desktop.models.filter(function(m) { return m.key === desktop.settings.model })[0].label); font.pixelSize: 14 }
                     RowLayout {
-                        visible: desktop.settings.model === "ovda-small-c16"
-                        CheckBox { text: "개인·비상업적 사용 및 라이선스 조건 확인"; checked: desktop.settings.noncommercial; enabled: !desktop.busy; onClicked: desktop.setOption("noncommercial", checked) }
-                        Action { text: "라이선스 읽기"; onClicked: desktop.openLicense() }
-                    }
-                    Copy { text: "스테레오 처리" }
-                    Picker { enabled: !desktop.busy; model: ["CUDA · 검증된 로컬 GPU 경로", "CPU · 명시적 비교 경로 (느림)"]; currentIndex: desktop.settings.renderer === "cuda" ? 0 : 1; onActivated: desktop.setOption("renderer", currentIndex === 0 ? "cuda" : "cpu") }
-                    CheckBox { text: "실험적 검은 여백 배경 보정 · 기존 여백 추가/제거 아님"; enabled: !desktop.busy; checked: desktop.settings.letterbox; onClicked: desktop.setOption("letterbox", checked) }
-                    RowLayout {
-                        Action { text: "설치 환경 확인"; enabled: !desktop.busy; onClicked: desktop.checkSetup() }
-                        Action { text: "출력 화면 시험"; onClicked: pattern.show() }
+                        Action { objectName: "checkSetup"; text: "선택한 환경 확인"; enabled: !desktop.busy; onClicked: desktop.checkSetupFor(setupTarget.currentIndex === 0 ? "live" : "file") }
                     }
                     Copy { objectName: "setupStatus"; text: desktop.setup; font.pixelSize: 12 }
-                    CheckBox { id: advanced; text: "고급 설정 · 로컬 설치 경로" }
+                    Label { text: "실시간 SBS · 진단 설정"; color: root.ink; font.bold: true }
+                    Copy { text: "목표 출력 속도 · 실제 처리 속도와 다를 수 있습니다"; font.pixelSize: 12 }
+                    Picker { objectName: "livePresentationHz"; enabled: !live.active; model: ["30 fps", "60 fps"]; currentIndex: live.presentationHz === 60 ? 1 : 0; onActivated: live.setPresentationHz(currentIndex === 1 ? 60 : 30); Accessible.name: "목표 출력 속도" }
+                    Picker { objectName: "liveProcessingPath"; enabled: !live.active; model: live.nativeCapable ? ["GPU 가속 · 기본", "기존 처리 · 진단용", "GPU 직접 출력 · 실험"] : ["GPU 가속 · 기본", "기존 처리 · 진단용"]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]); Accessible.name: "출력 처리 경로" }
+                    CheckOption { id: diagnostics; text: "상세 상태 보기" }
+                    Copy { visible: diagnostics.checked; text: live.policyDescription + "\n" + live.supportStatus + "\n" + live.metrics; font.pixelSize: 12 }
+                    CheckOption { id: advanced; text: "고급 설정 · 진단" }
                     ColumnLayout {
                         visible: advanced.checked; Layout.fillWidth: true
+                        Copy { text: "파일 변환 전용 · 스테레오 처리" }
+                        Picker { enabled: !desktop.busy; model: ["CUDA · 기본", "CPU · 비교 진단용 (느림)"]; currentIndex: desktop.settings.renderer === "cuda" ? 0 : 1; onActivated: desktop.setOption("renderer", currentIndex === 0 ? "cuda" : "cpu") }
+                        CheckOption { text: "파일 변환 · 실험적 검은 여백 배경 보정"; enabled: !desktop.busy; checked: desktop.settings.letterbox; onClicked: desktop.setOption("letterbox", checked) }
+                        Action { text: "출력 화면 시험 · 캡처 없음"; onClicked: pattern.show() }
+                        Copy { text: "공통 실행 환경 · 모델 경로는 파일 변환에서 선택한 모델에 적용"; font.pixelSize: 12 }
                         Repeater {
                             model: [{key:"engine", label:"모델 엔진 폴더 (DA2 Small은 내장 위치)"}, {key:"runtime", label:"TensorRT 실행 환경"}, {key:"media", label:"영상 도구"}]
                             delegate: ColumnLayout {
@@ -288,17 +214,40 @@ ApplicationWindow {
                 }
             }
         }
+            LiveOptions {}
+        }
     }
 
     Window {
         id: sbsOutput
         objectName: "sbsOutput"
         width: 1280; height: 720; visible: false; color: "black"
-        title: "DepthSBS · Live output"
-        onClosing: function(close) { close.accepted = false; hide() }
+        title: "DepthSBS · SBS · F11 전체 화면"
+        onClosing: function(close) { close.accepted = false; live.stop(); hide() }
+        Timer { id: positionTimer; interval: 200; onTriggered: live.rememberOutput() }
+        onXChanged: positionTimer.restart()
+        onYChanged: positionTimer.restart()
+        onWidthChanged: positionTimer.restart()
+        onHeightChanged: positionTimer.restart()
         Item {
             anchors.fill: parent; focus: true
-            Keys.onEscapePressed: { if (sbsOutput.visibility === Window.FullScreen) sbsOutput.showNormal(); else sbsOutput.hide() }
+            Keys.onEscapePressed: { if (sbsOutput.visibility === Window.FullScreen) sbsOutput.showNormal() }
+            Keys.onPressed: function(event) {
+                if (event.key === Qt.Key_F11) {
+                    live.rememberOutput()
+                    sbsOutput.visibility === Window.FullScreen ? sbsOutput.showNormal() : sbsOutput.showFullScreen()
+                    event.accepted = true
+                }
+            }
+            MouseArea {
+                anchors.fill: parent; acceptedButtons: Qt.RightButton
+                onClicked: outputMenu.popup()
+                Menu {
+                    id: outputMenu
+                    MenuItem { text: sbsOutput.visibility === Window.FullScreen ? "창 모드 · Esc" : "전체 화면 · F11"; onTriggered: { live.rememberOutput(); sbsOutput.visibility === Window.FullScreen ? sbsOutput.showNormal() : sbsOutput.showFullScreen() } }
+                    MenuItem { text: "SBS 중지"; onTriggered: live.stop() }
+                }
+            }
             Image { objectName: "outputImage"; anchors.fill: parent; source: sbsOutput.visible && !live.nativeEnabled ? live.imageUrl : ""; fillMode: Image.PreserveAspectFit; cache: false; asynchronous: false }
             Loader {
                 id: nativeOutput; anchors.fill: parent

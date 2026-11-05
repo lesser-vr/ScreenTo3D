@@ -7,7 +7,7 @@ See [implementation-status.md](docs/implementation-status.md) for status and [RO
 ## Delivered paths
 
 ```text
-Qt Live / Files / Settings shell -> immutable job/session plan -> isolated worker
+Compact Qt live shell + separate utility window -> immutable job/session plan -> isolated worker
 
 Files: probe -> FFmpeg decode/host frames -> selected depth binding
        -> streaming depth postprocessing
@@ -20,16 +20,16 @@ Live: selected WGC source -> retained mapped latest-frame slot (SBS)
       -> owned RGB/model input
       -> immutable model-defined binding
          -> DA2 Small fused live path (Performance)
-         OR VDA / explicit oVDA source-resolution device-depth path
-         OR DA2 Base host-depth path
+         OR DA2 Base / VDA / explicit oVDA source-resolution device-depth path
+         OR explicit reference host-depth path
       -> depth postprocessing / stereo
       -> host mailbox + owned QImage -> Qt output
-      OR DA2 Small/VDA/oVDA experimental native texture pool -> Qt/D3D11 private textures
+      OR DA2 Small/Base/VDA/oVDA experimental native texture pool -> Qt/D3D11 private textures
 ```
 
 C++ CMake core provides capability/mode foundations. It is not the complete native
 NVDEC/CUDA/NVENC pipeline originally proposed. Native output does not eliminate
-host capture/input transfers. VDA/oVDA live device-depth paths can now publish SBS
+host capture/input transfers. Base/VDA/oVDA live device-depth paths can publish SBS
 through the same explicitly selected shared-texture GUI backend as DA2 Small;
 host output remains available. Processing-backend default and delivery-path default
 are separate decisions.
@@ -53,11 +53,18 @@ are separate decisions.
 - The inference engine owns its CUDA context/stream, allocations and recurrent
   cache. Borrowed device depth validates owner, thread, epoch/generation and
   lifetime; postprocessing resources must be released before their owner stream.
+  DA2 Base live tokens retain input and source-sized FP32 depth through consumer
+  completion; source resize retires texture leases and destroys postprocessing
+  before replacing the engine/stream. Base file conversion keeps host depth.
 - Live worker/postprocessing owns normalization, EMA and stereo state. A CPU
   background-refinement bridge may remain explicitly counted, not silently removed.
 - Native delivery uses worker-owned bounded texture slots and per-consumer leases.
   Metadata acknowledgment cannot replace GPU mutex ownership. Each Qt window
   copies into a private texture within the external-command render boundary.
+  The minimal product shell uses only the separate output consumer. Its
+  non-persistent scene graph releases native nodes when Stop hides the window;
+  cleanup does not depend on a later visible frame. Diagnostic dual-consumer
+  transport remains an API capability, not an in-app preview control.
 
 ## State and time contracts
 
