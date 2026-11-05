@@ -2,6 +2,7 @@
 
 import ctypes as ct
 import hashlib
+import time
 
 from .desktop_jobs import ROOT
 from .texture_mailbox import OFFERED, RETIRING
@@ -81,8 +82,8 @@ class NativeDelivery:
                 mailbox.release(frame)
                 del self.frames[slot]
 
-    def consume(self, mailbox, owned_pid):
-        """Poll even when both windows are hidden; never retain a frame queue."""
+    def consume(self, mailbox, owned_pid, *, cadence=None):
+        """Pace publication only; always service errors, GPU releases and retirement."""
         self.check()
         state = mailbox.state()
         changed = False
@@ -108,9 +109,12 @@ class NativeDelivery:
             return changed
         pool = self.pool
         self._releases(mailbox)
+        retiring = mailbox.state() == RETIRING
         for frame in mailbox.pending(pool.session, pool.generation):
             if frame.sequence <= self.last_sequence:
                 continue
+            if not retiring and cadence is not None and not cadence.ready(time.perf_counter_ns()):
+                break
             if frame.slot in self.frames:
                 raise RuntimeError("Native frame overwrote a pending slot")
             self.check(
@@ -121,7 +125,16 @@ class NativeDelivery:
             self.frames[frame.slot] = frame
             self.last_sequence = frame.sequence
             self.has_frame = changed = True
+            if not retiring and cadence is not None:
+                cadence.emitted(time.perf_counter_ns())
+                if cadence.period_ns:
+                    break  # Never publish both slots at a single capped deadline.
         if mailbox.state() == RETIRING:
+            # Retirement may race this poll. Drain unpublished GPU leases on the
+            # next poll before dropping the pool; metadata alone cannot free them.
+            if any(frame.sequence > self.last_sequence
+                   for frame in mailbox.pending(pool.session, pool.generation)):
+                return changed
             self.dll.native_retire()
             self.has_frame = False
             changed = True

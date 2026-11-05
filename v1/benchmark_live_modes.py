@@ -202,7 +202,13 @@ def main():
         choices=("generated", "FloorballGame", "OfficeWalk", "ParkingGarage"),
         default="FloorballGame",
     )
-    parser.add_argument("--hz", type=int, choices=(30, 60), default=30)
+    parser.add_argument("--hz", type=int, choices=(0, 30, 60), default=0)
+    parser.add_argument('--uncapped', action='store_true',
+        help='Diagnostic only: no presentation deadline, 1ms polling, request Qt vsync off')
+    parser.add_argument('--gpu-replay', action='store_true',
+        help='Diagnostic only: bounded public GPU frame replay; excludes real capture and source painting')
+    parser.add_argument('--source-interval-ms', type=int, choices=range(0,1001), default=16,
+        metavar='0..1000', help='Owned source timer; 0 advances as quickly as the source process can run')
     parser.add_argument("--poll-ms", type=int, choices=(1, 2, 4, 8))
     parser.add_argument("--hide-main", action="store_true")
     parser.add_argument("--sample-gpu", action="store_true")
@@ -235,6 +241,17 @@ def main():
         help="Explicit old 33ms scheduling baseline",
     )
     args = parser.parse_args()
+    if args.gpu_replay:
+        if (not args.uncapped or args.path != 'gpu-texture' or not args.source_process or
+                args.source == 'generated' or args.capture_telemetry or args.guide_candidate or
+                args.input_candidate or args.capture_candidate or
+                any(mode not in ('performance','balanced') for mode in args.modes.split(','))):
+            raise ValueError('GPU replay requires uncapped native Small/Base, isolated public source and no other candidate')
+        from benchmark_gpu_replay import sbs_worker_replay
+        from depthsbs_app import live_sbs as live_sbs_module
+        os.environ['DEPTHSBS_BENCH_REPLAY_SOURCE'] = args.source
+        os.environ['DEPTHSBS_GPU_CAPTURE'] = '1'
+        live_sbs_module.sbs_worker = sbs_worker_replay
     if args.startup_timeout <= 0:
         raise ValueError("Positive startup timeout required")
     if args.abort_output_below_fps is not None and args.abort_output_below_fps <= 0:
@@ -300,6 +317,14 @@ def main():
         capture_candidate = candidate_manifest()
         live_sbs_module.sbs_worker = sbs_worker_retained_capture
     args.output.mkdir(parents=True, exist_ok=False)
+    if args.uncapped:
+        if args.legacy_poll:
+            raise ValueError('Uncapped and legacy pacing are mutually exclusive')
+        from PySide6.QtGui import QSurfaceFormat
+        os.environ['QSG_NO_VSYNC'] = '1'
+        surface = QSurfaceFormat.defaultFormat()
+        surface.setSwapInterval(0)
+        QSurfaceFormat.setDefaultFormat(surface)
     app, engine, desktop = create_app()
     live = desktop.live
     raw_output_swaps = [0]
@@ -351,7 +376,8 @@ def main():
                     )
                     live.stop()
                     raise RuntimeError(f"Output rate guard stopped benchmark: {alert}")
-            time.sleep(0.002)
+            # Do not impose a coarser benchmark loop than the app's 1ms timer.
+            time.sleep(0.0005 if live.cadence.poll_ms == 1 else 0.002)
 
     def wait(predicate, timeout=120):
         end = time.perf_counter() + timeout
@@ -366,9 +392,15 @@ def main():
 
     try:
         if args.source_process:
-            oracle = SourceProcess(args.source)
+            oracle = SourceProcess(args.source, interval_ms=args.source_interval_ms)
+            if args.gpu_replay:
+                oracle.request('pause')  # Source window is only an owned geometry placeholder.
         else:
             oracle = ClockOracle(args.source)
+            if args.source_interval_ms != 16:
+                from PySide6.QtCore import Qt
+                oracle.timer.setTimerType(Qt.PreciseTimer)
+                oracle.timer.setInterval(args.source_interval_ms)
             oracle.show()
         gpu_preflight = command(
             "nvidia-smi",
@@ -417,7 +449,7 @@ def main():
                     live.setLiveModel(args.video_model)
                     if args.video_model == "ovda-small-c16":
                         live.setOvdaConfirmed(args.ovda_noncommercial)
-                live.setPresentationHz(args.hz)
+                live.setPresentationHz(0 if args.uncapped else args.hz)
                 if args.path:
                     live.setProcessingPath(args.path)
                     assert live.processingPath == args.path, live.status
@@ -457,6 +489,7 @@ def main():
                     desktop.main_window.hide()
                     live.setPreviewVisible(False)
                 pump(args.seconds)  # discarded warmup window
+                assert live.active and live.process is not None, live.status
                 for repeat in range(args.repeats):
                     source_start = oracle.refresh() if args.source_process else None
                     before = live.report()
@@ -514,10 +547,17 @@ def main():
                     assert (after["width"], after["height"]) == (width * 2, height)
                     if gpu_sampler is not None:
                         assert gpu_sampler.poll() is None, "GPU sampler exited"
+                    if args.gpu_replay:
+                        after['source_clock'] = 'Synthetic GPU replay submission time; no WGC or encoded source clock'
+                        after['copies'] = 'Cached public BGRA GPU clone + ordinary GPU preprocessing/depth/SBS/native delivery; excludes WGC and window painting'
+                        after['received_scope'] = 'Pulled GPU replay sequence'
                     row = dict(
                         size=size,
                         mode=mode,
                         repeat=repeat,
+                        input_kind='gpu-public-replay' if args.gpu_replay else 'window-capture',
+                        inference_fps=(after['inference_frames']-before['inference_frames'])/elapsed,
+                        reused_depth_fps=(after['reused_depth_frames']-before['reused_depth_frames'])/elapsed,
                         seconds=elapsed,
                         wall_start_ns=wall_began_ns,
                         wall_end_ns=time.time_ns(),
@@ -548,7 +588,8 @@ def main():
                         else None,
                         capture_arrival_fps=(after["received"] - before["received"])
                         / elapsed,
-                        capture_arrival_scope="Legacy forwarded/cached sequence proxy; use capture_observation_rates for independent Python callbacks",
+                        capture_arrival_scope=("Pulled cached GPU frames; not WGC capture arrivals" if args.gpu_replay else
+                            "Legacy forwarded/cached sequence proxy; use capture_observation_rates for independent Python callbacks"),
                         capture_observation_rates=observation_rates(
                             capture_before, after["capture_telemetry"]
                         ),
@@ -616,7 +657,7 @@ def main():
                 review_root = args.output / "review" / f"{size}-{mode}"
                 if args.save_review_frames:
                     review_root.mkdir(parents=True)
-                for review_index in range(15):
+                for review_index in range(0 if args.gpu_replay else 15):
                     pump(0.2)
                     rendered = live.output_window.grabWindow()
                     observed = time.perf_counter_ns() / 1e6
@@ -653,13 +694,14 @@ def main():
                 old = live.report()
                 pump(max(3, slow_interval / 1000 * 4))
                 new = live.report()
-                if args.path == "gpu-texture":
+                if live.nativeEnabled:
                     replaced = new["processing_stats"][1] - old["processing_stats"][1]
-                    assert replaced > 0, "backpressure must replace capture input"
+                    if not args.gpu_replay:
+                        assert replaced > 0, "backpressure must replace capture input"
                     assert new["native_delivery"]["live_pools"] <= 3
                     assert new["native_delivery"]["live_nodes"] <= 2
                     assert len(live.native.frames) <= 2
-                    replacement_boundary = "capture_input"
+                    replacement_boundary = "gpu_replay_pull_backpressure" if args.gpu_replay else "capture_input"
                 else:
                     replaced = new["replaced"] - old["replaced"]
                     assert replaced > 0, "overload must replace pending output"
@@ -678,7 +720,7 @@ def main():
                 # observe the stopped session and delete the old render node.
                 # Hiding first prevents that cleanup frame from being rendered.
                 pump(0.15)
-                if args.path == "gpu-texture":
+                if live.nativeEnabled:
                     live.output_window.grabWindow()
                 wait(lambda: not live.active, 15)
                 if args.hide_main:
@@ -694,7 +736,7 @@ def main():
                 # worker blocked during GPU/capture initialization even though
                 # the previous child has exited.
                 pump(0.25)
-                if args.path == "gpu-texture":
+                if live.nativeEnabled:
                     native_after_stop = live.native.report()
                     assert native_after_stop["live_pools"] == 0
                     assert native_after_stop["live_nodes"] == 0
@@ -752,7 +794,13 @@ def main():
             ).hexdigest(),
             public_sources=public_sources,
             public_video_decoded_frames=oracle.video_frames,
-            presentation_target_hz=args.hz,
+            presentation_target_hz=0 if args.uncapped else args.hz,
+            uncapped_diagnostic=args.uncapped,
+            gpu_replay=args.gpu_replay,
+            gpu_replay_frames=60 if args.gpu_replay else None,
+            gpu_replay_sha256=hashlib.sha256(Path('v1/benchmark_gpu_replay.py').read_bytes()).hexdigest() if args.gpu_replay else None,
+            source_process_sha256=hashlib.sha256(Path('v1/live_benchmark_source.py').read_bytes()).hexdigest(),
+            source_interval_ms=args.source_interval_ms,
             legacy_poll=args.legacy_poll,
             diagnostic_poll_ms=args.poll_ms,
             diagnostic_hide_main=args.hide_main,
@@ -764,6 +812,14 @@ def main():
             ),
             profile_source="live_policy.py",
             host_bridge=os.environ.get("DEPTHSBS_LIVE_HOST_BRIDGE", "fused"),
+            base_input_preprocessing=os.environ.get('DEPTHSBS_BASE_INPUT', 'gpu'),
+            gpu_capture=os.environ.get('DEPTHSBS_GPU_CAPTURE', 'model/source default'),
+            base_input_dll_sha256=hashlib.sha256(Path('out/base-input/base_input.dll').read_bytes()).hexdigest()
+                if 'da2-base' in selected_models and os.environ.get('DEPTHSBS_BASE_INPUT', 'gpu') == 'gpu' else None,
+            small_input_dll_sha256=hashlib.sha256(Path('out/small-input/small_input.dll').read_bytes()).hexdigest()
+                if 'da2-small' in selected_models and os.environ.get('DEPTHSBS_GPU_CAPTURE', '1') == '1' and live.processingPath != 'reference' else None,
+            gpu_capture_dll_sha256=hashlib.sha256(Path('out/gpu-capture/gpu_capture.dll').read_bytes()).hexdigest()
+                if any(model in selected_models for model in ('da2-base','da2-small')) and os.environ.get('DEPTHSBS_GPU_CAPTURE', '1') == '1' and live.processingPath != 'reference' else None,
             diagnostic_profile=bool(os.environ.get("DEPTHSBS_LIVE_PROFILE")),
             live_path=live.processingPath,
             live_dll_sha256=(
@@ -785,12 +841,30 @@ def main():
             if live.nativeEnabled
             else None,
             resolve_impl=os.environ.get("DEPTHSBS_LIVE_RESOLVE", DEFAULT_RESOLVE),
+            base_cuda_graph=os.environ.get('DEPTHSBS_BASE_GRAPH', '0'),
+            stereo_renderer=os.environ.get('DEPTHSBS_STEREO_RENDERER','cuda'),
+            learned_renderer_artifacts=(dict(
+                source_revision='0d3d92c8f4396da564c44524b6390ee5c76b9668',
+                weight_sha256=hashlib.sha256(Path('out/iw3-render-models-20261105/iw3_row_flow_v3_sym_20250628.pth').read_bytes()).hexdigest(),
+                bridge_sha256=hashlib.sha256(Path('out/rowflow-bridge/rowflow_bridge.dll').read_bytes()).hexdigest(),
+            ) if os.environ.get('DEPTHSBS_STEREO_RENDERER')=='rowflow-sym' else None),
+            base_stage_profile=os.environ.get('DEPTHSBS_BASE_STAGE_PROFILE', '0'),
             source_sha256={
                 str(path): hashlib.sha256(path.read_bytes()).hexdigest()
                 for path in [
                     Path("v1/depthsbs_app") / name
                     for name in (
                         "live_sbs.py",
+                        "rowflow.py",
+                        "gpu_capture.py",
+                        "gpu_frame.py",
+                        "gpu_runtime.py",
+                        "live_model.py",
+                        "base_gpu_input.py",
+                        "small_gpu_input.py",
+                        "live_small_gpu_input.py",
+                        "da2_base_device.py",
+                        "desktop.py",
                         "capture_worker.py",
                         "capture_telemetry.py",
                         "live_preview.py",
@@ -809,6 +883,7 @@ def main():
                         "live_gpu_texture.py",
                         "live_texture_pool.py",
                         "native_delivery.py",
+                        "presentation_policy.py",
                         "texture_mailbox.py",
                         "trt_backend.py",
                         "pipeline.py",
@@ -862,6 +937,11 @@ def main():
             writer = csv.DictWriter(stream, fieldnames=fields, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(rows)
+    except BaseException as error:
+        (args.output / 'failure.json').write_text(json.dumps(dict(
+            error=repr(error), status=live.status, report=live.report(),
+        ), indent=2), encoding='utf-8')
+        raise
     finally:
         if gpu_sampler is not None:
             gpu_sampler.terminate()

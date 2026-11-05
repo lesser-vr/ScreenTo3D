@@ -18,7 +18,7 @@ from PySide6.QtCore import (
     Slot,
     Qt,
 )
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QSurfaceFormat
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
@@ -580,6 +580,12 @@ def create_app():
     # display topology. Use Qt's bounded platform timer scheduling, still D3D11.
     # This is explicit, not a software renderer or per-failure fallback.
     os.environ.setdefault("QT_D3D_NO_VBLANK_THREAD", "1")
+    # Output pacing is owned by PresentationCadence, not the display refresh.
+    # Qt/driver/compositor may still constrain physical presentation.
+    os.environ.setdefault("QSG_NO_VSYNC", "1")
+    surface = QSurfaceFormat.defaultFormat()
+    surface.setSwapInterval(0)
+    QSurfaceFormat.setDefaultFormat(surface)
     QQuickWindow.setGraphicsApi(QSGRendererInterface.Direct3D11)
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("DepthSBS")
@@ -614,6 +620,9 @@ def create_app():
     # Hiding the only output on Stop must retire native scene-graph nodes even
     # when Qt will never render another frame for this window.
     controller.live.output_window.setPersistentSceneGraph(False)
+    # Retire graphics with the scene graph. Keeping only graphics persistent
+    # can leave Qt's native-texture wrapper without a window RHI on re-exposure.
+    controller.live.output_window.setPersistentGraphics(False)
     controller.live.output_window.frameSwapped.connect(
         controller.live.outputFrameSwapped
     )

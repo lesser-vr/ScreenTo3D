@@ -10,13 +10,17 @@ import numpy as np
 from .desktop_jobs import ROOT
 from .stereo import refine_flat_background
 from .live_scene_history import LiveSceneHistory
+from .gpu_frame import GpuFrame
 
-DLL_SHA256 = "ad0871cce22011926b0948a59368ae1f71d9727962160110bdea7974f5e296eb"
+DLL_SHA256 = "e88697254fa9d81ade5d19b84b2f9107d5d1211fbeb9243cb4ec0af77b7ae6df"
 DLL_PATH = ROOT / "out/live-depth-parallel/live_depth.dll"
 DEFAULT_RESOLVE = "parallel"
 
 
 class LiveGpuCandidate:
+    library_path = DLL_PATH
+    library_sha256 = DLL_SHA256
+
     def __init__(self, width, height, policy, engine):
         if not (16 <= width <= 4096 and 16 <= height <= 2160):
             raise ValueError("Invalid live dimensions")
@@ -39,8 +43,8 @@ class LiveGpuCandidate:
         self.width, self.height = width, height
         self.thread = threading.get_ident()
         self.failed = False
-        path = DLL_PATH
-        if hashlib.sha256(path.read_bytes()).hexdigest() != DLL_SHA256:
+        path = self.library_path
+        if hashlib.sha256(path.read_bytes()).hexdigest() != self.library_sha256:
             raise ValueError("GPU candidate DLL checksum mismatch")
         self.dll = ct.CDLL(str(path))
         self.dll.live_create.argtypes = [
@@ -149,7 +153,7 @@ class LiveGpuCandidate:
     def needs_background(self, frame):
         if not self.policy.flat_background_refinement:
             return False
-        border = np.concatenate((frame[0], frame[-1], frame[:, 0], frame[:, -1]))
+        border = frame.border() if isinstance(frame, GpuFrame) else np.concatenate((frame[0], frame[-1], frame[:, 0], frame[:, -1]))
         color = np.median(border, axis=0).astype(np.float32)
         return (
             np.mean(
@@ -169,7 +173,10 @@ class LiveGpuCandidate:
         if scene is None:
             scene = self.scene_history.inspect(frame)
         self.scene_history.validate(scene, frame)
-        frame = np.ascontiguousarray(frame)
+        if isinstance(frame, GpuFrame):
+            frame.validate(self.engine)
+        else:
+            frame = np.ascontiguousarray(frame)
         reset = self.reset_pending or scene.cut
         background = self.needs_background(frame)
         aligned = (
@@ -192,7 +199,7 @@ class LiveGpuCandidate:
         post = time.perf_counter_ns()
         if background:
             refined = refine_flat_background(
-                frame,
+                frame.to_host() if isinstance(frame, GpuFrame) else frame,
                 aligned,
                 tolerance=self.policy.flat_background_tolerance,
                 minimum_coverage=self.policy.flat_background_min_coverage,
@@ -206,9 +213,7 @@ class LiveGpuCandidate:
         background_end = time.perf_counter_ns()
         projected = self._project(frame, refined)
         self.engine.complete_device(depth)
-        self._check(
-            self.dll.live_projection_times(self.handle, self.projection_ms.ctypes.data)
-        )
+        self._read_projection_times()
         # Timings are stream intervals including enqueue gaps, not GPU utilization.
         if self.small_rgb is not None:
             self._check(self.dll.live_times(self.handle, self.gpu_ms.ctypes.data))
@@ -217,6 +222,10 @@ class LiveGpuCandidate:
         self.last_generation = depth.generation
         self.reset_pending = False
         self.scene_history.commit(scene)
+        if isinstance(frame, GpuFrame):
+            self.d2h += frame.readback_bytes
+            self.syncs += frame.readback_syncs
+            frame.readback_bytes = frame.readback_syncs = 0
         self.frames += 1
         self.last = dict(
             post_submit_ms=(post - started) / 1e6,
@@ -225,6 +234,9 @@ class LiveGpuCandidate:
         )
         result = self._pack_result(projected)
         return (result, aligned) if diagnostic else result
+
+    def _read_projection_times(self):
+        self._check(self.dll.live_projection_times(self.handle, self.projection_ms.ctypes.data))
 
     def _post(self, frame, depth, aligned, reset):
         self._check(
@@ -245,7 +257,7 @@ class LiveGpuCandidate:
 
     def _project(self, frame, refined):
         """Default host output; texture delivery overrides only this boundary."""
-        left, right = np.empty_like(frame), np.empty_like(frame)
+        left, right = np.empty(frame.shape, np.uint8), np.empty(frame.shape, np.uint8)
         invalid = ct.c_int()
         self._check(
             self.dll.live_project(

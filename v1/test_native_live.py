@@ -9,11 +9,11 @@ import time
 
 import numpy as np
 import shiboken6
-from PySide6.QtGui import QImage, QWindow
+from PySide6.QtGui import QImage, QWindow, QGuiApplication
 from PySide6.QtCore import QObject, Qt
 from PySide6.QtTest import QTest
 
-from benchmark_live_modes import ClockOracle
+from benchmark_live_modes import ClockOracle, memory_bytes
 from depthsbs_app.desktop import create_app
 from depthsbs_app.capture_mailbox import WIDTH
 
@@ -21,8 +21,11 @@ from depthsbs_app.capture_mailbox import WIDTH
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--hz", type=int, choices=(30, 60), default=30)
+    parser.add_argument("--hz", type=int, choices=(0, 30, 60), default=0)
     parser.add_argument("--mode", choices=("performance", "balanced"), default="performance")
+    parser.add_argument("--default-path", action="store_true")
+    parser.add_argument("--cycle-screens", action="store_true")
+    parser.add_argument("--steady-seconds", type=int, default=5)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     app, engine, desktop = create_app()
@@ -31,6 +34,8 @@ def main():
     oracle = ClockOracle("FloorballGame")
     oracle.show()
     live = desktop.live
+    if args.default_path:
+        assert live.processingPath == 'gpu-texture' and not live.nativeReady
     live.output_placement.path = args.output / "placement.json"
 
     def pump(seconds=0.1):
@@ -66,8 +71,10 @@ def main():
         live.setSbs(True)
         live.setMode(args.mode)
         # The minimal shell has one output consumer and no in-app preview.
-        live.setProcessingPath("gpu-texture")
+        if not args.default_path:
+            live.setProcessingPath("gpu-texture")
         assert live.processingPath == "gpu-texture", live.status
+        assert desktop.main_window.findChild(QObject, 'liveProcessingPath').property('currentIndex') == 2
         live.setPresentationHz(args.hz)
         live.startSbs(0, 0)
         wait(lambda: native()["output"]["submitted_frames"] >= 5)
@@ -92,7 +99,12 @@ def main():
         begin = native()
         start = time.perf_counter()
         processed = live._stats()[0]
-        pump(5)
+        steady_memory = []
+        for _ in range(max(5, args.steady_seconds)):
+            pump(1)
+            assert live.active, live.status
+            steady_memory.append(dict(gui=memory_bytes(os.getpid()),worker=memory_bytes(live.process.pid)))
+            assert native()['live_pools'] == native()['live_nodes'] == 1
         elapsed = time.perf_counter() - start
         after = native()
         rates = dict(
@@ -150,12 +162,25 @@ def main():
         assert live.output_window.visibility() != QWindow.FullScreen
         oracle.resize(400, 280)
         expected_width = round(400 * oracle.devicePixelRatioF()) * 2
-        wait(lambda: live.meta[WIDTH] == expected_width and live.native.has_frame, 20)
+        wait(lambda: live.meta[WIDTH] == expected_width and live.native.has_frame,
+             120 if live.stereo_renderer == 'rowflow-sym' else 20)
         first_resized_sequence = live.native.last_sequence
         wait(lambda: native()["output"]["last_submitted_id"] >= first_resized_sequence)
         wait(lambda: native()["live_pools"] == 1, 10)
         assert native()["live_nodes"] == 1
         assert live._stats()[2] > 1
+        screen_checks = []
+        if args.cycle_screens:
+            for screen in QGuiApplication.screens():
+                area = screen.availableGeometry()
+                live.output_window.setScreen(screen)
+                live.output_window.resize(min(800, area.width()), min(450, area.height()))
+                live.output_window.setPosition(area.x()+20, area.y()+20)
+                pump(.3)
+                previous = native()['output']['submitted_frames']
+                wait(lambda: native()['output']['submitted_frames'] > previous+10, 15)
+                assert live.output_window.screen() == screen
+                screen_checks.append(dict(width=area.width(),height=area.height(),continued=True))
         assert desktop.main_window.grabWindow().save(str(args.output / "gui.png"))
         report = live.report()
         assert report["shared_pixel_bytes"] == 0
@@ -185,9 +210,20 @@ def main():
         pump(0.2)
         assert not live.hasFrame and desktop.lease.owner is None
         assert native()["live_pools"] == native()["live_nodes"] == 0
+        cancel_errors = []
+        live.errorOccurred.connect(cancel_errors.append)
+        live.startSbs(0, 0)
+        assert live.active and not live.hasFrame
+        live.stop()
+        wait(lambda: not live.active, 15)
+        pump(.2)
+        assert not cancel_errors, cancel_errors
+        assert desktop.lease.owner is None and not live.hasFrame
+        assert native()["live_pools"] == native()["live_nodes"] == 0
         report.update(
             passed=True,
             measured_interval=rates,
+            steady_memory=steady_memory,
             eyes_distinct=differences,
             hidden_and_restore=True,
             page_restore=True,
@@ -195,8 +231,10 @@ def main():
             stop_clear=True,
             restart_source_loss=True,
             worker_crash=True,
+            preparation_cancel=True,
             fullscreen_escape=True,
             capture_exclusion=True,
+            screen_transitions=screen_checks,
             scope="Actual native desktop lifecycle; rates are short exploratory Qt submission counts",
         )
         (args.output / "report.json").write_text(

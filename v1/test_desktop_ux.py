@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from PySide6.QtCore import QObject, QPointF, Qt, QMimeData, qInstallMessageHandler
-from PySide6.QtWidgets import QPushButton, QApplication
+from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QImage
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtTest import QTest
@@ -25,6 +25,8 @@ def main():
         app, engine, desktop = create_app()
         window = desktop.main_window
         live = desktop.live
+        # These mocked frame/lifecycle cases use host images explicitly.
+        live.setProcessingPath('gpu')
         live.output_placement.save = Mock()
         tools = window.findChild(QQuickWindow, 'toolsWindow')
         clipboard = app.clipboard()
@@ -94,6 +96,15 @@ def main():
             assert window.property('page') == 0 and not tools.isVisible()
             for page, name in [(1, 'files'), (2, 'settings')]:
                 window.setProperty('page', page); pump()
+                if page == 2:
+                    limit = control('livePresentationHz')
+                    assert live.presentationHz == 0 and limit.property('currentIndex') == 0
+                    assert limit.property('count') == 3
+                    limit.forceActiveFocus(); pump()
+                    for key, expected in [(Qt.Key_Down, 30), (Qt.Key_Down, 60),
+                                          (Qt.Key_Home, 0)]:
+                        QTest.keyClick(tools, key); pump()
+                        assert live.presentationHz == expected, live.presentationHz
                 screenshot(tools, name)
                 tools.close(); pump()
             # Selection stays pinned through reordering and requires reselection
@@ -122,6 +133,7 @@ def main():
             live.process = Mock()
             live.mailbox = Mock()
             live.changed.emit(); pump()
+            assert not control('livePresentationHz').property('enabled')
             assert control('captureStart').property('text') == '취소'
             assert '준비 중' in control('captureStatus').property('text')
             screenshot(window, 'preparing')
@@ -179,6 +191,7 @@ def main():
                         'keyboard focus', 'start signal', 'preparing cancel', 'running stop',
                         'separate error copy/close/Esc', 'utility capture exclusion',
                         'minimized utility reopen', 'error exclusion failure stops capture']
+                    + ['unlimited default', 'keyboard 30/60/unlimited selection', 'active FPS control locked']
             ), indent=2), encoding='utf-8')
         finally:
             clipboard.setMimeData(saved)

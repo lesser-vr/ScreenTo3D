@@ -1,22 +1,24 @@
 """Explicit native delivery; identical inherited postprocessing and mode policy."""
 
-from .live_gpu_candidate import LiveGpuCandidate, DLL_SHA256
+from .live_gpu_candidate import LiveGpuCandidate
 from .live_texture_pool import LiveTexturePool
 
 BORROWED_LAYOUT_SHA256 = (
-    "ad0871cce22011926b0948a59368ae1f71d9727962160110bdea7974f5e296eb"
+    "e88697254fa9d81ade5d19b84b2f9107d5d1211fbeb9243cb4ec0af77b7ae6df"
 )
 
 
 class TextureOutputMixin:
     """Replace only the inherited host SBS output with the shared texture pool."""
 
+    borrowed_layout_sha256 = BORROWED_LAYOUT_SHA256
+
     def __init__(self, width, height, policy, engine, *, diagnostic=False):
-        if DLL_SHA256 != BORROWED_LAYOUT_SHA256:
+        if self.library_sha256 != self.borrowed_layout_sha256:
             raise RuntimeError("Native delivery requires a validated borrowed layout")
-        super().__init__(width, height, policy, engine)
         self.pool = None
         self.slot = None
+        super().__init__(width, height, policy, engine)
         try:
             self.pool = LiveTexturePool(width, height, diagnostic=diagnostic)
         except BaseException:

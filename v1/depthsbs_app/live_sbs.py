@@ -11,6 +11,7 @@ import threading
 import time
 from contextlib import ExitStack
 from dataclasses import replace
+from .live_model import model_adapter
 
 from .capture_mailbox import (
     Mailbox,
@@ -43,6 +44,14 @@ STAT_COUNT = 34
 DEFAULT_CAPTURE_INTERVAL_MS = 0
 
 
+def resolve_gpu_capture(source, model, gpu_path):
+    default = '1' if model_adapter(model).gpu_capture and gpu_path and source['kind'] == 'window' else '0'
+    value = os.environ.get('DEPTHSBS_GPU_CAPTURE', default)
+    if value not in ('0', '1'):
+        raise ValueError('DEPTHSBS_GPU_CAPTURE must be 0 or 1')
+    return value == '1'
+
+
 def reset_reason(previous_sequence, sequence, previous_shape, shape, cut):
     if previous_sequence is None:
         return "start"
@@ -71,6 +80,15 @@ def validate_strength(value):
     return float(value)
 
 
+def resolve_renderer(model, gpu, strength=1.0, setting=None):
+    setting = os.environ.get('DEPTHSBS_STEREO_RENDERER','cuda') if setting is None else setting
+    if setting not in ('cuda','rowflow-sym'):
+        raise ValueError('DEPTHSBS_STEREO_RENDERER must be cuda or rowflow-sym')
+    if setting=='rowflow-sym' and (not model_adapter(model).rowflow or not gpu or not 0.25 <= strength <= 5/2.6):
+        raise ValueError('RowFlow 시험은 균형(Base) GPU 경로와 입체 강도 1.92 이하를 사용하세요.')
+    return setting
+
+
 def sbs_worker(
     source,
     cursor,
@@ -84,6 +102,9 @@ def sbs_worker(
     *,
     capture_telemetry=None,
     backend_snapshot=None,
+    gpu_capture_snapshot=None,
+    renderer_snapshot=None,
+    preparation=None,
 ):
     from .capture_worker import capture_worker
 
@@ -128,6 +149,7 @@ def sbs_worker(
             )
             selected_model = backend.spec.model_id
         policy = replace(policy, depth_backend=selected_model)
+        model = model_adapter(selected_model)
         # Explicit diagnostic A/B switch, never an automatic fallback.
         bridge = os.environ.get("DEPTHSBS_LIVE_HOST_BRIDGE", "fused")
         if bridge not in ("legacy", "fused"):
@@ -152,22 +174,21 @@ def sbs_worker(
         if type(gpu_candidate) is not bool:
             raise ValueError("Invalid GPU path snapshot")
         native = texture_mailbox is not None
-        if (
-            selected_model
-            not in (
-                "da2-small",
-                "da2-base",
-                "vda-small",
-                "ovda-small-c16",
-            )
-            and gpu_candidate
-        ):
-            raise ValueError(
-                "The live GPU path does not support the selected depth model"
-            )
+        renderer = resolve_renderer(selected_model,gpu_candidate,strength,renderer_snapshot)
+        if renderer=='rowflow-sym':
+            from .rowflow import bridge as rowflow_bridge, check
+            compiler_bridge = rowflow_bridge()
+            check(compiler_bridge,compiler_bridge.rowflow_protect_worker())
+        use_gpu_capture = resolve_gpu_capture(source, selected_model, gpu_candidate) if gpu_capture_snapshot is None else gpu_capture_snapshot
+        if type(use_gpu_capture) is not bool:
+            raise ValueError('Invalid GPU capture snapshot')
+        if use_gpu_capture and (not model.gpu_capture or not gpu_candidate or not fused or capture_interval != '0'):
+            raise ValueError('GPU capture requires DA2 Small/Base GPU output and the default capture interval/bridge')
+        if use_gpu_capture and capture_telemetry is not None:
+            raise ValueError('Callback event recording is unavailable with GPU capture')
+        backend = model.bind_capture(backend, use_gpu_capture)
         if native and (
             not gpu_candidate
-            or selected_model not in ("da2-small", "da2-base", "vda-small", "ovda-small-c16")
             or type(session) is not int
             or session <= 0
             or output.pixels is not None
@@ -193,20 +214,24 @@ def sbs_worker(
             parent = mp.parent_process()
             if output.stop.is_set() or (parent is not None and not parent.is_alive()):
                 return
-            capture = threading.Thread(
-                target=capture_worker,
-                args=(source, cursor, incoming),
-                kwargs={
-                    "minimum_update_interval": int(capture_interval),
-                    "capture_telemetry": capture_telemetry,
-                    # WGC's NumPy view retains its owned mapped frame. The
-                    # single latest-frame mailbox holds that owner until RGB
-                    # conversion completes, avoiding a 4-byte-per-pixel copy.
-                    "retain_frame": True,
-                },
-                daemon=True,
-            )
-            capture.start()
+            if use_gpu_capture:
+                from .gpu_capture import GpuCapture
+                from .gpu_frame import GpuFrame
+                if engine.gpu_input is None:
+                    raise ValueError('GPU capture requires GPU preprocessing')
+                gpu_capture = scope.enter_context(GpuCapture(source, cursor, engine.device))
+            else:
+                capture = threading.Thread(
+                    target=capture_worker,
+                    args=(source, cursor, incoming),
+                    kwargs={
+                        "minimum_update_interval": int(capture_interval),
+                        "capture_telemetry": capture_telemetry,
+                        "retain_frame": True,
+                    },
+                    daemon=True,
+                )
+                capture.start()
             projection = synthesizer = None
             previous_sequence = previous_shape = None
             inferred_frame = depth = None
@@ -216,32 +241,46 @@ def sbs_worker(
                 parent = mp.parent_process()
                 if parent is not None and not parent.is_alive():
                     break
-                with incoming.lock:
-                    m = list(incoming.meta)
-                    if m[STATE] == FAILED:
-                        raise RuntimeError(
-                            incoming.error.value.decode("utf-8", "replace")
-                        )
-                    if m[SEQ] <= m[ACK]:
-                        if not capture.is_alive():
-                            raise RuntimeError("캡처 작업자가 종료되었습니다.")
-                        wait_seconds = 0.001
-                        continue
-                    wait_seconds = 0.0 if fused else 0.001
-                    width, height = m[WIDTH], m[HEIGHT]
+                if use_gpu_capture:
                     copy_start = time.perf_counter_ns()
-                    if fused:
-                        frame = capture_rgb(incoming.pixels, width, height)
-                    else:
-                        from .live_host_bridge import capture_bgra
-
-                        bgra = capture_bgra(incoming.pixels, width, height).copy()
-                    incoming.meta[ACK] = m[SEQ]
-                    stats[INPUT_COPY_NS] = (
-                        0 if fused else time.perf_counter_ns() - copy_start
-                    )
-                    if fused:
-                        stats[INPUT_COLOR_NS] = time.perf_counter_ns() - copy_start
+                    captured = gpu_capture.read(engine.gpu_input.execution.stream)
+                    if captured is None:
+                        wait_seconds = .001
+                        continue
+                    wait_seconds = 0
+                    bgra_device, meta = captured
+                    stats[SYNCS] += 1  # Capture D3D/CUDA ownership completion.
+                    width, height = meta['width'], meta['height']
+                    m = [0] * 12
+                    for key, name in ((WIDTH,'width'), (HEIGHT,'height'), (SEQ,'sequence'), (RECEIVED,'sequence'),
+                            (SOURCE_NS,'source_ns'), (CALLBACK_NS,'callback_ns'), (REPLACED,'replaced'), (RESIZES,'resizes')):
+                        m[key] = meta[name]
+                    m[STATE] = RUNNING
+                    m[COPY_NS] = time.perf_counter_ns() - copy_start
+                    stats[INPUT_COPY_NS], stats[INPUT_COLOR_NS] = m[COPY_NS], 0
+                    frame = GpuFrame(bgra_device, engine) if (width,height) == previous_shape else None
+                else:
+                    with incoming.lock:
+                        m = list(incoming.meta)
+                        if m[STATE] == FAILED:
+                            raise RuntimeError(incoming.error.value.decode('utf-8', 'replace'))
+                        if m[SEQ] <= m[ACK]:
+                            if not capture.is_alive():
+                                raise RuntimeError('캡처 작업자가 종료되었습니다.')
+                            wait_seconds = .001
+                            continue
+                        wait_seconds = 0.0 if fused else .001
+                        width, height = m[WIDTH], m[HEIGHT]
+                        copy_start = time.perf_counter_ns()
+                        if fused:
+                            frame = capture_rgb(incoming.pixels, width, height)
+                        else:
+                            from .live_host_bridge import capture_bgra
+                            bgra = capture_bgra(incoming.pixels, width, height).copy()
+                        incoming.meta[ACK] = m[SEQ]
+                        stats[INPUT_COPY_NS] = 0 if fused else time.perf_counter_ns() - copy_start
+                        if fused:
+                            stats[INPUT_COLOR_NS] = time.perf_counter_ns() - copy_start
                 started = time.perf_counter_ns()
                 if not fused:
                     frame = cv2.cvtColor(bgra, cv2.COLOR_BGRA2RGB)
@@ -284,28 +323,24 @@ def sbs_worker(
                     if previous_shape is not None and backend.input_validator is not None:
                         engine_scope.close()
                         engine = engine_scope.enter_context(backend.engine_factory(None))
+                    if use_gpu_capture:
+                        frame = GpuFrame(bgra_device, engine)
                     if gpu_candidate:
-                        if selected_model in ("da2-base", "vda-small", "ovda-small-c16"):
-                            from .live_source_gpu_candidate import (
-                                LiveSourceGpuCandidate as gpu_factory,
-                            )
+                        if renderer=='rowflow-sym':
+                            from .rowflow import RowFlowRenderer
+                            if preparation is not None:
+                                preparation.value = '입체화 준비 중… 처음 사용하는 화면 크기는 최적화에 시간이 걸릴 수 있습니다.'.encode('utf-8')
+                            projection = projection_scope.enter_context(RowFlowRenderer(
+                                width,height,policy,engine,native=native,stop=output.stop))
+                            if preparation is not None:preparation.value = b''
+                            parent = mp.parent_process()
+                            if output.stop.is_set() or (parent is not None and not parent.is_alive()):
+                                raise InterruptedError('RowFlow preparation stopped')
                         else:
-                            from .live_gpu_candidate import LiveGpuCandidate
-
-                            gpu_factory = LiveGpuCandidate
-                        if native:
-                            if selected_model in ("da2-base", "vda-small", "ovda-small-c16"):
-                                from .live_source_gpu_texture import (
-                                    LiveSourceGpuTexture as gpu_factory,
-                                )
-                            else:
-                                from .live_gpu_texture import (
-                                    LiveGpuTexture as gpu_factory,
-                                )
-
-                        projection = projection_scope.enter_context(
-                            gpu_factory(width, height, policy, engine)
-                        )
+                            gpu_factory = model.renderer_factory(native=native, gpu_capture=use_gpu_capture)
+                            projection = projection_scope.enter_context(
+                                gpu_factory(width, height, policy, engine)
+                            )
                         if native:
                             from .texture_mailbox import INSTALLED
 
@@ -364,17 +399,9 @@ def sbs_worker(
                     inferred_frame = frame
                     stats[INFERRED] += 1
                     if not gpu_candidate:
-                        if selected_model == "da2-small":
-                            stats[H2D_BYTES] += engine.input_bytes
-                            stats[D2H_BYTES] += engine.output_bytes
-                        else:
-                            input_shape = getattr(
-                                engine,
-                                "input_shape",
-                                (1, 3, *getattr(engine, "shape", frame.shape[:2])),
-                            )
-                            stats[H2D_BYTES] += int(np.prod(input_shape) * 4)
-                            stats[D2H_BYTES] += depth.nbytes
+                        uploaded, downloaded = model.host_io_bytes(engine, frame, depth)
+                        stats[H2D_BYTES] += uploaded
+                        stats[D2H_BYTES] += downloaded
                         stats[SYNCS] += 1
                 else:
                     depth_start = time.perf_counter_ns()

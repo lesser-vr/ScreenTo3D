@@ -13,6 +13,7 @@ class LiveSourceGpuCandidateTests(unittest.TestCase):
         value.width, value.height = 320, 180
         value.engine = Mock()
         value.engine.profile = (518, 924)
+        value.engine.last_input_bytes = None
         value.engine.stream.cuda_stream = 123
         value.h2d = 0
         value._owner = Mock()

@@ -1,4 +1,4 @@
-"""Owned live controller: default host images or explicit native SBS delivery."""
+"""Owned live controller: native SBS delivery with explicit host diagnostics."""
 
 import multiprocessing as mp
 import ctypes
@@ -77,6 +77,9 @@ class LivePreview(QObject):
         self.cursor = True
         self.process = self.mailbox = None
         self.capture_telemetry = None
+        self.preparation = None
+        self.stereo_renderer = 'cuda'
+        self.gpu_capture_selected = False
         self.stopping = False
         self.message = "볼 창을 선택하세요."
         self.session = 0
@@ -98,9 +101,9 @@ class LivePreview(QObject):
         self.ovda_noncommercial = False
         # Prepared local desktop default; explicit reference selection remains available.
         self.gpu_candidate = os.environ.get("DEPTHSBS_LIVE_GPU_CANDIDATE", "1") == "1"
-        self.native_selected = False
+        self.native_selected = self.gpu_candidate
         self.native = self.texture_mailbox = None
-        self.cadence = PresentationCadence(30)
+        self.cadence = PresentationCadence()
         self.strength = 1.0
         self.processing_stats = None
         self.final_processing_stats = [0] * STAT_COUNT
@@ -279,6 +282,10 @@ class LivePreview(QObject):
         return self.sbs and self.native_selected
 
     @Property(bool, notify=changed)
+    def nativeReady(self):
+        return self.native is not None
+
+    @Property(bool, notify=changed)
     def nativeCapable(self):
         return self.sbs and self.live_model in NATIVE_MODELS
 
@@ -293,7 +300,7 @@ class LivePreview(QObject):
     @Property(bool, notify=frameChanged)
     def hasFrame(self):
         if self.nativeEnabled:
-            return self.active and not self.stopping and self.native.has_frame
+            return self.active and not self.stopping and self.native is not None and self.native.has_frame
         return not self.provider.image.isNull()
 
     @Property(int, notify=changed)
@@ -620,13 +627,25 @@ class LivePreview(QObject):
             if self.nativeEnabled:
                 from .texture_mailbox import TextureMailbox
 
+                if self.native is None:
+                    from .native_delivery import NativeDelivery
+                    try:
+                        self.native = NativeDelivery()
+                    except Exception as error:
+                        raise RuntimeError(
+                            f"GPU 직접 출력 준비 실패: {error}\n설정과 진단에서 GPU 호스트 출력을 선택해 다시 시도할 수 있습니다."
+                        ) from error
                 self.native.begin(self.session + 1)
                 self.texture_mailbox = TextureMailbox.create(context)
             self.mailbox = Mailbox.create(
                 context, sbs=self.sbs, metadata_only=self.nativeEnabled
             )
             self.processing_stats = context.RawArray(ctypes.c_longlong, STAT_COUNT)
-            from .live_sbs import sbs_worker
+            from .live_sbs import sbs_worker, resolve_gpu_capture, resolve_renderer
+            self.gpu_capture_selected = self.sbs and resolve_gpu_capture(source, self.live_model, self.gpu_candidate)
+            self.stereo_renderer = resolve_renderer(self.live_model,self.gpu_candidate,self.strength) if self.sbs else 'cuda'
+            # Advisory single-writer status must not leave a lock held on cancellation.
+            self.preparation = context.Array(ctypes.c_char,512,lock=False) if self.stereo_renderer=='rowflow-sym' else None
 
             self.process = context.Process(
                 target=sbs_worker if self.sbs else capture_worker,
@@ -656,7 +675,8 @@ class LivePreview(QObject):
                 else (source, self.cursor, self.mailbox),
                 kwargs={
                     "capture_telemetry": self.capture_telemetry,
-                    **({"backend_snapshot": backend_snapshot} if self.sbs else {}),
+                    **({"backend_snapshot": backend_snapshot, "gpu_capture_snapshot": self.gpu_capture_selected,
+                        "renderer_snapshot": self.stereo_renderer,"preparation": self.preparation} if self.sbs else {}),
                 },
                 daemon=True,
             )
@@ -739,6 +759,7 @@ class LivePreview(QObject):
             self.processing_stats = None
             self.process = self.mailbox = None
             self.texture_mailbox = None
+            self.preparation = None
             self.provider.image = QImage()
             self.copy_pool.clear()
             self.output_pending = None
@@ -759,10 +780,20 @@ class LivePreview(QObject):
             if now - self.stop_started > 5:
                 # Only this session's isolated worker. No output files to lose.
                 self.process.terminate()
+                if self.preparation is not None and self.preparation.value:
+                    # Synchronous compiler work is cancelled with its owned job.
+                    self.message = "입체화 준비를 취소했습니다."
+                    self.changed.emit()
+                    return
                 message = "캡처 응답 지연으로 캡처 프로세스를 종료했습니다. 다시 시작할 수 있습니다."
                 if self.message != message:
                     self.reportError(message)
             return
+        if self.preparation is not None and self.preparation.value:
+            message = self.preparation.value.decode('utf-8','replace')
+            if self.message!=message:
+                self.message=message
+                self.changed.emit()
         if now - self.last_health > 0.25:
             self.last_health = now
             try:
@@ -781,14 +812,14 @@ class LivePreview(QObject):
         if self.nativeEnabled:
             try:
                 native_changed = self.native.consume(
-                    self.texture_mailbox, self.process.pid
+                    self.texture_mailbox, self.process.pid, cadence=self.cadence
                 )
                 if native_changed and not self.native.has_frame:
                     self.frameChanged.emit()
             except Exception as error:
                 self.abort(f"GPU 직접 프레임 전달 실패: {error}")
                 return
-        if self.cadence.ready(time.perf_counter_ns()) and self.mailbox.lock.acquire(
+        if (self.nativeEnabled or self.cadence.ready(time.perf_counter_ns())) and self.mailbox.lock.acquire(
             False
         ):
             try:
@@ -864,7 +895,8 @@ class LivePreview(QObject):
         began = time.perf_counter_ns()
         self.frameChanged.emit()
         self.gui_notify_ms = (time.perf_counter_ns() - began) / 1e6
-        self.cadence.emitted(time.perf_counter_ns())
+        if not self.nativeEnabled:
+            self.cadence.emitted(time.perf_counter_ns())
 
     @Slot()
     def frameSwapped(self):
@@ -902,6 +934,15 @@ class LivePreview(QObject):
         if plan is not None:
             plan["live"]["presentation_hz"] = self.cadence.hz
         return dict(
+            stereo_renderer=self.stereo_renderer,
+            learned_renderer_contract=(
+                'RowFlow v3 symmetric; fixed-shape fullgraph compile; FP16 autocast; '
+                'divergence=100*policy.divergence; convergence=policy.convergence; '
+                'steps=1; calibrated eye swap; CUDA conservative coverage flag not used; '
+                'owned RGB/depth GPU copies and finite scalar readbacks'
+                if self.stereo_renderer=='rowflow-sym' else None
+            ),
+            projection_timing_scope='splat/resolve/copy' if self.stereo_renderer=='cuda' else 'not applicable to learned renderer; use overall SBS timing',
             received=self.meta[RECEIVED],
             received_scope="Capture sequence forwarded by worker and cached by GUI",
             capture_telemetry=self.capture_telemetry.snapshot()
@@ -917,7 +958,7 @@ class LivePreview(QObject):
                 provider_requests=self.provider.requests,
                 notify_unlocked=self.notify_unlocked,
             ),
-            native_delivery=self.native.report() if self.nativeEnabled else None,
+            native_delivery=self.native.report() if self.nativeEnabled and self.native is not None else None,
             frame_swaps=self.presented,
             output_frame_swaps=self.output_presented,
             output_callback_to_swap_ms=list(self.output_latencies),
@@ -971,9 +1012,9 @@ class LivePreview(QObject):
                 name: self._stats()[index] / 1e6
                 for index, name in enumerate(
                     (
-                        "input_h2d_normalize",
+                        "input_gpu_resize_normalize" if self.gpu_capture_selected else "input_h2d_normalize",
                         "inference_stream_interval",
-                        "rgb_h2d_depth_resize",
+                        "rgb_device_copy_depth_resize" if self.gpu_capture_selected else "rgb_h2d_depth_resize",
                         "sort_bounds",
                         "normalize_temporal",
                         "guide",
@@ -1006,7 +1047,10 @@ class LivePreview(QObject):
             last_callback_copy_ns=self.meta[COPY_NS],
             duration_seconds=(self.ended or time.perf_counter()) - self.started,
             copies=(
-                "capture readback + retained mapped BGRA + RGB/preprocess H2D; GPU SBS surface + per-window GPU copy; 4-byte validity D2H and eligible background depth D2H/H2D"
+                ('WGC/D3D11/CUDA device copies + GPU preprocessing; thumbnail/border D2H; conditional background RGB/depth D2H and refined-depth H2D; '
+                 + ('GPU SBS surface + per-window GPU copy' if self.nativeEnabled else 'SBS RGB D2H + owned BGRA/QImage + Qt upload'))
+                if self.gpu_capture_selected
+                else "capture readback + retained mapped BGRA + RGB/preprocess H2D; GPU SBS surface + per-window GPU copy; 4-byte validity D2H and eligible background depth D2H/H2D"
                 if self.nativeEnabled
                 else "native GPU readback + shared output BGRA copy + owned QImage copy + Qt upload"
                 + (

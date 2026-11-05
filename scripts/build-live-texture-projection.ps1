@@ -1,4 +1,4 @@
-param([ValidateSet('live-texture-projection','live-texture-publish','live-texture-pool','live-texture-runtime','live-texture-runtime-consume','ovda-device-texture-spike','vda-device-texture-spike')][string]$OutputName = 'live-texture-projection')
+param([ValidateSet('live-texture-projection','live-texture-publish','live-texture-pool','live-texture-runtime','live-texture-runtime-consume','ovda-device-texture-spike','vda-device-texture-spike','rowflow-bridge')][string]$OutputName = 'live-texture-projection')
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'

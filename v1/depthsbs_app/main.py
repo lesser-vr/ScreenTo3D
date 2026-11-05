@@ -35,7 +35,7 @@ def run_worker(arguments, gpu_preview=False) -> int:
         if getattr(arguments, 'depth_backend', 'da2-small') == 'da2-base':
             from .da2_base import binding
             options['depth_backend'] = binding(arguments.da2_base_engine_dir, arguments.runtime_dir)
-            emit({'event': 'depth_backend', 'model_id': 'da2-base', 'runtime': 'tensorrt-fp32', 'weight_license': 'CC-BY-NC-4.0'})
+            emit({'event': 'depth_backend', 'model_id': 'da2-base', 'runtime': options['depth_backend'].spec.runtime, 'weight_license': 'CC-BY-NC-4.0'})
         if getattr(arguments, 'letterbox_refinement', False):
             options['letterbox_refinement'] = True
             emit({'event': 'letterbox_refinement', 'enabled': True, 'experimental': True})

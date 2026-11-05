@@ -3,6 +3,7 @@
 import ctypes as ct
 
 from .live_gpu_candidate import LiveGpuCandidate
+from .gpu_frame import GpuFrame
 
 
 class LiveSourceGpuCandidate(LiveGpuCandidate):
@@ -27,12 +28,13 @@ class LiveSourceGpuCandidate(LiveGpuCandidate):
     def infer(self, frame):
         self._owner()
         self._validate_frame(frame)
-        input_bytes = self._input_bytes()
+        expected_input_bytes = self._input_bytes()
         depth = self.engine.infer_device(frame)
         depth.validate()
         if depth.owner is not self.engine or depth.stream != self._stream(self.engine):
             raise ValueError("Depth belongs to another engine or CUDA stream")
-        self.h2d += input_bytes
+        input_bytes = getattr(self.engine, 'last_input_bytes', None)
+        self.h2d += expected_input_bytes if input_bytes is None else input_bytes
         return depth
 
     def _input_bytes(self):
@@ -62,12 +64,15 @@ class LiveSourceGpuCandidate(LiveGpuCandidate):
             raise ValueError("Invalid inference RGB frame")
 
     def _post(self, frame, depth, aligned, reset):
+        gpu_frame = isinstance(frame, GpuFrame)
+        if gpu_frame:
+            frame.validate(self.engine)
         self._check(
             self.dll.live_post_source(
                 self.handle,
-                frame.ctypes.data,
+                frame.rgb.data_ptr() if gpu_frame else frame.ctypes.data,
                 depth.pointer,
-                1,
+                2 if gpu_frame else 1,
                 self.policy.depth_guide_radius,
                 self.policy.temporal_alpha,
                 self.policy.temporal_color_threshold,
@@ -77,4 +82,5 @@ class LiveSourceGpuCandidate(LiveGpuCandidate):
                 self.policy.temporal_depth_transition,
             )
         )
-        self.h2d += frame.nbytes
+        if not gpu_frame:
+            self.h2d += frame.nbytes

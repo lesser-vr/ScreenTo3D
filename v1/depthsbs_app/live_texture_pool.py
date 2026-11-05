@@ -12,9 +12,12 @@ RUNTIME_SHA256 = "8bf16e363dd1fc6002be598335029925113b2afa2b9bdd00f12519a8002a9e
 
 
 class LiveTexturePool:
+    library_path = ROOT / 'out/live-texture-runtime/live_texture_runtime.dll'
+    library_sha256 = RUNTIME_SHA256
+
     def __init__(self, width, height, *, diagnostic=False):
-        path = ROOT / "out/live-texture-runtime/live_texture_runtime.dll"
-        if hashlib.sha256(path.read_bytes()).hexdigest() != RUNTIME_SHA256:
+        path = self.library_path
+        if hashlib.sha256(path.read_bytes()).hexdigest() != self.library_sha256:
             raise RuntimeError("Native texture runtime DLL checksum mismatch")
         self.thread = threading.get_ident()
         self.dll = ct.CDLL(str(path))

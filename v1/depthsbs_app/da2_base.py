@@ -1,4 +1,4 @@
-"""Explicit local DA2 Base FP32 backend; CC-BY-NC-4.0 weights."""
+"""Local DA2 Base mixed-FP16 engine with FP32 I/O; CC-BY-NC-4.0 weights."""
 import hashlib
 import os
 from pathlib import Path
@@ -8,12 +8,13 @@ import time
 import cv2
 import numpy as np
 
-PLAN_HASH = '93d5159282cc96ac2ea79895051f7646514791cac9351917c62f444818b78209'
-PLAN_BYTES = 402367692
+PRECISION = 'fp16'
+PLAN_HASH = 'a8718fa657e73f7506ab71367e4ec2d4600338bb72a8d2c142c94e7ef0a86eb7'
+PLAN_BYTES = 200603884
 SHAPE = (1, 3, 518, 896)
 PROFILES = {
     (518, 896): (PLAN_HASH, PLAN_BYTES),
-    (518, 924): ('e5b17445993602abf2a01c0f6e7686d5fa67afec49bd9ef8bb4c133175c89d2e', 402660828),
+    (518, 924): ('0216c0493714c120ebe261d29eb10b3eadb52ca8fc5934192aa2dbf2570bd9bd', 200667716),
 }
 
 
@@ -76,7 +77,7 @@ def profiles(directory):
         raise ValueError('Unknown DA2 Base plan size')
     found = {}
     for shape in PROFILES:
-        child = directory/f'{shape[0]}x{shape[1]}-fp32'
+        child = directory/f'{shape[0]}x{shape[1]}-{PRECISION}'
         if child.exists():
             child = child.resolve(strict=True)
             if child.parent != directory:
@@ -84,7 +85,7 @@ def profiles(directory):
             checked_plan(child, shape)
             found[shape] = child
     if not found:
-        raise ValueError('No validated DA2 Base profiles found')
+        raise ValueError(f'No validated DA2 Base {PRECISION.upper()} profiles found; install the matching local engines')
     return found
 
 
@@ -113,7 +114,7 @@ def binding(directory, runtime_dir, *, device_depth=False):
             from .da2_base_device import Da2BaseDeviceEngine
             engine_type = Da2BaseDeviceEngine
         return engine_type(installed[selected], runtime_dir, selected)
-    return BackendBinding(BackendSpec('da2-base', 'tensorrt-fp32'), factory, lambda frame: frame, validate)
+    return BackendBinding(BackendSpec('da2-base', f'tensorrt-{PRECISION}'), factory, lambda frame: frame, validate)
 
 
 class Da2BaseEngine:
@@ -125,6 +126,8 @@ class Da2BaseEngine:
         self.calls = 0
         self.preprocess_seconds = 0.
         self.shape = shape
+        self.precision = PRECISION
+        self.plan_hash = PROFILES[shape][0]
         if not torch.cuda.is_available():
             raise RuntimeError('DA2 Base requires CUDA')
         self.device = torch.cuda.current_device()
@@ -196,8 +199,9 @@ class Da2BaseEngine:
 
     def telemetry(self):
         self._check()
-        return dict(model_id='da2-base', runtime='tensorrt-fp32', input_shape=[1,3,*self.shape],
-            completed_inferences=self.calls, plan_sha256=PROFILES[self.shape][0], weight_license='CC-BY-NC-4.0',
+        return dict(model_id='da2-base', runtime=f'tensorrt-{self.precision}', input_shape=[1,3,*self.shape],
+            completed_inferences=self.calls, plan_sha256=self.plan_hash, weight_license='CC-BY-NC-4.0',
+            io_precision='fp32',
             preprocessing_ms=self.preprocess_seconds*1000, zero_copy=False,
             host_to_device_bytes=self.calls*3*self.shape[0]*self.shape[1]*4,
             cuda_allocated_bytes=self.torch.cuda.memory_allocated(self.device),

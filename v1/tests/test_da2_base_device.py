@@ -1,6 +1,7 @@
 import unittest
+import threading
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from depthsbs_app.da2_base_device import Da2BaseDeviceDepth, Da2BaseDeviceEngine
 
@@ -51,6 +52,41 @@ class Da2BaseDeviceTokenTests(unittest.TestCase):
         _, token = self.token()
         with self.assertRaisesRegex(ValueError, "another engine"):
             engine.complete_device(token)
+
+    def test_graph_cleanup_failure_still_releases_engine_and_input(self):
+        for failure in ('synchronize', 'reset'):
+            with self.subTest(failure=failure):
+                engine = Da2BaseDeviceEngine.__new__(Da2BaseDeviceEngine)
+                engine.owner = threading.get_ident()
+                engine.closed = False
+                engine.graph = Mock()
+                engine.stream = Mock()
+                engine.graph_input = object()
+                engine.pending_device = object()
+                engine.device_generation = 0
+                resource = engine.stream if failure == 'synchronize' else engine.graph
+                getattr(resource, failure).side_effect = RuntimeError('injected graph cleanup')
+                def parent_close():
+                    engine.closed = True
+                with patch('depthsbs_app.da2_base.Da2BaseEngine.close', side_effect=parent_close) as parent:
+                    with self.assertRaisesRegex(RuntimeError, 'injected graph cleanup'):
+                        engine.close()
+                    parent.assert_called_once()
+                self.assertIsNone(engine.graph_input)
+                self.assertIsNone(engine.pending_device)
+
+    def test_graph_wrong_thread_cannot_release_resources(self):
+        engine = Da2BaseDeviceEngine.__new__(Da2BaseDeviceEngine)
+        engine.owner = threading.get_ident() + 1
+        engine.graph = Mock()
+        with self.assertRaisesRegex(RuntimeError, 'owner thread'):
+            engine.close()
+        engine.graph.reset.assert_not_called()
+
+    def test_graph_setting_rejects_ambiguous_value_before_loading(self):
+        with patch.dict('os.environ', {'DEPTHSBS_BASE_GRAPH': 'yes'}):
+            with self.assertRaisesRegex(ValueError, 'must be 0 or 1'):
+                Da2BaseDeviceEngine()
 
 
 if __name__ == '__main__':

@@ -7,8 +7,18 @@ class CadenceTests(unittest.TestCase):
         for hz in (30, 60):
             cadence = PresentationCadence(hz)
             self.assertEqual(cadence.period_ns, round(1e9 / hz))
-        with self.assertRaises(ValueError):
-            PresentationCadence(120)
+        for invalid in (120, -1, True, 30.0, '60', None):
+            with self.assertRaises(ValueError):
+                PresentationCadence(invalid)
+
+    def test_default_is_unlimited(self):
+        c = PresentationCadence()
+        self.assertEqual(c.hz, 0)
+        self.assertEqual(c.period_ns, 0)
+        self.assertEqual(c.poll_ms, 1)
+        c.emitted(100)
+        self.assertTrue(c.ready(100))
+        self.assertTrue(c.ready(101))
 
     def test_no_burst_after_delay(self):
         c = PresentationCadence(60)
@@ -17,9 +27,11 @@ class CadenceTests(unittest.TestCase):
         c.emitted(5_000_000_000)
         self.assertEqual(c.next_ns, 5_000_000_000 + c.period_ns)
 
-    def test_preserves_deadline_instead_of_adding_poll_jitter(self):
+    def test_late_poll_never_shortens_next_interval(self):
         c = PresentationCadence(30)
         c.emitted(1_000_000_000)
         target = c.next_ns
         c.emitted(target + 2_000_000)
-        self.assertEqual(c.next_ns, target + c.period_ns)
+        self.assertEqual(c.next_ns, target + 2_000_000 + c.period_ns)
+        self.assertFalse(c.ready(c.next_ns - 1))
+        self.assertTrue(c.ready(c.next_ns))

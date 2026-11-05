@@ -10,7 +10,7 @@ class LivePolicy:
     guide_radius: int
     flat_refinement: bool
     description: str
-    presentation_hz: int = 30
+    presentation_hz: int = 0
 
     def resolve(self, strength=1.0):
         if not 0.25 <= strength <= 2.0:
@@ -76,4 +76,6 @@ def refresh_live(frame, inferred_frame, index, policy, cut):
         return "cut"
     if index % policy.inference_cadence == 0:
         return "cadence"
-    return "reuse" if np.array_equal(frame, inferred_frame) else "motion"
+    from .gpu_frame import GpuFrame
+    same = frame.same_pixels(inferred_frame) if isinstance(frame, GpuFrame) else np.array_equal(frame, inferred_frame)
+    return "reuse" if same else "motion"

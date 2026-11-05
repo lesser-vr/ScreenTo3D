@@ -184,9 +184,9 @@ ApplicationWindow {
                     }
                     Copy { objectName: "setupStatus"; text: desktop.setup; font.pixelSize: 12 }
                     Label { text: "실시간 SBS · 진단 설정"; color: root.ink; font.bold: true }
-                    Copy { text: "목표 출력 속도 · 실제 처리 속도와 다를 수 있습니다"; font.pixelSize: 12 }
-                    Picker { objectName: "livePresentationHz"; enabled: !live.active; model: ["30 fps", "60 fps"]; currentIndex: live.presentationHz === 60 ? 1 : 0; onActivated: live.setPresentationHz(currentIndex === 1 ? 60 : 30); Accessible.name: "목표 출력 속도" }
-                    Picker { objectName: "liveProcessingPath"; enabled: !live.active; model: live.nativeCapable ? ["GPU 가속 · 기본", "기존 처리 · 진단용", "GPU 직접 출력 · 실험"] : ["GPU 가속 · 기본", "기존 처리 · 진단용"]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]); Accessible.name: "출력 처리 경로" }
+                    Copy { text: "출력 FPS 제한 · 무제한은 가능한 속도로 출력합니다"; font.pixelSize: 12 }
+                    Picker { objectName: "livePresentationHz"; enabled: !live.active; model: ["무제한 · 기본", "30 FPS", "60 FPS"]; currentIndex: [0, 30, 60].indexOf(live.presentationHz); onActivated: live.setPresentationHz([0, 30, 60][currentIndex]); Accessible.name: "출력 FPS 제한" }
+                    Picker { objectName: "liveProcessingPath"; enabled: !live.active; model: live.nativeCapable ? ["GPU 호스트 출력 · 진단용", "기존 처리 · 진단용", "GPU 직접 출력 · 기본"] : ["GPU 호스트 출력 · 진단용", "기존 처리 · 진단용"]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]); Accessible.name: "출력 처리 경로" }
                     CheckOption { id: diagnostics; text: "상세 상태 보기" }
                     Copy { visible: diagnostics.checked; text: live.policyDescription + "\n" + live.supportStatus + "\n" + live.metrics; font.pixelSize: 12 }
                     CheckOption { id: advanced; text: "고급 설정 · 진단" }
@@ -251,7 +251,7 @@ ApplicationWindow {
             Image { objectName: "outputImage"; anchors.fill: parent; source: sbsOutput.visible && !live.nativeEnabled ? live.imageUrl : ""; fillMode: Image.PreserveAspectFit; cache: false; asynchronous: false }
             Loader {
                 id: nativeOutput; anchors.fill: parent
-                active: live.nativeEnabled; source: active ? "NativeFrame.qml" : ""
+                active: live.nativeEnabled && live.nativeReady; source: active ? "NativeFrame.qml" : ""
                 Binding { target: nativeOutput.item; property: "consumer"; value: 1; when: nativeOutput.status === Loader.Ready }
                 Binding { target: nativeOutput.item; property: "demand"; value: sbsOutput.visible; when: nativeOutput.status === Loader.Ready }
             }

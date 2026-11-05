@@ -28,7 +28,8 @@ class LiveSceneHistory:
     def inspect(self, frame):
         if frame.dtype != np.uint8 or frame.ndim != 3 or frame.shape[2] != 3:
             raise ValueError("Invalid scene RGB frame")
-        current = cv2.resize(frame, (32, 32)).astype(np.float32)
+        from .gpu_frame import GpuFrame
+        current = (frame.thumbnail() if isinstance(frame, GpuFrame) else cv2.resize(frame, (32, 32))).astype(np.float32)
         cut = (
             self.previous is not None
             and float(np.mean(np.abs(current - self.previous))) / 255 > self.threshold

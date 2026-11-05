@@ -27,6 +27,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--sizes', default='1920x1080,3440x1440,1080x1920,3840x2160')
+    parser.add_argument('--gpu-input', action='store_true')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     configure_resource_root(BUNDLE)
@@ -60,6 +61,7 @@ def main():
                     return value
                 reference = StereoSynthesizer(width, height, policy, projection, paired_projection=projection.project_pair)
                 product = stack.enter_context(LiveSourceGpuCandidate(width, height, policy, device))
+                cpu_input = stack.enter_context(LiveSourceGpuCandidate(width, height, policy, device)) if args.gpu_input else None
                 native = stack.enter_context(LiveSourceGpuTexture(width, height, policy, device, diagnostic=True))
                 readback = np.empty((height, width*2, 4), np.uint8)
                 for index, image in enumerate(source):
@@ -74,7 +76,15 @@ def main():
                     # before optional flat-background refinement.
                     with patch('depthsbs_app.pipeline.guide_depth', side_effect=guide):
                         expected = reference.render(frame, raw)
-                    token = product.infer(frame)
+                    input_frame = frame
+                    if args.gpu_input:
+                        from depthsbs_app.gpu_frame import GpuFrame
+                        bgra = cv2.cvtColor(frame, cv2.COLOR_RGB2BGRA)
+                        with device.torch.cuda.stream(device.stream):
+                            input_frame = GpuFrame(device.torch.from_numpy(bgra).cuda(), device)
+                        assert np.array_equal(input_frame.thumbnail(), cv2.resize(frame, (32,32)))
+                        assert product.needs_background(input_frame) == product.needs_background(frame)
+                    token = product.infer(input_frame)
                     device.stream.synchronize()
                     actual_depth = token.tensor.cpu().numpy()
                     assert np.array_equal(raw, actual_depth), 'Raw depth mismatch'
@@ -85,7 +95,10 @@ def main():
                         pass
                     else:
                         raise AssertionError('Pending token reused')
-                    actual, aligned = product.render(frame, token, diagnostic=True)
+                    actual, aligned = product.render(input_frame, token, diagnostic=True)
+                    if cpu_input is not None:
+                        cpu_result = cpu_input.render(frame, cpu_input.infer(frame))
+                        assert np.array_equal(actual, cpu_result), 'GPU input changed SBS pixels'
                     try:
                         token.validate()
                     except RuntimeError:
@@ -93,12 +106,13 @@ def main():
                     else:
                         raise AssertionError('Completed token still valid')
                     native.slot = index % 2
-                    slot = native.render(frame, native.infer(frame))
+                    slot = native.render(input_frame, native.infer(input_frame))
                     native.pool.check(native.pool.dll.live_pool_readback(native.pool.handle, slot, readback.ctypes.data))
                     assert np.array_equal(actual, readback[:,:,:3]) and np.all(readback[:,:,3] == 255)
                     diff = np.abs(aligned - guided[0])
                     pixel = np.abs(actual.astype(np.int16) - expected.astype(np.int16))
                     row = dict(size=size, frame=index, raw_exact=True, native_exact=True,
+                        gpu_input=args.gpu_input, input_sbs_exact=True if args.gpu_input else None,
                         depth_mae=float(diff.mean()), depth_max=float(diff.max()),
                         rgb_mae=float(pixel.mean()), rgb_changed_fraction=float(np.mean(np.any(pixel != 0, axis=2))))
                     row['passed'] = all(row[k] <= v for k,v in report['limits'].items())
@@ -108,7 +122,7 @@ def main():
                         cv2.imwrite(str(args.output/f'{size}-reference.png'), cv2.cvtColor(expected, cv2.COLOR_RGB2BGR))
                         cv2.imwrite(str(args.output/f'{size}-gpu.png'), cv2.cvtColor(actual, cv2.COLOR_RGB2BGR))
                     assert row['passed'], 'Existing GPU parity limits exceeded'
-                assert not device.pending_device and device.device_completions == len(source)*2
+                assert not device.pending_device and device.device_completions == len(source)*(3 if args.gpu_input else 2)
         report['passed'] = True
     finally:
         (args.output/'report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')

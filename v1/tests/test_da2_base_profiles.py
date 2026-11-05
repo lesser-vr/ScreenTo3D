@@ -3,14 +3,28 @@ import cv2
 import numpy as np
 from pathlib import Path
 from unittest.mock import patch
+import tempfile
 from depthsbs_app import da2_base
 
 
 class ProfileTests(unittest.TestCase):
+    def test_default_precision_and_no_fp32_folder_fallback(self):
+        self.assertEqual(da2_base.PRECISION, 'fp16')
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / '518x896-fp32').mkdir()
+            with self.assertRaisesRegex(ValueError, 'FP16'):
+                da2_base.profiles(root)
+            (root / '518x896-fp16').mkdir()
+            with patch.object(da2_base, 'checked_plan') as checked:
+                self.assertEqual(da2_base.profiles(root), {(518,896): root/'518x896-fp16'})
+                checked.assert_called_once_with(root/'518x896-fp16', (518,896))
+
     def test_resolution_mapping_and_fail_closed_selection(self):
         installed = {(518,896): Path('original'), (518,924): Path('wide')}
         with patch.object(da2_base, 'profiles', return_value=installed), patch.object(Path, 'is_file', return_value=True), patch.object(da2_base, 'Da2BaseEngine') as engine:
             backend = da2_base.binding(Path('root'), Path('runtime'))
+            self.assertEqual(backend.spec.runtime, 'tensorrt-fp16')
             with self.assertRaises(ValueError): backend.engine_factory(None)
             for w,h in ((1280,720),(1920,1080),(3840,2160)):
                 backend.input_validator(dict(width=w,height=h))

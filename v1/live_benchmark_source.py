@@ -5,14 +5,17 @@ import os
 import time
 
 
-def source_main(connection, source):
+def source_main(connection, source, interval_ms=16):
     # Import Qt only in the spawned process; never share GUI objects across IPC.
-    from PySide6.QtCore import QTimer
+    from PySide6.QtCore import QTimer, Qt
     from PySide6.QtWidgets import QApplication
     from benchmark_live_modes import ClockOracle
 
     app = QApplication([])
     oracle = ClockOracle(source)
+    if interval_ms != 16:
+        oracle.timer.setTimerType(Qt.PreciseTimer)
+        oracle.timer.setInterval(interval_ms)
     oracle.show()
 
     def snapshot():
@@ -28,6 +31,7 @@ def source_main(connection, source):
             stamps=list(oracle.stamps),
             observed_ns=time.perf_counter_ns(),
             cpu_seconds=time.process_time(),
+            source_interval_ms=interval_ms,
         )
 
     def service():
@@ -41,6 +45,8 @@ def source_main(connection, source):
             operation, payload = connection.recv()
             if operation == "resize":
                 oracle.resize(*payload)
+            elif operation == "pause":
+                oracle.timer.stop()
             elif operation == "stop":
                 connection.send({"stopped": True})
                 app.quit()
@@ -67,10 +73,12 @@ def source_main(connection, source):
 class SourceProcess:
     """One outstanding command, bounded 4096-stamp replies, no frame transport."""
 
-    def __init__(self, source, timeout=10):
+    def __init__(self, source, timeout=10, *, interval_ms=16):
+        if type(interval_ms) is not int or not 0 <= interval_ms <= 1000:
+            raise ValueError('Invalid benchmark source interval')
         context = mp.get_context("spawn")
         self.connection, child = context.Pipe()
-        self.process = context.Process(target=source_main, args=(child, source))
+        self.process = context.Process(target=source_main, args=(child, source, interval_ms))
         self.timeout = timeout
         if timeout <= 0:
             self.connection.close()

@@ -17,6 +17,8 @@ class LiveControllerTests(unittest.TestCase):
     def setUp(self):
         self.desktop = DesktopController()
         self.live = LivePreview(self.desktop)
+        # Existing controller cases explicitly exercise the host diagnostic path.
+        self.live.setProcessingPath("gpu")
         self.desktop.live = self.live
         # Tests exercise an explicitly selected synthetic source, never the
         # user's first enumerated window. Initial selection is now empty.
@@ -98,11 +100,35 @@ class LiveControllerTests(unittest.TestCase):
             self.assertIn("파일 변환", self.desktop.setup)
         self.desktop._cleanup()
 
-    def test_local_gui_defaults_to_gpu(self):
+    def test_local_gui_defaults_to_native_without_loading_it(self):
         with patch("depthsbs_app.live_preview.os.environ", {}):
             live = LivePreview(self.desktop)
-        self.assertEqual(live.processingPath, "gpu")
-        self.assertEqual(live.presentationHz, 30)
+        self.assertEqual(live.processingPath, "gpu-texture")
+        self.assertFalse(live.nativeReady)
+        self.assertFalse(live.hasFrame)
+        self.assertIsNone(live.report()['native_delivery'])
+        self.assertEqual(live.presentationHz, 0)
+        from depthsbs_app.live_policy import LIVE_MODES
+        self.assertTrue(all(policy.presentation_hz == 0 for policy in LIVE_MODES.values()))
+
+    def test_default_native_failure_releases_lease_without_fallback(self):
+        with patch("depthsbs_app.live_preview.os.environ", {}):
+            live = LivePreview(self.desktop)
+        live.items = [dict(kind='window', id=11, pid=1, width=640, height=360)]
+        live.selected = 0
+        with patch('depthsbs_app.live_preview.validate_source'), patch(
+            'depthsbs_app.native_delivery.NativeDelivery', side_effect=RuntimeError('hash mismatch')
+        ), patch('depthsbs_app.live_preview.mp.get_context') as context:
+            live.start()
+        self.assertEqual(live.processingPath, 'gpu-texture')
+        self.assertIsNone(self.desktop.lease.owner)
+        self.assertFalse(live.active)
+        self.assertFalse(live.nativeReady)
+        self.assertIn('hash mismatch', live.status)
+        self.assertIn('GPU 호스트 출력', live.status)
+        context.return_value.Process.assert_not_called()
+        live.setProcessingPath('gpu')
+        self.assertEqual(live.processingPath, 'gpu')
 
     def test_model_owned_mode_selection(self):
         self.assertEqual(self.live.liveMode, "balanced")
@@ -265,12 +291,17 @@ class LiveControllerTests(unittest.TestCase):
 
     def test_processing_and_cadence_snapshot_controls(self):
         self.live.setProcessingPath("gpu")
+        self.live.setPresentationHz(30)
+        self.assertEqual(self.live.presentationHz, 30)
+        self.live.setPresentationHz(0)
+        self.assertEqual(self.live.presentationHz, 0)
         self.live.setPresentationHz(60)
         self.assertEqual(self.live.processingPath, "gpu")
         self.assertEqual(self.live.presentationHz, 60)
         self.fake_active()
         self.live.setProcessingPath("reference")
         self.live.setPresentationHz(30)
+        self.live.setPresentationHz(0)
         self.assertEqual(self.live.processingPath, "gpu")
         self.assertEqual(self.live.presentationHz, 60)
         self.live.stop()

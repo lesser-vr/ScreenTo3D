@@ -250,14 +250,14 @@ __global__ void make_shift(LiveDepth c,float convergence,float scale) {
     int i=blockIdx.x*blockDim.x+threadIdx.x;if(i<c.n)c.shift[i]=-(c.aligned[i]-convergence)*scale*.5f;
 }
 
-extern "C" __declspec(dllexport) int live_post(void* handle,const unsigned char* rgb,
+static int live_post_impl(void* handle,const unsigned char* rgb,
     const float* device_depth,int radius,double alpha,float color_threshold,float depth_threshold,int reset,
-    float* diagnostic,double transition) {
+    float* diagnostic,double transition,bool rgb_device) {
     auto c=(LiveDepth*)handle;if(!c || !rgb || !device_depth || radius<1 || radius>12)return 1;
     auto s=c->stream;int blocks=(c->n+255)/256;
 #define C(call) do {auto e=(call);if(e!=cudaSuccess){cudaStreamSynchronize(s);return int(e);}}while(0)
     C(cudaEventRecord(c->events[2],s));
-    C(cudaMemcpyAsync(c->rgb,rgb,c->n*3,cudaMemcpyHostToDevice,s));
+    C(cudaMemcpyAsync(c->rgb,rgb,c->n*3,rgb_device?cudaMemcpyDeviceToDevice:cudaMemcpyHostToDevice,s));
     C(cudaMemsetAsync(c->invalid,0,4,s));
     check_raw<<<(518*518+255)/256,256,0,s>>>(device_depth,c->invalid);
     resize_depth<<<blocks,256,0,s>>>(device_depth,c->resized,c->w,c->h,c->invalid);
@@ -285,16 +285,26 @@ extern "C" __declspec(dllexport) int live_post(void* handle,const unsigned char*
 }
 
 // oVDA/VDA device-depth spike only: raw depth is already source resolution.
+extern "C" __declspec(dllexport) int live_post(void* handle,const unsigned char* rgb,
+    const float* depth,int radius,double alpha,float ct,float dt,int reset,float* diagnostic,double transition) {
+    return live_post_impl(handle,rgb,depth,radius,alpha,ct,dt,reset,diagnostic,transition,false);
+}
+extern "C" __declspec(dllexport) int live_post_gpu(void* handle,const unsigned char* rgb,
+    const float* depth,int radius,double alpha,float ct,float dt,int reset,float* diagnostic,double transition) {
+    return live_post_impl(handle,rgb,depth,radius,alpha,ct,dt,reset,diagnostic,transition,true);
+}
+
 // depth_on_device=1 requires the pointer to be produced on this exact stream.
 extern "C" __declspec(dllexport) int live_post_source(void* handle,const unsigned char* rgb,
     const float* depth,int depth_on_device,int radius,double alpha,float color_threshold,
     float depth_threshold,int reset,float* diagnostic,double transition) {
     auto c=(LiveDepth*)handle;
-    if(!c || !rgb || !depth || (depth_on_device!=0 && depth_on_device!=1) || radius<1 || radius>12)return 1;
+    // 2: both RGB and source depth are owned device buffers on this stream.
+    if(!c || !rgb || !depth || depth_on_device<0 || depth_on_device>2 || radius<1 || radius>12)return 1;
     auto s=c->stream;int blocks=(c->n+255)/256;
 #define C(call) do {auto e=(call);if(e!=cudaSuccess){cudaStreamSynchronize(s);return int(e);}}while(0)
     C(cudaEventRecord(c->events[2],s));
-    C(cudaMemcpyAsync(c->rgb,rgb,c->n*3,cudaMemcpyHostToDevice,s));
+    C(cudaMemcpyAsync(c->rgb,rgb,c->n*3,depth_on_device==2?cudaMemcpyDeviceToDevice:cudaMemcpyHostToDevice,s));
     C(cudaMemsetAsync(c->invalid,0,4,s));
     C(cudaMemcpyAsync(c->resized,depth,c->n*4,depth_on_device?cudaMemcpyDeviceToDevice:cudaMemcpyHostToDevice,s));
     check_source_raw<<<blocks,256,0,s>>>(c->resized,c->n,c->invalid);C(cudaGetLastError());

@@ -44,6 +44,7 @@ def monitors():
                 dict(
                     kind="monitor",
                     id=index,
+                    handle=int(handle),
                     device=info.device,
                     label=f"모니터 {index} · {r.right - r.left} × {r.bottom - r.top}",
                     width=r.right - r.left,
