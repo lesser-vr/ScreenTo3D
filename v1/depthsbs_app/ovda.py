@@ -5,10 +5,10 @@ from pathlib import Path
 import sys
 
 PROFILES = {
-    (518, 686): ('db2cf668ef4347ad655983109f9e98c358d76eae9a7511a794c108b81f4d408f', 126622404),
-    (518, 896): ('fbfe8fc4547ddcfb16a27fa78fe0ae1039ee2f18bb2d1ec374a280d30fa6fe99', 129065172),
-    (518, 924): ('6aab5d663f544192b78a7c16d8e86c2345774602c92f93c8c1bd02376e3d410a', 129402708),
+    (518, 924): ('394894301beee2302decaf43e7dd4912c043cae469a07f19f4848774a5eb0ec1', 91370692),
 }
+PROFILE_SUFFIX = 'fp16'
+RUNTIME = 'tensorrt-mixed-fp16'
 LICENSE_NOTICE = ('oVDA: NC-SA-UHDV1.0. Personal/non-commercial use only; '
                   'redistribution and derivatives have attribution/share-alike obligations. '
                   'Read experiments/ovda/LICENSE. No commercial use permission is implied.')
@@ -38,7 +38,7 @@ def profiles(directory):
         raise ValueError('Unknown oVDA plan; use the validated local engines')
     found = {}
     for shape in PROFILES:
-        child = directory / f'{shape[0]}x{shape[1]}-fp32'
+        child = directory / f'{shape[0]}x{shape[1]}-{PROFILE_SUFFIX}'
         if child.exists():
             child = child.resolve(strict=True)
             if child.parent != directory:
@@ -46,18 +46,13 @@ def profiles(directory):
             checked_plan(child, shape)
             found[shape] = child
     if not found:
-        raise ValueError('No validated oVDA profiles found; see docs/product-specs/ovda-local-preview.md')
+        raise ValueError('No validated oVDA mixed FP16 profile found; prepare 518x924-fp16. See docs/models/ovda.md')
     return found
 
 
-def input_shape(metadata):
-    width, height = metadata.get('width'), metadata.get('height')
-    if (type(width) is not int or type(height) is not int or
-            not (16 <= width <= 4096 and 16 <= height <= 2160) or
-            not 1.30 <= width / height <= 1.78):
-        raise ValueError('oVDA supports validated landscape profiles, width 16..4096 and height 16..2160; no crop/padding fallback')
-    from .vda_artifacts import profile_shape
-    return profile_shape(width, height)
+def input_shape(metadata, available=None):
+    from .ovda_geometry import select_profile
+    return select_profile(metadata.get('width'), metadata.get('height'), PROFILES if available is None else available)
 
 
 def runtime_class(device_depth=False):
@@ -82,6 +77,12 @@ def runtime_class(device_depth=False):
     return OvdaTrt
 
 
+def postprocess_bridge(renderer):
+    runtime_class(True)  # Same fixed source-only optional package boundary.
+    from _depthsbs_ovda.postprocess import OvdaPostBridge
+    return OvdaPostBridge(renderer,renderer.policy.temporal_depth_alpha)
+
+
 def binding(directory, runtime_dir, noncommercial=False, *, device_depth=False):
     from .depth_backend import BackendBinding, BackendSpec
     if noncommercial is not True:
@@ -93,7 +94,7 @@ def binding(directory, runtime_dir, noncommercial=False, *, device_depth=False):
     def validate(metadata):
         nonlocal selected
         selected = None
-        shape = input_shape(metadata)
+        shape = input_shape(metadata, installed)
         if shape not in installed:
             raise ValueError(f'No oVDA engine for {shape}; select the matching profile root')
         selected = shape
@@ -103,4 +104,4 @@ def binding(directory, runtime_dir, noncommercial=False, *, device_depth=False):
         if progress:
             progress(dict(event='ovda_profile', input_shape=[1, 1, 3, *selected], license='NC-SA-UHDV1.0'))
         return runtime_class(device_depth)(progress, directory=installed[selected], runtime_dir=runtime_dir, profile=selected)
-    return BackendBinding(BackendSpec('ovda-small-c16', 'tensorrt-fp32', True, True), factory, lambda frame: frame, validate)
+    return BackendBinding(BackendSpec('ovda-small-c16', RUNTIME, True, True), factory, lambda frame: frame, validate)

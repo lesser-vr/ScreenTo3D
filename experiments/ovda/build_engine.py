@@ -32,15 +32,17 @@ def main():
     parser.add_argument('--input', required=True, type=Path)
     parser.add_argument('--fold-position', action='store_true')
     parser.add_argument('--width', type=int, choices=(686, 896, 924), default=924)
+    parser.add_argument('--height',type=int,choices=(392,518),default=518)
+    parser.add_argument('--output',type=Path,help='New empty build directory; default is a unique local directory')
     parser.add_argument('--precision', choices=('fp32','fp16'), default='fp32')
     parser.add_argument('--runtime-dir', type=Path, default=Path('C:/TensorRT/TensorRT-11.2.1.2/bin'))
     args = parser.parse_args()
-    width = args.width
-    root = ROOT/'out/ovda-trt'/uuid.uuid4().hex
+    height,width=args.height,(700 if args.height==392 else args.width)
+    root = args.output if args.output is not None else ROOT/'out/ovda-trt'/uuid.uuid4().hex
     root.mkdir(parents=True)
     print(root, flush=True)
     report = dict(passed=False, source_revision=REVISION, weight_sha256=WEIGHT_HASH,
-                  precision=args.precision, input_shape=[1,1,3,518,width], comparisons=[],
+                  precision=args.precision, input_shape=[1,1,3,height,width], comparisons=[],
                   input_sha256=digest(args.input), fixes=[], license='NC-SA-UHDV1.0')
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
@@ -54,8 +56,8 @@ def main():
                       compute_capability=torch.cuda.get_device_capability(), cuda=torch.version.cuda, onnx=onnx.__version__)
         with OvdaOracle() as oracle, torch.inference_mode():
             model = oracle.model
-            cache = model.setup_cache(518,width,'cuda')
-            image = torch.zeros((1,1,3,518,width),device='cuda')
+            cache = model.setup_cache(height,width,'cuda')
+            image = torch.zeros((1,1,3,height,width),device='cuda')
             mask, pos = schedule(0)
             mask = torch.tensor(mask,device='cuda'); pos = torch.tensor(pos,device='cuda')
             inputs = ['image', *['cache_'+k for k in cache], 'mask', 'position']
@@ -67,8 +69,8 @@ def main():
             if args.fold_position:
                 backbone = model.pretrained
                 original = model(image,cache,mask,pos)
-                tokens = torch.zeros((1,37*(width//14)+1,backbone.embed_dim),device='cuda')
-                position = backbone.interpolate_pos_encoding(tokens,518,width).detach().clone()
+                tokens = torch.zeros((1,(height//14)*(width//14)+1,backbone.embed_dim),device='cuda')
+                position = backbone.interpolate_pos_encoding(tokens,height,width).detach().clone()
                 backbone.register_buffer('_export_position',position)
                 try:
                     with patch.object(backbone,'interpolate_pos_encoding',
@@ -124,14 +126,16 @@ def main():
                 'dtype':str(engine.get_tensor_dtype(engine.get_tensor_name(i))),
                 'mode':str(engine.get_tensor_mode(engine.get_tensor_name(i)))} for i in range(engine.num_io_tensors)]
             assert set(inputs+outputs) == {i['name'] for i in report['io']}
-            reference_cache = model.setup_cache(518,width,'cuda')
-            trt_cache = model.setup_cache(518,width,'cuda')
+            reference_cache = model.setup_cache(height,width,'cuda')
+            trt_cache = model.setup_cache(height,width,'cuda')
+            from preprocessing import FramePreprocessor
+            pre=FramePreprocessor((height,width))
             used = 0
             for index in range(32):
                 ok,bgr = capture.read()
                 if not ok: raise ValueError('Need 32 input frames')
-                image = oracle.pre.preprocess(cv2.cvtColor(bgr,cv2.COLOR_BGR2RGB)).cuda().contiguous()
-                if tuple(image.shape) != (1,1,3,518,width): raise ValueError('Fixed shape mismatch')
+                image = pre.preprocess(cv2.cvtColor(bgr,cv2.COLOR_BGR2RGB)).cuda().contiguous()
+                if tuple(image.shape) != (1,1,3,height,width): raise ValueError('Fixed shape mismatch')
                 mask,position = schedule(used)
                 mask=torch.tensor(mask,device='cuda'); position=torch.tensor(position,device='cuda')
                 expected,new_reference = model(image,reference_cache,mask,position)

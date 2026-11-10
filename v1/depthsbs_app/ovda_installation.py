@@ -6,7 +6,7 @@ import sys
 
 
 def installation_report(directory, runtime_dir, media_tools, renderer='cpu'):
-    from .ovda import profiles, PROFILES
+    from .ovda import profiles, PROFILES, RUNTIME
     from .local_projection import checked_dll
     root=Path(__file__).resolve().parents[2]
     checks=[]
@@ -25,7 +25,7 @@ def installation_report(directory, runtime_dir, media_tools, renderer='cpu'):
         installed=profiles(directory)
         shapes=', '.join(f'{h}x{w}' for h,w in installed)
         missing=set(PROFILES)-set(installed)
-        return 'Verified '+shapes+('; additional profiles not installed: '+str(sorted(missing)) if missing else '')
+        return 'Verified '+shapes+' '+RUNTIME+('; additional profiles not installed: '+str(sorted(missing)) if missing else '')
     def runtime():
         if runtime_dir is None or not (Path(runtime_dir)/'nvinfer_11.dll').is_file():
             raise ValueError('TensorRT 11 DLLs missing; choose RuntimeDirectory containing nvinfer_11.dll')
