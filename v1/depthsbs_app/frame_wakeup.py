@@ -1,4 +1,6 @@
 """Bounded metadata wakeups using a local socket pair; no capture or GPU access."""
+
+from .messages import Message as M
 import socket
 
 from PySide6.QtCore import QObject, QSocketNotifier, Signal
@@ -6,7 +8,7 @@ from PySide6.QtCore import QObject, QSocketNotifier, Signal
 
 class FrameWakeup(QObject):
     ready = Signal()
-    failed = Signal(str)
+    failed = Signal(object)
     health_interval_ms = 50
     event_driven = True
 
@@ -35,7 +37,7 @@ class FrameWakeup(QObject):
             return
         except OSError:
             self.notifier.setEnabled(False)
-            self.failed.emit('프레임 준비 알림 연결이 종료되었습니다.')
+            self.failed.emit(M('The frame-ready notification connection closed.'))
             return
         self.wakeups += 1
         self.ready.emit()

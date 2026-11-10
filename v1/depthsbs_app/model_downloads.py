@@ -1,4 +1,7 @@
 """Qt adapter for an explicitly requested optional model installation."""
+
+from .messages import Message as M, message_value, decode_message
+from .localization import localized, render
 import threading
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -12,8 +15,8 @@ from .vfg_runtime import BRIDGE, runtime_path
 
 class ModelDownloads(QObject):
     changed = Signal()
-    updateProgress = Signal(str, int)
-    finished = Signal(str, str, bool)
+    updateProgress = Signal(object, int)
+    finished = Signal(str, object, bool)
 
     def __init__(self, desktop):
         super().__init__(desktop)
@@ -27,14 +30,17 @@ class ModelDownloads(QObject):
         self.finished.connect(self._finished)
 
     @Property(str, notify=changed)
+    @localized
     def activeKey(self):
         return self.active_key
 
     @Property(str, notify=changed)
+    @localized
     def lastKey(self):
         return self.last_key
 
     @Property(str, notify=changed)
+    @localized
     def status(self):
         return self.message
 
@@ -48,13 +54,15 @@ class ModelDownloads(QObject):
                                                else self.desktop.engine_paths.get(key))
 
     @Slot(str, result=str)
+    @localized
     def description(self, key):
         if key not in PACKS:
             return ''
         pack = PACKS[key]
-        return f'{pack.name} · {pack.size / 1e6:.0f} MB\n{pack.terms}'
+        return M('{name} · {size:.0f} MB\n{terms}', name=pack.name, size=pack.size / 1e6, terms=pack.terms)
 
     @Slot(str, result=str)
+    @localized
     def installAction(self, key):
         if key not in PACKS:
             return ''
@@ -63,20 +71,20 @@ class ModelDownloads(QObject):
         except FileNotFoundError:
             return ''
         except ValueError:
-            return '다운로드 및 설치'
-        return '로컬 팩 설치' if isinstance(source, Path) else '다운로드 및 설치'
+            return M('Download and install')
+        return M('Install local pack') if isinstance(source, Path) else M('Download and install')
 
     @Slot(str, bool)
     def begin(self, key, choose_file):
         if self.desktop.busy or not self.needed(key):
             return
         if key == 'vfg' and not BRIDGE.is_file():
-            self.desktop.showModelError('VFG 출력 모듈이 없습니다. ScreenTo3D 배포본을 다시 설치하세요.')
+            self.desktop.showModelError(M('The VFG output module is missing. Reinstall the ScreenTo3D distribution.'))
             return
         try:
             if choose_file:
-                filename, _ = QFileDialog.getOpenFileName(None, '모델 설치 파일 선택', '',
-                                                          f'설치 파일 ({PACKS[key].filename})')
+                filename, _ = QFileDialog.getOpenFileName(None, render(M('Choose a model installation file')), '',
+                                                          render(M('Installation file ({v0})', v0=PACKS[key].filename)))
                 if not filename:
                     return
                 source = Path(filename)
@@ -84,9 +92,9 @@ class ModelDownloads(QObject):
                 source = source_for(key)
             self.desktop.lease.acquire('model-install')
         except Exception as exc:
-            self.desktop.showModelError(str(exc))
+            self.desktop.showModelError(exc)
             return
-        self.active_key, self.message, self.percent = key, '연결 중…', -1
+        self.active_key, self.message, self.percent = key, M('Connecting…'), -1
         self.last_key = key
         self.stop_event.clear()
         self.changed.emit()
@@ -104,11 +112,11 @@ class ModelDownloads(QObject):
             try:
                 install(key, source, installed_path(key), progress, self.stop_event.is_set)
             except InterruptedError:
-                self.finished.emit(key, '설치를 취소했습니다.', False)
+                self.finished.emit(key, M('Installation cancelled.'), False)
             except (HTTPError, URLError, TimeoutError) as exc:
-                self.finished.emit(key, f'모델 서버에 연결할 수 없습니다. 다시 시도하거나 설치 파일을 선택하세요.\n{exc}', True)
+                self.finished.emit(key, M('Cannot connect to the model server. Try again or select an installation file.\n{v0}', v0=exc), True)
             except Exception as exc:
-                self.finished.emit(key, str(exc), True)
+                self.finished.emit(key, message_value(exc), True)
             else:
                 self.finished.emit(key, '', False)
         threading.Thread(target=work, name='DepthSBS model install', daemon=True).start()
@@ -116,16 +124,16 @@ class ModelDownloads(QObject):
     @Slot()
     def cancel(self):
         self.stop_event.set()
-        self.message = '설치 취소 중…'
+        self.message = M('Cancelling installation…')
         self.changed.emit()
 
-    @Slot(str, int)
+    @Slot(object, int)
     def _progress(self, message, percent):
         if not self.stop_event.is_set():
             self.message, self.percent = message, percent
             self.changed.emit()
 
-    @Slot(str, str, bool)
+    @Slot(str, object, bool)
     def _finished(self, key, message, failed):
         if not message and key != 'vfg':
             path = str(installed_path(key))
@@ -133,7 +141,7 @@ class ModelDownloads(QObject):
             if self.desktop.values['model'] == key:
                 self.desktop.values['engine'] = path
         self.active_key = ''
-        self.message = message or f'{PACKS[key].name} 설치 완료'
+        self.message = message or M('{v0} installed', v0=PACKS[key].name)
         self.desktop.lease.release('model-install')
         self.changed.emit()
         self.desktop.changed.emit()

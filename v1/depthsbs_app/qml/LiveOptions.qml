@@ -13,33 +13,33 @@ FocusScrollView {
     component Copy: Label { color: options.theme.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
     ColumnLayout {
         width: parent.width; spacing: 16
-        Label { text: "실시간 출력 설정"; color: options.theme.ink; font.pixelSize: 22; font.bold: true; Layout.margins: 24 }
+        Label { text: qsTr("Live output settings"); color: options.theme.ink; font.pixelSize: 22; font.bold: true; Layout.margins: 24 }
         ColumnLayout {
             Layout.fillWidth: true; Layout.leftMargin: 24; Layout.rightMargin: 24; spacing: 12
-            Copy { text: live.active ? "깊이 모델과 FPS 제한을 변경하려면 SBS를 중지하세요." : "깊이 모델과 FPS 제한은 다음 SBS 실행에 적용됩니다." }
+            Copy { text: live.active ? qsTr("Stop SBS to change the depth model or FPS limit.") : qsTr("The depth model and FPS limit apply to the next SBS session.") }
             RowLayout {
                 spacing: 6
-                Label { text: "깊이 모델"; color: options.theme.ink }
-                HelpButton { objectName: "liveModelHelp"; Accessible.name: "깊이 모델과 정밀도 도움말"; helpText: live.depthModelHelp }
+                Label { text: qsTr("Depth model"); color: options.theme.ink }
+                HelpButton { objectName: "liveModelHelp"; Accessible.name: qsTr("Depth model and precision help"); helpText: live.depthModelHelp }
             }
             ChoicePicker {
                 objectName: "livePolicy"; enabled: !desktop.busy
                 model: live.depthChoices; textRole: "label"; valueRole: "key"
                 currentIndex: live.depthChoices.map(function(m) { return m.mode + "/" + m.model }).indexOf(live.liveMode + "/" + live.liveModel)
                 onActivated: { live.selectDepthModel(currentValue); live.rememberSelection() }
-                Accessible.name: "깊이 모델"
+                Accessible.name: qsTr("Depth model")
             }
-            CheckOption { visible: live.liveModel === "ovda-small-c16"; enabled: !live.active; text: "개인·비상업적 사용 및 라이선스 조건 확인"; checked: live.ovdaConfirmed; onClicked: live.setOvdaConfirmed(checked) }
+            CheckOption { objectName: "ovdaConsent"; visible: live.liveModel === "ovda-small-c16"; enabled: !live.active; text: qsTr("I confirm personal, non-commercial use and the license terms"); checked: live.ovdaConfirmed; onClicked: live.setOvdaConfirmed(checked) }
             ModelInstall { feature: live.liveModel }
             RowLayout {
-                Label { text: "입체감"; color: options.theme.ink; Layout.fillWidth: true }
-                Label { text: live.depthStrength.toFixed(2) + "×"; color: options.theme.muted }
-                ActionButton { objectName: "resetLiveStrength"; text: "기본값"; enabled: !live.active; onClicked: live.resetStrength() }
+                Label { text: qsTr("Depth strength"); color: options.theme.ink; Layout.fillWidth: true }
+                Label { text: live.depthStrength.toLocaleString(Qt.locale(i18n.localeName), "f", 2) + "×"; color: options.theme.muted }
+                ActionButton { objectName: "resetLiveStrength"; text: qsTr("Reset"); enabled: !live.active; onClicked: live.resetStrength() }
             }
             Slider {
                 id: strength; objectName: "liveStrength"; Layout.fillWidth: true
                 enabled: !options.liveController.active; from: 0.25; to: 2; stepSize: 0.25
-                value: options.liveController.depthStrength; onMoved: options.liveController.setStrength(value); Accessible.name: "입체감"
+                value: options.liveController.depthStrength; onMoved: options.liveController.setStrength(value); Accessible.name: qsTr("Depth strength")
                 background: Rectangle {
                     x: strength.leftPadding; y: strength.topPadding + strength.availableHeight / 2 - height / 2
                     implicitWidth: 200; implicitHeight: 4; width: strength.availableWidth; height: 4; radius: 2
@@ -53,33 +53,34 @@ FocusScrollView {
                     border.color: strength.activeFocus ? options.theme.blue : options.theme.border; border.width: strength.activeFocus ? 2 : 1
                 }
             }
-            CheckOption { objectName: "cursorIncluded"; text: "커서 포함"; enabled: !live.active; checked: live.cursorIncluded; onClicked: live.setCursor(checked) }
+            CheckOption { objectName: "cursorIncluded"; text: qsTr("Include cursor"); enabled: !live.active; checked: live.cursorIncluded; onClicked: live.setCursor(checked) }
             RowLayout {
                 visible: live.vfgConfigurable
                 Layout.fillWidth: true; spacing: 6
                 CheckOption {
-                    objectName: "vfgEnabled"; text: "프레임 보간 (VFG)"
+                    objectName: "vfgEnabled"; text: qsTr("Frame interpolation (VFG)")
+                    Layout.fillWidth: false
                     enabled: !live.stoppingNow && !live.vfgSwitching && (!desktop.busy || live.active) && (live.vfgEnabled || live.vfgUnavailableReason.length === 0)
                     checked: live.vfgEnabled; onClicked: live.setVfg(checked)
-                    Accessible.name: "프레임 보간 VFG"
+                    Accessible.name: qsTr("VFG frame interpolation")
                 }
                 HelpButton {
-                    objectName: "vfgHelp"; Accessible.name: "프레임 보간 VFG 도움말"
-                    helpText: "중간 프레임을 추가해 움직임을 부드럽게 합니다. 지연과 GPU 사용량이 늘 수 있습니다."
+                    objectName: "vfgHelp"; Accessible.name: qsTr("VFG frame interpolation help")
+                    helpText: qsTr("Adds intermediate frames for smoother motion. This may increase latency and GPU usage.")
                         + "\n\n" + live.vfgShortcut
                         + (live.vfgUnavailableReason.length > 0 ? "\n\n" + live.vfgUnavailableReason : "")
-                        + (live.vfgSwitching ? "\n\nVFG 전환 중…" : "")
+                        + (live.vfgSwitching ? qsTr("\n\nSwitching VFG…") : "")
                 }
                 Item { Layout.fillWidth: true }
             }
             ModelInstall { feature: live.vfgConfigurable && live.vfgEnabled ? "vfg" : "" }
-            Label { text: "출력 FPS 제한"; color: options.theme.ink }
-            ChoicePicker { objectName: "livePresentationHz"; enabled: !live.active; model: ["30 FPS", "60 FPS · 기본", "무제한"]; currentIndex: [30, 60, 0].indexOf(live.presentationHz); onActivated: live.setPresentationHz([30, 60, 0][currentIndex]); Accessible.name: "출력 FPS 제한" }
-            Label { text: "입체 출력 형식"; color: options.theme.ink }
+            Label { text: qsTr("Output FPS limit"); color: options.theme.ink }
+            ChoicePicker { objectName: "livePresentationHz"; enabled: !live.active; model: ["30 FPS", qsTr("60 FPS · Default"), qsTr("Unlimited")]; currentIndex: [30, 60, 0].indexOf(live.presentationHz); onActivated: live.setPresentationHz([30, 60, 0][currentIndex]); Accessible.name: qsTr("Output FPS limit") }
+            Label { text: qsTr("Stereo layout"); color: options.theme.ink }
             StereoLayoutPicker { objectName: "liveStereoLayout"; enabled: !live.active; currentIndex: keys.indexOf(live.stereoLayout); onActivated: { live.setStereoLayout(keys[currentIndex]); live.rememberSelection() } }
-            Copy { text: "3D 재생 장치에서도 같은 형식을 선택하세요. Half 형식은 한쪽 축의 해상도를 절반으로 줄입니다." }
-            CheckOption { objectName: "fullscreenStatsToggle"; text: "전체 화면에 성능 정보 표시"; checked: options.fullscreenStats; onClicked: options.fullscreenStatsRequested(checked) }
-            ActionButton { objectName: "openSettings"; text: "설정과 진단"; onClicked: options.diagnosticsRequested() }
+            Copy { text: qsTr("Select the same layout on your 3D playback device. Half layouts halve resolution along one axis.") }
+            CheckOption { objectName: "fullscreenStatsToggle"; text: qsTr("Show performance information in fullscreen"); checked: options.fullscreenStats; onClicked: options.fullscreenStatsRequested(checked) }
+            ActionButton { objectName: "openSettings"; text: qsTr("Settings and diagnostics"); onClicked: options.diagnosticsRequested() }
             Item { height: 16 }
         }
     }

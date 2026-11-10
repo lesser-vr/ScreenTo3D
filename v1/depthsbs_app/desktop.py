@@ -1,5 +1,9 @@
 """Qt Quick shell. Workers own media/GPU resources; GUI owns only job state."""
 
+from .messages import Message as M, message_value, decode_message
+from .localization import localized, render
+from .messages import from_payload
+
 import json
 import os
 import sys
@@ -68,10 +72,10 @@ class DesktopController(QObject):
         self.closing = False
         self.checking = False
         self.check_target = ""
-        self.status_text = "파일을 추가하고 변환할 영상을 선택하세요."
+        self.status_text = M('Add videos and select one to convert.')
         self.progress_value = 0.0
-        self.detail_text = "선택한 입체 출력 형식으로 변환 · 오디오 유지"
-        self.setup_text = "설치 확인은 모델을 실행하지 않습니다. GPU 호환성과 성능은 별도 검증이 필요합니다."
+        self.detail_text = M('Convert to the selected stereo layout · Preserve audio')
+        self.setup_text = M('The installation check does not run the model. GPU compatibility and performance need separate validation.')
         self.values = dict(
             model=DEFAULT_MODE_MODELS["performance"],
             mode="performance",
@@ -112,8 +116,10 @@ class DesktopController(QObject):
         return {key: self.downloads.needed(key) for key in PACKS}
 
     @Property("QVariantList", notify=changed)
+    @localized
     def jobs(self):
-        return self.rows
+        labels = dict(queued=M('Queued'), running=M('Converting'), completed=M('Completed'), cancelled=M('Cancelled'), failed=M('Failed'))
+        return [dict(row, stateLabel=labels[row["state"]]) for row in self.rows]
 
     @Property(int, notify=changed)
     def selectedIndex(self):
@@ -124,12 +130,13 @@ class DesktopController(QObject):
         return self.values
 
     @Property("QVariantList", notify=changed)
+    @localized
     def models(self):
         return [
             dict(
                 key=key,
                 label=(
-                    "VDA Small · 5프레임 Offline"
+                    M('VDA Small · 5-frame Offline')
                     if key == "vda-small" and self.values["mode"] == "offline-quality"
                     else MODELS[key][0]
                 ),
@@ -142,11 +149,13 @@ class DesktopController(QObject):
         return MODELS[key][0]
 
     @Property('QVariantList', notify=changed)
+    @localized
     def depthChoices(self):
         from .model_presentation import selection_choices
         return selection_choices(MODES, self.engine_paths, portable=PORTABLE_DESKTOP)
 
     @Property(str, notify=changed)
+    @localized
     def depthModelHelp(self):
         from .model_presentation import selection_info
         return selection_info(self.values['mode'], self.values['model'], self.engine_paths)['help']
@@ -161,12 +170,14 @@ class DesktopController(QObject):
             self.setOption('model', selected['model'])
 
     @Property("QVariantList", notify=changed)
+    @localized
     def modes(self):
         from .model_presentation import selection_info
         return [dict(key=mode, label=selection_info(mode, DEFAULT_MODE_MODELS[mode], self.engine_paths)['label'])
                 for mode in MODES]
 
     @Property(str, notify=changed)
+    @localized
     def licenseNotice(self):
         return MODELS[self.values["model"]][3]
 
@@ -183,14 +194,17 @@ class DesktopController(QObject):
         return self.cancel_path is not None and not self.cancelling
 
     @Property(str, notify=changed)
+    @localized
     def status(self):
         return self.status_text
 
     @Property(str, notify=changed)
+    @localized
     def details(self):
         return self.detail_text
 
     @Property(str, notify=changed)
+    @localized
     def setup(self):
         return self.setup_text
 
@@ -199,6 +213,7 @@ class DesktopController(QObject):
         return self.progress_value
 
     @Property(str, notify=changed)
+    @localized
     def destination(self):
         return (
             self.rows[self.selected]["output"]
@@ -210,12 +225,12 @@ class DesktopController(QObject):
     def canOpen(self):
         return (
             0 <= self.selected < len(self.rows)
-            and self.rows[self.selected]["state"] == "완료"
+            and self.rows[self.selected]["state"] == "completed"
             and Path(self.destination).is_file()
         )
 
     def inform(self, message):
-        self.status_text = str(message)
+        self.status_text = message_value(message)
         self.changed.emit()
 
     @Slot(str, "QVariant")
@@ -256,12 +271,12 @@ class DesktopController(QObject):
             try:
                 self.preferences.remember('file', self.values['mode'], self.values['model'], self.values['stereo_layout'])
             except (ValueError, OSError) as error:
-                self.inform(str(error))
+                self.inform(error)
 
     @Slot()
     def chooseFiles(self):
         names, _ = QFileDialog.getOpenFileNames(
-            None, "변환할 영상 선택", "", "영상 (*.mp4 *.mkv *.mov *.m4v)"
+            None, render(M('Choose videos to convert')), "", render(M('Videos (*.mp4 *.mkv *.mov *.m4v)'))
         )
         self.add_paths(names)
 
@@ -275,7 +290,7 @@ class DesktopController(QObject):
             path = Path(name)
             if len(self.rows) >= 32:
                 self.inform(
-                    "목록은 최대 32개입니다. 완료한 항목을 제거한 뒤 추가하세요."
+                    M('The queue holds up to 32 videos. Remove finished items before adding more.')
                 )
                 break
             if not path.is_file() or path.suffix.lower() not in VIDEO_SUFFIXES:
@@ -285,16 +300,16 @@ class DesktopController(QObject):
                 continue
             output = unused_output(path, (r["output"] for r in self.rows))
             self.rows.append(
-                dict(name=path.name, source=key, output=output, state="대기")
+                dict(name=path.name, source=key, output=output, state="queued")
             )
             accepted += 1
         if self.selected == -1 and self.rows:
             self.selected = 0
         if not self.busy:
             self.status_text = (
-                f"{accepted}개 추가됨 · 선택한 파일을 변환하세요."
+                M('Added: {v0} · Select a file to convert.', v0=accepted)
                 if accepted
-                else "새로 추가할 지원 영상이 없습니다."
+                else M('No new supported videos to add.')
             )
         self.changed.emit()
 
@@ -302,7 +317,7 @@ class DesktopController(QObject):
     def select(self, index):
         if not self.busy and 0 <= index < len(self.rows):
             self.selected = index
-            self.progress_value = 100 if self.rows[index]["state"] == "완료" else 0
+            self.progress_value = 100 if self.rows[index]["state"] == "completed" else 0
             self.status_text = (
                 self.rows[index]["state"] + " · " + self.rows[index]["name"]
             )
@@ -320,25 +335,25 @@ class DesktopController(QObject):
         if self.busy or self.selected < 0:
             return
         value, _ = QFileDialog.getSaveFileName(
-            None, "SBS 저장 위치", self.destination, "MP4 (*.mp4)"
+            None, render(M('Save SBS video')), self.destination, "MP4 (*.mp4)"
         )
         if value:
             self.rows[self.selected]["output"] = value
-            self.rows[self.selected]["state"] = "대기"
+            self.rows[self.selected]["state"] = "queued"
             self.changed.emit()
 
     @Slot(str)
     def chooseDirectory(self, name):
         if not self.busy and name in ("engine", "runtime", "media"):
             value = QFileDialog.getExistingDirectory(
-                None, "설치 폴더 선택", self.values[name]
+                None, render(M('Choose installation folder')), self.values[name]
             )
             if value:
                 self.setOption(name, value)
 
     def snapshot(self):
         if self.selected < 0:
-            raise ValueError("먼저 영상을 추가하세요.")
+            raise ValueError(M('Add a video first.'))
         return Job(
             source=self.rows[self.selected]["source"],
             output=self.destination,
@@ -350,7 +365,7 @@ class DesktopController(QObject):
         if self.busy:
             return
         if self.downloads.needed(self.values['model']):
-            self.showLiveError('선택한 모델을 먼저 설치하세요. 파일 변환의 처리 모드 아래에서 설치할 수 있습니다.')
+            self.showLiveError(M('Install the selected model first. Open the model settings in the file workspace.'))
             return
         try:
             job = self.snapshot()
@@ -358,8 +373,8 @@ class DesktopController(QObject):
             if Path(job.output).exists():
                 answer = QMessageBox.question(
                     None,
-                    "출력 파일 교체",
-                    "이미 존재하는 출력 파일입니다. 변환 성공 시 교체할까요?",
+                    render(M('Replace output file')),
+                    render(M('This output file already exists. Replace it after a successful conversion?')),
                     QMessageBox.Yes | QMessageBox.No,
                     QMessageBox.No,
                 )
@@ -381,9 +396,9 @@ class DesktopController(QObject):
             self.buffer = b""
             self.progress_value = 0
             self.status_text = (
-                "변환 준비 중… 첫 실행은 모델 최적화에 시간이 걸릴 수 있습니다."
+                M('Preparing conversion… Model optimization may take time on first use.')
             )
-            self.rows[self.selected]["state"] = "변환 중"
+            self.rows[self.selected]["state"] = "running"
             self._spawn("depthsbs_app.desktop_worker", job.arguments(self.cancel_path))
         except Exception:
             self._cleanup()
@@ -435,7 +450,15 @@ class DesktopController(QObject):
     def _event(self, event):
         kind = event.get("event")
         if kind == "error":
-            self.error_text = str(event.get("message", "변환 오류"))[:2000]
+            raw = message_value(event.get("message", M('Conversion error')))
+            self.error_text = raw if len(raw) <= 2000 else str(raw)[:2000]
+            if 'localized' in event:
+                try:
+                    translated = from_payload(event['localized'])
+                    if len(translated) <= 2000:
+                        self.error_text = translated
+                except (ValueError, TypeError, KeyError, IndexError):
+                    pass  # Keep the original bounded diagnostic on malformed metadata.
         elif kind == "complete":
             self.complete = True
         elif kind == "start":
@@ -445,24 +468,24 @@ class DesktopController(QObject):
                 from .stereo_layout import dimensions, LAYOUTS
                 layout = self.active.stereo_layout if self.active is not None else self.values["stereo_layout"]
                 ow, oh = dimensions(w, h, layout)
-                self.detail_text = f"원본 {w} × {h}  →  {LAYOUTS[layout]} {ow} × {oh}"
+                self.detail_text = M('Source {v0} × {v1}  →  {v2} {v3} × {v4}', v0=w, v1=h, v2=LAYOUTS[layout], v3=ow, v4=oh)
         elif kind == "progress" and not self.cancelling:
             self.progress_value = max(0, min(99, float(event.get("percent") or 0)))
-            self.status_text = f"변환 중 · {event.get('frame', 0)} / {event.get('total_frames', '?')} 프레임"
+            self.status_text = M('Converting · Frame {v0} / {v1}', v0=event.get('frame', 0), v1=event.get('total_frames', '?'))
         elif kind == "offline_depth" and not self.cancelling:
             self.status_text = (
-                f"Offline 문맥 준비 · {event.get('window_frames', '?')}프레임 중앙 윈도우"
+                M('Preparing offline context · Centered {v0}-frame window', v0=event.get('window_frames', '?'))
             )
         elif kind == "engine_build" and not self.cancelling:
             self.status_text = (
-                "이 GPU에 맞게 모델을 최적화하고 있습니다. 첫 실행에만 필요합니다."
+                M('Optimizing the model for this GPU. This is only needed on first use.')
             )
         self.changed.emit()
 
     def _process_error(self, error):
         if error == QProcess.FailedToStart:
             self.error_text = (
-                "처리 프로그램을 시작할 수 없습니다. 실행 환경을 확인하세요."
+                M('Cannot start the processing worker. Check the runtime installation.')
             )
             self._finished(1, QProcess.CrashExit)
 
@@ -475,15 +498,15 @@ class DesktopController(QObject):
                 report = json.loads(self.check_buffer)
                 self.setup_text = (
                     self.check_target + " · "
-                    + ("설치 항목 확인됨" if report["ready"] else "설치 확인 필요")
+                    + (M('Installation verified') if report["ready"] else M('Installation needs attention'))
                     + "\n"
-                    + report["message"]
-                    + "\n엔진 실행·성능 보증이 아닌 설치 점검 결과입니다."
+                    + (from_payload(report['localized']) if 'localized' in report else report["message"])
+                    + M('\nThis checks installation only; it does not verify engine execution or performance.')
                 )
             except (ValueError, KeyError):
                 self.setup_text = (
                     self.error_text
-                    or "설치 확인에 실패했습니다. 경로와 Python 환경을 확인하세요."
+                    or M('Installation check failed. Check the paths and Python environment.')
                 )
         else:
             success = (
@@ -493,19 +516,19 @@ class DesktopController(QObject):
                 and Path(self.active.output).is_file()
             )
             if success:
-                state = "완료"
+                state = "completed"
                 self.progress_value = 100
-                self.status_text = "변환 완료 · 결과 영상을 열어 확인하세요."
+                self.status_text = M('Conversion complete · Open the result to review it.')
             elif (
                 code == 2 and exit_status == QProcess.NormalExit and not self.error_text
             ):
-                state = "취소됨"
-                self.status_text = "변환을 취소했습니다. 기존 출력 파일은 유지됩니다."
+                state = "cancelled"
+                self.status_text = M('Conversion cancelled. The previous output file is preserved.')
             else:
-                state = "오류"
-                self.status_text = "변환 실패 · " + (
+                state = "failed"
+                self.status_text = M('Conversion failed · ') + (
                     self.error_text
-                    or f"처리 프로그램이 비정상 종료되었습니다 ({code}). 설치 환경을 확인하세요."
+                    or M('The processing worker exited unexpectedly ({v0}). Check the installation.', v0=code)
                 )
             self.rows[self.selected]["state"] = state
         self._cleanup()
@@ -532,11 +555,11 @@ class DesktopController(QObject):
                 self.cancel_path.write_text("cancel", encoding="ascii")
                 self.cancelling = True
                 self.inform(
-                    "취소 요청됨 · GPU 작업과 파일 정리가 끝날 때까지 기다리는 중…"
+                    M('Cancellation requested · Waiting for GPU work and file cleanup…')
                 )
             except OSError:
                 self.inform(
-                    "취소 요청을 기록하지 못했습니다. 임시 폴더 접근 권한을 확인하세요."
+                    M('Cannot record the cancellation request. Check access to the temporary folder.')
                 )
 
     @Slot()
@@ -554,19 +577,19 @@ class DesktopController(QObject):
             v["model"] = self.live.liveModel
             v["engine"] = self.engine_paths.get(v["model"], "")
             v["renderer"] = "cuda"
-        self.check_target = ("실시간 SBS" if target == "live" else "파일 변환") + " / " + self.models_label(v["model"])
+        self.check_target = (M('Live SBS') if target == "live" else M('File conversion')) + " / " + self.models_label(v["model"])
         self.lease.acquire("check")
         self.checking = True
         self.check_buffer = b""
         self.error_text = ""
-        self.setup_text = self.check_target + " · 설치 항목을 확인하고 있습니다…"
+        self.setup_text = self.check_target + M(' · Checking installation…')
         try:
             self._spawn(
                 "depthsbs_app.desktop_check",
                 [v[k] for k in ("model", "engine", "runtime", "media", "renderer")],
             )
         except Exception as error:
-            self.setup_text = self.check_target + " · " + str(error)
+            self.setup_text = self.check_target + " · " + message_value(error)
             self._cleanup()
         self.changed.emit()
 
@@ -576,7 +599,7 @@ class DesktopController(QObject):
             QUrl.fromLocalFile(self.destination)
         ):
             self.inform(
-                "기본 영상 플레이어를 열 수 없습니다. 저장 위치에서 파일을 확인하세요."
+                M('Cannot open the default video player. Open the file from its output folder.')
             )
 
     @Slot()
@@ -590,7 +613,7 @@ class DesktopController(QObject):
         if self.canOpen and not QDesktopServices.openUrl(
             QUrl.fromLocalFile(str(Path(self.destination).parent))
         ):
-            self.inform("결과 폴더를 열 수 없습니다. 저장 위치를 확인하세요.")
+            self.inform(M('Cannot open the output folder. Check the save location.'))
 
     @Slot(result=bool)
     def requestClose(self):
@@ -604,8 +627,8 @@ class DesktopController(QObject):
             return False
         answer = QMessageBox.question(
             None,
-            "작업 종료",
-            "진행 중인 작업을 정리한 뒤 앱을 종료할까요?",
+            render(M('Exit ScreenTo3D')),
+            render(M('Finish cleaning up the current work and exit?')),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -625,19 +648,20 @@ class DesktopController(QObject):
 
         if not exclude_preview(window.winId()):
             window.hide()
-            self.live.reportError("보조 창의 캡처 차단에 실패해 창을 닫았습니다.")
+            self.live.reportError(M('The utility window was closed because capture protection failed.'))
             return False
         return True
 
-    @Slot(str)
+    @Slot(object)
     def showLiveError(self, message):
         if not self.error_dialog.showError(message):
             self.live.stop()
-            self.live.message = str(message) + " · 오류 창 캡처 차단에 실패해 창을 표시하지 않았습니다."
+            self.live.stop_message_pending = False
+            self.live.message = message_value(message) + M(' · The error window was hidden because capture protection failed.')
             self.live.changed.emit()
 
     def showModelError(self, message):
-        if not self.error_dialog.showError(message, '모델 설치 오류'):
+        if not self.error_dialog.showError(message, M('Model installation error')):
             self.inform(message)
 
 
@@ -669,27 +693,39 @@ def create_app(preferences=None):
 
     QQuickStyle.setStyle("Basic")
     controller = DesktopController(preferences)
+    from .localization import LanguageManager
+    controller.language = LanguageManager(controller.preferences, controller)
     from .live_preview import LivePreview
 
     controller.live = LivePreview(controller)
     engine = QQmlApplicationEngine()
+    engine.setUiLanguage('ko-KR' if controller.language.effectiveLanguage == 'ko' else 'en-US')
     engine.warnings.connect(
         lambda errors: print("\n".join(e.toString() for e in errors), file=sys.stderr)
     )
     engine.rootContext().setContextProperty("desktop", controller)
     engine.rootContext().setContextProperty("live", controller.live)
+    engine.rootContext().setContextProperty("i18n", controller.language)
     engine.addImageProvider("live", controller.live.provider)
     engine.addImageProvider("transition", controller.live.transition_provider)
     from .window_icons import WindowIcons
     engine.addImageProvider("windowicons", WindowIcons(controller.live))
     engine.load(QUrl.fromLocalFile(str(Path(__file__).with_name("qml") / "Main.qml")))
     if not engine.rootObjects():
-        raise RuntimeError("GUI 화면을 불러오지 못했습니다.")
+        raise RuntimeError(M('Cannot load the application interface.'))
     window = engine.rootObjects()[0]
     controller.main_window = window
     from .error_dialog import LiveErrorDialog
 
     controller.error_dialog = LiveErrorDialog(window)
+    controller.language.engine = engine
+    def refresh_language():
+        controller.changed.emit()
+        controller.downloads.changed.emit()
+        controller.live.changed.emit()
+        controller.error_dialog.retranslate()
+    controller.language.refresh = refresh_language
+    controller.language.errorOccurred.connect(controller.showModelError)
     from .taskbar_identity import attach
     for target in (window, window.findChild(QQuickWindow, "toolsWindow"),
                    window.findChild(QQuickWindow, "sbsOutput"),

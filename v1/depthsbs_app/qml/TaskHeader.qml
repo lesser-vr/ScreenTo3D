@@ -31,8 +31,8 @@ RowLayout {
         currentIndex: header.files ? 1 : 0
         padding: 3
         background: Rectangle { radius: 8; color: header.theme.hover }
-        Segment { objectName: header.files ? "returnLive" : "liveTab"; text: "실시간 SBS"; onClicked: header.taskSelected(0) }
-        Segment { objectName: header.files ? "filesTab" : "openFiles"; text: "파일 변환"; onClicked: header.taskSelected(1) }
+        Segment { objectName: header.files ? "returnLive" : "liveTab"; text: qsTr("Live SBS"); onClicked: header.taskSelected(0) }
+        Segment { objectName: header.files ? "filesTab" : "openFiles"; text: qsTr("File conversion"); onClicked: header.taskSelected(1) }
         // Each header belongs to one workspace. Reflect keyboard tab changes too.
         Keys.onLeftPressed: header.taskSelected(0)
         Keys.onRightPressed: header.taskSelected(1)
@@ -66,7 +66,7 @@ RowLayout {
                 }
             }
         }
-        Accessible.name: header.files ? "파일 변환 설정" : "실시간 출력 설정"
+        Accessible.name: header.files ? qsTr("File conversion settings") : qsTr("Live output settings")
         ToolTip.visible: hovered || activeFocus
         ToolTip.text: Accessible.name
         onClicked: header.settingsRequested()

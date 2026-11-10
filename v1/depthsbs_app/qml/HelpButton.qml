@@ -8,7 +8,7 @@ Button {
     property string helpText: ""
     implicitWidth: 28; implicitHeight: 28
     hoverEnabled: true
-    Accessible.name: "도움말"
+    Accessible.name: qsTr("Help")
     Accessible.description: helpText
     background: Rectangle {
         anchors.centerIn: parent; width: 18; height: 18; radius: 9

@@ -1,10 +1,13 @@
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Layouts
 
 CheckBox {
     id: control
     readonly property Theme theme: Theme {}
     spacing: 8
+    Layout.fillWidth: true
+    Layout.minimumWidth: 0
     indicator: Rectangle {
         implicitWidth: 18; implicitHeight: 18; radius: 4
         x: control.leftPadding; y: (control.height - height) / 2
@@ -28,6 +31,8 @@ CheckBox {
     contentItem: Text {
         text: control.text; font: control.font; color: control.enabled ? control.theme.ink : control.theme.muted
         leftPadding: control.indicator.width + control.spacing
+        wrapMode: Text.Wrap
+        textFormat: Text.PlainText
         verticalAlignment: Text.AlignVCenter
     }
 }

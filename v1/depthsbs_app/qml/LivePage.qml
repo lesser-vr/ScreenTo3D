@@ -43,9 +43,9 @@ Item {
             implicitHeight: 72
             enabled: !live.active; model: live.sources; textRole: "label"
             currentIndex: live.selectedIndex
-            displayText: currentIndex < 0 ? (count ? "대상을 선택하세요" : "선택할 대상이 없습니다") : currentText
+            displayText: currentIndex < 0 ? (count ? qsTr("Select a source") : qsTr("No sources available")) : currentText
             onActivated: live.select(currentIndex)
-            Accessible.name: "캡처할 창 또는 모니터"
+            Accessible.name: qsTr("Window or monitor to capture")
             delegate: ItemDelegate {
                 required property int index
                 required property var modelData
@@ -72,12 +72,12 @@ Item {
                             implicitWidth: tabs.implicitWidth + 6; implicitHeight: tabs.implicitHeight + 6
                             Row {
                                 id: tabs; anchors.centerIn: parent
-                                KindButton { objectName: "windowInputs"; width: 48; text: "창"; sourceKind: "window" }
-                                KindButton { objectName: "monitorInputs"; text: "모니터 전체"; sourceKind: "monitor" }
+                                KindButton { objectName: "windowInputs"; width: Math.max(48, implicitWidth); text: qsTr("Windows"); sourceKind: "window" }
+                                KindButton { objectName: "monitorInputs"; text: qsTr("Entire monitor"); sourceKind: "monitor" }
                             }
                         }
                         Item { Layout.fillWidth: true }
-                        ToolButton { objectName: "dismissSource"; text: "닫기"; Accessible.name: "입력 선택 닫기"; onClicked: page.dismissSourcePicker() }
+                        ToolButton { objectName: "dismissSource"; text: qsTr("Close"); Accessible.name: qsTr("Close source picker"); onClicked: page.dismissSourcePicker() }
                     }
                     ListView {
                         id: sourceList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true
@@ -110,7 +110,7 @@ Item {
                     }
                     ColumnLayout {
                         Layout.fillWidth: true; spacing: 3
-                        Text { text: live.sourceKind === "window" ? "캡처할 창 또는 모니터" : "캡처 대상 · 모니터 전체"; font.pixelSize: 11; color: page.theme.muted }
+                        Text { text: live.sourceKind === "window" ? qsTr("Window or monitor to capture") : qsTr("Capture source · Entire monitor"); font.pixelSize: 11; color: page.theme.muted }
                         Text { id: sourceTitle; text: sourcePicker.displayText; font.pixelSize: 14; font.weight: Font.Medium; color: page.theme.ink; elide: Text.ElideRight; Layout.fillWidth: true }
                     }
                 }
@@ -125,14 +125,14 @@ Item {
             objectName: "captureStatus"; Layout.fillWidth: true
             color: page.theme.muted; wrapMode: Text.WordWrap; font.pixelSize: 12
             maximumLineCount: 2; elide: Text.ElideRight
-            text: live.vfgSwitching ? "프레임 보간 전환 중…" : live.stoppingNow ? "SBS 종료 중…" : live.active ? (live.hasFrame ? "SBS 실행 중" : "SBS 화면 준비 중…") : desktop.busy ? "다른 작업이 끝나면 시작할 수 있습니다" : live.status
+            text: live.vfgSwitching ? qsTr("Switching frame interpolation…") : live.stoppingNow ? qsTr("Stopping SBS…") : live.active ? (live.hasFrame ? qsTr("SBS is running") : qsTr("Preparing SBS output…")) : desktop.busy ? qsTr("You can start after the current task finishes") : live.status
             Accessible.role: Accessible.StaticText
             }
         }
         ActionButton {
             objectName: "captureStart"; Layout.fillWidth: true; primary: true
             symbol: live.active ? "stop" : "play"
-            text: live.vfgSwitching ? "전환 취소" : live.stoppingNow ? "종료 중…" : live.active ? (live.hasFrame ? "SBS 중지" : "취소") : page.installNeeded ? "설치 옵션 열기" : "SBS 시작"
+            text: live.vfgSwitching ? qsTr("Cancel switch") : live.stoppingNow ? qsTr("Stopping…") : live.active ? (live.hasFrame ? qsTr("Stop SBS") : qsTr("Cancel")) : page.installNeeded ? qsTr("Open installation settings") : qsTr("Start SBS")
             enabled: live.vfgSwitching || (live.active ? !live.stoppingNow : !desktop.busy && (page.installNeeded || live.selectedIndex >= 0))
             onClicked: live.active ? live.stop() : page.installNeeded ? page.Window.window.openPage(3) : live.startMinimal()
         }

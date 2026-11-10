@@ -28,7 +28,7 @@ ColumnLayout {
         visible: box.working; Layout.fillWidth: true
         from: 0; to: 100; value: box.installer.percentage
         indeterminate: box.working && box.installer.percentage < 0
-        Accessible.name: "모델 설치 진행률"
+        Accessible.name: qsTr("Model installation progress")
     }
     RowLayout {
         visible: box.missing || box.working
@@ -37,9 +37,9 @@ ColumnLayout {
             enabled: !desktop.busy; onClicked: box.installer.begin(box.feature, false)
         }
         ActionButton {
-            visible: !box.working; text: "파일에서 설치"; enabled: !desktop.busy; primary: box.installAction === ""
+            visible: !box.working; text: qsTr("Install from file"); enabled: !desktop.busy; primary: box.installAction === ""
             onClicked: box.installer.begin(box.feature, true)
         }
-        ActionButton { visible: box.working; text: "설치 취소"; onClicked: box.installer.cancel() }
+        ActionButton { visible: box.working; text: qsTr("Cancel installation"); onClicked: box.installer.cancel() }
     }
 }

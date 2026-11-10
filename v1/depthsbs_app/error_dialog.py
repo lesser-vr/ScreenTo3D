@@ -1,4 +1,8 @@
 """One non-blocking native error window owned by the desktop shell."""
+
+from .messages import Message as M
+from .messages import message_value
+from .localization import render
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QFont, QKeySequence
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QPlainTextEdit, QVBoxLayout
@@ -8,7 +12,9 @@ class LiveErrorDialog(QDialog):
     def __init__(self, owner):
         super().__init__()
         self.setObjectName("liveErrorDialog")
-        self.setWindowTitle("SBS 오류")
+        self.title_source = M('SBS error')
+        self.message_source = ''
+        self.setWindowTitle(render(self.title_source))
         self.setFont(QFont("Segoe UI", 10))
         self.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint)
         self.setWindowModality(Qt.WindowModal)
@@ -30,10 +36,10 @@ class LiveErrorDialog(QDialog):
         self.text = QPlainTextEdit(self)
         self.text.setObjectName("liveErrorText")
         self.text.setReadOnly(True)
-        buttons = QDialogButtonBox(QDialogButtonBox.Close, parent=self)
-        self.close_button = buttons.button(QDialogButtonBox.Close)
+        buttons = QDialogButtonBox(parent=self)
+        self.close_button = buttons.addButton(render(M('Close')), QDialogButtonBox.RejectRole)
         self.close_button.setObjectName("closeLiveError")
-        self.close_button.setText("닫기")
+        self.close_button.setText(render(M('Close')))
         self.close_button.setDefault(True)
         buttons.rejected.connect(self.reject)
         layout = QVBoxLayout(self)
@@ -42,11 +48,12 @@ class LiveErrorDialog(QDialog):
         for target in (self, self.text, self.text.viewport(), self.close_button):
             target.installEventFilter(self)
 
-    def showError(self, message, title="SBS 오류"):
+    def showError(self, message, title=M('SBS error')):
         from .capture_sources import exclude_preview
 
-        self.setWindowTitle(title)
-        self.text.setPlainText(message)
+        self.title_source = title
+        self.message_source = message_value(message)
+        self.retranslate()
         if not exclude_preview(self.winId()):
             self.hide()
             return False
@@ -56,6 +63,11 @@ class LiveErrorDialog(QDialog):
         self.activateWindow()
         self.close_button.setFocus()
         return True
+
+    def retranslate(self):
+        self.setWindowTitle(render(self.title_source))
+        self.close_button.setText(render(M('Close')))
+        self.text.setPlainText(render(self.message_source))
 
     def eventFilter(self, watched, event):
         if event.type() in (QEvent.ShortcutOverride, QEvent.KeyPress) and event.matches(QKeySequence.Copy):

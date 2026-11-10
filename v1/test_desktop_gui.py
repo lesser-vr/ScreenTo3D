@@ -107,9 +107,9 @@ def main():
         while controller.busy and time.monotonic() < until:
             pump(0.1)
         assert not controller.busy, "Worker timed out"
-        expected = "취소됨" if args.cancel else "오류" if args.error else "완료"
+        expected = "cancelled" if args.cancel else "failed" if args.error else "completed"
         assert controller.rows[0]["state"] == expected, controller.status
-        assert controller.canOpen == (expected == "완료")
+        assert controller.canOpen == (expected == "completed")
         assert controller.temp is None and controller.lease.owner is None
         pump(0.2)
         window.grabWindow().save(str(args.output / "result.png"))

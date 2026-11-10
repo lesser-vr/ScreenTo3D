@@ -91,7 +91,7 @@ ApplicationWindow {
             ColumnLayout {
                 width: parent.width; spacing: 16
                 Item { height: 16 }
-                Copy { text: "원본 영상을 선택한 입체 출력 형식으로 변환합니다. 파일은 이 PC에서만 처리됩니다."; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                Copy { text: qsTr("Convert a video to the selected stereo layout. Files are processed on this PC."); Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 Card {
                     Layout.leftMargin: 32; Layout.rightMargin: 32
                     implicitHeight: 94
@@ -99,8 +99,8 @@ ApplicationWindow {
                     DropArea { id: drop; anchors.fill: parent; onDropped: function(event) { if (event.hasUrls) { desktop.dropFiles(event.urls); event.acceptProposedAction() } } }
                     RowLayout {
                         anchors.fill: parent; anchors.margins: 20
-                        ColumnLayout { Layout.fillWidth: true; Label { text: "영상을 여기에 놓으세요"; color: root.ink; font.bold: true; font.pixelSize: 17 } Copy { text: "MP4 · MKV · MOV · M4V  /  선택한 영상 1개씩 변환"; font.pixelSize: 12 } }
-                        Action { objectName: "addFiles"; text: "파일 추가"; onClicked: desktop.chooseFiles() }
+                        ColumnLayout { Layout.fillWidth: true; Label { text: qsTr("Drop videos here"); color: root.ink; font.bold: true; font.pixelSize: 17 } Copy { text: qsTr("MP4 · MKV · MOV · M4V / Convert one selected video at a time"); font.pixelSize: 12 } }
+                        Action { objectName: "addFiles"; text: qsTr("Add files"); onClicked: desktop.chooseFiles() }
                     }
                 }
                 Card {
@@ -117,15 +117,15 @@ ApplicationWindow {
                             width: fileList.width; height: 54; radius: 8
                             activeFocusOnTab: true
                             Accessible.role: Accessible.ListItem
-                            Accessible.name: modelData.name + " " + modelData.state
+                            Accessible.name: modelData.name + " " + modelData.stateLabel
                             Keys.onReturnPressed: desktop.select(index)
                             Keys.onSpacePressed: desktop.select(index)
                             border.color: activeFocus ? root.accent : "transparent"
                             color: index === desktop.selectedIndex ? root.theme.selection : "transparent"
-                            RowLayout { anchors.fill: parent; anchors.margins: 12; Label { text: modelData.name; color: root.ink; elide: Text.ElideMiddle; Layout.fillWidth: true } Label { text: modelData.state; color: root.accent; font.pixelSize: 12 } }
+                            RowLayout { anchors.fill: parent; anchors.margins: 12; Label { text: modelData.name; color: root.ink; elide: Text.ElideMiddle; Layout.fillWidth: true } Label { text: modelData.stateLabel; color: root.accent; font.pixelSize: 12 } }
                             MouseArea { anchors.fill: parent; onClicked: desktop.select(index) }
                         }
-                        Label { visible: fileList.count === 0; anchors.centerIn: parent; text: "추가한 영상이 여기에 표시됩니다"; color: root.muted }
+                        Label { visible: fileList.count === 0; anchors.centerIn: parent; text: qsTr("Added videos appear here"); color: root.muted }
                     }
                 }
                 RowLayout {
@@ -134,44 +134,44 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         RowLayout {
                             spacing: 6
-                            Label { text: "깊이 모델"; color: root.muted }
-                            HelpButton { objectName: "fileModelHelp"; Accessible.name: "파일 깊이 모델과 정밀도 도움말"; helpText: desktop.depthModelHelp }
+                            Label { text: qsTr("Depth model"); color: root.muted }
+                            HelpButton { objectName: "fileModelHelp"; Accessible.name: qsTr("File depth model and precision help"); helpText: desktop.depthModelHelp }
                         }
                         Picker {
                             objectName: "modePicker"; enabled: !desktop.busy
                             model: desktop.depthChoices; textRole: "label"; valueRole: "key"
                             currentIndex: desktop.depthChoices.map(function(m) { return m.mode + "/" + m.model }).indexOf(desktop.settings.mode + "/" + desktop.settings.model)
                             onActivated: { desktop.selectDepthModel(currentValue); desktop.rememberSelection() }
-                            Accessible.name: "파일 깊이 모델"
+                            Accessible.name: qsTr("File depth model")
                         }
                     }
-                    ColumnLayout { Layout.fillWidth: true; Copy { text: "영상 코덱" } Picker { enabled: !desktop.busy; model: ["H.264 · 일반 호환", "HEVC · 4K 지원 / 플레이어 확인"]; currentIndex: desktop.settings.codec === "hevc" ? 1 : 0; onActivated: desktop.setOption("codec", currentIndex === 1 ? "hevc" : "h264") } }
+                    ColumnLayout { Layout.fillWidth: true; Copy { text: qsTr("Video codec") } Picker { enabled: !desktop.busy; model: [qsTr("H.264 · Broad compatibility"), qsTr("HEVC · Supports 4K / Check your player")]; currentIndex: desktop.settings.codec === "hevc" ? 1 : 0; onActivated: desktop.setOption("codec", currentIndex === 1 ? "hevc" : "h264") } }
                 }
                 ColumnLayout {
                     visible: root.fileSettings; Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true
-                    Copy { text: "입체 출력 형식" }
+                    Copy { text: qsTr("Stereo layout") }
                     StereoLayoutPicker { objectName: "fileStereoLayout"; enabled: !desktop.busy; currentIndex: keys.indexOf(desktop.settings.stereo_layout); onActivated: { desktop.setOption("stereo_layout", keys[currentIndex]); desktop.rememberSelection() } }
                 }
                 RowLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32
-                    Label { text: desktop.destination || "저장 위치: 파일을 추가하면 자동 지정됩니다"; color: root.muted; elide: Text.ElideMiddle; Layout.fillWidth: true; ToolTip.visible: outputHover.hovered; ToolTip.text: desktop.destination; HoverHandler { id: outputHover } }
-                    Action { text: "저장 위치"; enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.chooseOutput() }
-                    Action { text: "제거"; enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.removeSelected() }
+                    Label { text: desktop.destination || qsTr("Save location is set automatically when you add a file"); color: root.muted; elide: Text.ElideMiddle; Layout.fillWidth: true; ToolTip.visible: outputHover.hovered; ToolTip.text: desktop.destination; HoverHandler { id: outputHover } }
+                    Action { text: qsTr("Save location"); enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.chooseOutput() }
+                    Action { text: qsTr("Remove"); enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.removeSelected() }
                 }
                 ColumnLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true
                     ModelInstall { feature: desktop.settings.model }
                     RowLayout {
                         visible: desktop.settings.model === "ovda-small-c16"
-                        CheckOption { text: "개인·비상업적 사용 및 라이선스 조건 확인"; checked: desktop.settings.noncommercial; enabled: !desktop.busy; onClicked: desktop.setOption("noncommercial", checked) }
-                        Action { text: "라이선스 읽기"; onClicked: desktop.openLicense() }
+                        CheckOption { text: qsTr("I confirm personal, non-commercial use and the license terms"); checked: desktop.settings.noncommercial; enabled: !desktop.busy; onClicked: desktop.setOption("noncommercial", checked) }
+                        Action { text: qsTr("Read license"); onClicked: desktop.openLicense() }
                     }
                 }
                 ColumnLayout {
                     visible: root.fileSettings; Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true
-                        Copy { text: "스테레오 처리" }
-                        Picker { enabled: !desktop.busy; model: ["CUDA · 기본", "CPU · 비교 진단용 (느림)"]; currentIndex: desktop.settings.renderer === "cuda" ? 0 : 1; onActivated: desktop.setOption("renderer", currentIndex === 0 ? "cuda" : "cpu") }
-                        CheckOption { text: "파일 변환 · 실험적 검은 여백 배경 보정"; enabled: !desktop.busy; checked: desktop.settings.letterbox; onClicked: desktop.setOption("letterbox", checked) }
+                        Copy { text: qsTr("Stereo processing") }
+                        Picker { enabled: !desktop.busy; model: [qsTr("CUDA · Default"), qsTr("CPU · Diagnostic comparison (slow)")]; currentIndex: desktop.settings.renderer === "cuda" ? 0 : 1; onActivated: desktop.setOption("renderer", currentIndex === 0 ? "cuda" : "cpu") }
+                        CheckOption { text: qsTr("File conversion · Experimental black-bar background refinement"); enabled: !desktop.busy; checked: desktop.settings.letterbox; onClicked: desktop.setOption("letterbox", checked) }
                 }
                 Copy { text: desktop.details; font.pixelSize: 12; Layout.leftMargin: 32; Layout.rightMargin: 32 }
             }
@@ -183,14 +183,14 @@ ApplicationWindow {
                     background: Rectangle { implicitHeight: 6; radius: 3; color: root.theme.disabled }
                     contentItem: Item { implicitHeight: 6; Rectangle { width: conversionProgress.visualPosition * parent.width; height: parent.height; radius: 3; color: root.accent } }
                 }
-                Copy { objectName: "jobStatus"; text: live.active ? "파일을 변환하려면 실시간 SBS를 중지하세요." : desktop.status; color: root.ink; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                Copy { objectName: "jobStatus"; text: live.active ? qsTr("Stop live SBS to convert a file.") : desktop.status; color: root.ink; Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 RowLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.bottomMargin: 20
                     Copy { text: desktop.licenseNotice; font.pixelSize: 12 }
-                    Action { text: "영상 열기"; visible: desktop.canOpen; onClicked: desktop.openResult() }
-                    Action { text: "폴더 열기"; visible: desktop.canOpen; onClicked: desktop.openResultFolder() }
-                    Action { text: desktop.cancellingNow ? "정리 중…" : "취소"; enabled: desktop.canCancel; onClicked: desktop.cancel() }
-                    Action { objectName: "convertButton"; text: "선택 영상 변환"; primary: true; enabled: !desktop.busy && desktop.selectedIndex >= 0 && !desktop.missingModels[desktop.settings.model]; onClicked: desktop.start() }
+                    Action { text: qsTr("Open video"); visible: desktop.canOpen; onClicked: desktop.openResult() }
+                    Action { text: qsTr("Open folder"); visible: desktop.canOpen; onClicked: desktop.openResultFolder() }
+                    Action { text: desktop.cancellingNow ? qsTr("Cleaning up…") : qsTr("Cancel"); enabled: desktop.canCancel; onClicked: desktop.cancel() }
+                    Action { objectName: "convertButton"; text: qsTr("Convert selected video"); primary: true; enabled: !desktop.busy && desktop.selectedIndex >= 0 && !desktop.missingModels[desktop.settings.model]; onClicked: desktop.start() }
                 }
             }
         }
@@ -202,7 +202,7 @@ ApplicationWindow {
         width: 860; height: 740; minimumWidth: 760; minimumHeight: 620
         visible: false; color: root.color
         font: root.font; palette: root.palette
-        title: root.page === 3 ? "ScreenTo3D · 실시간 출력 설정" : "ScreenTo3D · 설정과 진단"
+        title: root.page === 3 ? qsTr("ScreenTo3D · Live output settings") : qsTr("ScreenTo3D · Settings and diagnostics")
         onClosing: function(close) { close.accepted = false; root.page = 0 }
         onVisibleChanged: { if (visible) desktop.protectWindow(tools) }
         StackLayout {
@@ -213,35 +213,43 @@ ApplicationWindow {
             ColumnLayout {
                 width: parent.width; spacing: 16
                 Item { height: 16 }
-                Heading { text: "설정"; Layout.leftMargin: 32; Layout.rightMargin: 32 }
-                Copy { text: "실행 환경과 진단 도구를 관리합니다. 깊이 모델은 각 작업 화면에서 선택하세요."; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                Heading { text: qsTr("Settings"); Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                Copy { text: qsTr("Manage the runtime and diagnostic tools. Choose a depth model in each workspace."); Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 ColumnLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true; spacing: 12
-                    Label { text: "설치 환경 확인"; color: root.ink; font.bold: true }
-                    Picker { id: setupTarget; objectName: "setupTarget"; enabled: !desktop.busy; model: ["실시간 SBS", "파일 변환"]; Accessible.name: "설치 확인 대상" }
-                    Copy { objectName: "setupModel"; text: "확인할 모델 · " + (setupTarget.currentIndex === 0 ? live.liveModelLabel : desktop.models.filter(function(m) { return m.key === desktop.settings.model })[0].label); font.pixelSize: 14 }
+                    Label { text: qsTr("Language"); color: root.ink }
+                    Picker {
+                        objectName: "languagePicker"
+                        model: i18n.choices; textRole: "label"; valueRole: "key"
+                        currentIndex: i18n.choices.map(function(choice) { return choice.key }).indexOf(i18n.selected)
+                        onActivated: i18n.setLanguage(currentValue)
+                        Accessible.name: qsTr("Language")
+                    }
+                    Label { text: qsTr("Check installation"); color: root.ink; font.bold: true }
+                    Picker { id: setupTarget; objectName: "setupTarget"; enabled: !desktop.busy; model: [qsTr("Live SBS"), qsTr("File conversion")]; Accessible.name: qsTr("Installation check target") }
+                    Copy { objectName: "setupModel"; text: qsTr("Model to check · ") + (setupTarget.currentIndex === 0 ? live.liveModelLabel : desktop.models.filter(function(m) { return m.key === desktop.settings.model })[0].label); font.pixelSize: 14 }
                     RowLayout {
-                        Action { objectName: "checkSetup"; text: "선택한 환경 확인"; enabled: !desktop.busy; onClicked: desktop.checkSetupFor(setupTarget.currentIndex === 0 ? "live" : "file") }
+                        Action { objectName: "checkSetup"; text: qsTr("Check selected setup"); enabled: !desktop.busy; onClicked: desktop.checkSetupFor(setupTarget.currentIndex === 0 ? "live" : "file") }
                     }
                     Copy { objectName: "setupStatus"; text: desktop.setup; font.pixelSize: 12 }
-                    Label { text: "실시간 SBS · 진단 설정"; color: root.ink; font.bold: true }
-                    Picker { objectName: "liveProcessingPath"; enabled: !live.active; model: live.nativeCapable ? ["GPU 호스트 출력 · 진단용", "기존 처리 · 진단용", "GPU 직접 출력 · 기본"] : ["GPU 호스트 출력 · 진단용", "기존 처리 · 진단용"]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]); Accessible.name: "출력 처리 경로" }
-                    CheckOption { id: diagnostics; text: "상세 상태 보기" }
+                    Label { text: qsTr("Live SBS · Diagnostics"); color: root.ink; font.bold: true }
+                    Picker { objectName: "liveProcessingPath"; enabled: !live.active; model: live.nativeCapable ? [qsTr("GPU host output · Diagnostic"), qsTr("Legacy processing · Diagnostic"), qsTr("Direct GPU output · Default")] : [qsTr("GPU host output · Diagnostic"), qsTr("Legacy processing · Diagnostic")]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]); Accessible.name: qsTr("Output processing path") }
+                    CheckOption { id: diagnostics; text: qsTr("Show detailed status") }
                     Copy { visible: diagnostics.checked; text: live.policyDescription + "\n" + live.supportStatus + "\n" + live.metrics; font.pixelSize: 12 }
-                    CheckOption { id: advanced; text: "고급 설정 · 진단" }
+                    CheckOption { id: advanced; text: qsTr("Advanced diagnostics") }
                     ColumnLayout {
                         visible: advanced.checked; Layout.fillWidth: true
-                        Action { text: "출력 화면 시험 · 캡처 없음"; onClicked: pattern.show() }
-                        Copy { text: "공통 실행 환경 · 모델 경로는 파일 변환에서 선택한 모델에 적용"; font.pixelSize: 12 }
+                        Action { text: qsTr("Test output display · No capture"); onClicked: pattern.show() }
+                        Copy { text: qsTr("Shared runtime · Model path applies to the model selected for file conversion"); font.pixelSize: 12 }
                         Repeater {
-                            model: [{key:"engine", label:"모델 엔진 폴더 (DA2 Small은 내장 위치)"}, {key:"runtime", label:"TensorRT 실행 환경"}, {key:"media", label:"영상 도구"}]
+                            model: [{key:"engine", label:qsTr("Model engine folder (DA2 Small uses its bundled location)")}, {key:"runtime", label:qsTr("TensorRT runtime")}, {key:"media", label:qsTr("Media tools")}]
                             delegate: ColumnLayout {
                                 required property var modelData
                                 Layout.fillWidth: true
                                 Copy { text: modelData.label; font.pixelSize: 12 }
                                 RowLayout {
                                     TextField { Layout.fillWidth: true; enabled: !desktop.busy && (modelData.key !== "engine" || desktop.settings.model !== "da2-small"); text: desktop.settings[modelData.key]; selectByMouse: true; onEditingFinished: desktop.setOption(modelData.key, text) }
-                                    Action { text: "찾기"; enabled: !desktop.busy && (modelData.key !== "engine" || desktop.settings.model !== "da2-small"); onClicked: desktop.chooseDirectory(modelData.key) }
+                                    Action { text: qsTr("Browse"); enabled: !desktop.busy && (modelData.key !== "engine" || desktop.settings.model !== "da2-small"); onClicked: desktop.chooseDirectory(modelData.key) }
                                 }
                             }
                         }
@@ -263,7 +271,7 @@ ApplicationWindow {
         objectName: "sbsOutput"
         width: 1280; height: 720; visible: false; color: "black"
         property string stats: ""
-        title: "ScreenTo3D · " + live.stereoLayoutLabel + " · " + stats + " · F11 전체 화면"
+        title: "ScreenTo3D · " + live.stereoLayoutLabel + " · " + stats + qsTr(" · F11 Fullscreen")
         Timer {
             interval: 1000; repeat: true; triggeredOnStart: true
             running: sbsOutput.visible && live.active
@@ -290,10 +298,10 @@ ApplicationWindow {
                 onClicked: outputMenu.popup()
                 Menu {
                     id: outputMenu
-                    MenuItem { text: sbsOutput.visibility === Window.FullScreen ? "창 모드 · Esc" : "전체 화면 · F11"; onTriggered: { live.rememberOutput(); sbsOutput.visibility === Window.FullScreen ? sbsOutput.showNormal() : sbsOutput.showFullScreen() } }
-                    MenuItem { text: "SBS 중지"; onTriggered: live.stop() }
-                    MenuItem { text: "프레임 보간 (VFG) · Ctrl+Alt+S"; visible: live.vfgConfigurable; checkable: true; checked: live.vfgEnabled; enabled: !live.stoppingNow && !live.vfgSwitching && (live.vfgEnabled || live.vfgUnavailableReason.length === 0); onTriggered: live.setVfg(checked) }
-                    MenuItem { text: "전체 화면 성능 정보"; checkable: true; checked: outputPreferences.fullscreenStats; onTriggered: outputPreferences.fullscreenStats = checked }
+                    MenuItem { text: sbsOutput.visibility === Window.FullScreen ? qsTr("Windowed · Esc") : qsTr("Fullscreen · F11"); onTriggered: { live.rememberOutput(); sbsOutput.visibility === Window.FullScreen ? sbsOutput.showNormal() : sbsOutput.showFullScreen() } }
+                    MenuItem { text: qsTr("Stop SBS"); onTriggered: live.stop() }
+                    MenuItem { text: qsTr("Frame interpolation (VFG) · Ctrl+Alt+S"); visible: live.vfgConfigurable; checkable: true; checked: live.vfgEnabled; enabled: !live.stoppingNow && !live.vfgSwitching && (live.vfgEnabled || live.vfgUnavailableReason.length === 0); onTriggered: live.setVfg(checked) }
+                    MenuItem { text: qsTr("Fullscreen performance information"); checkable: true; checked: outputPreferences.fullscreenStats; onTriggered: outputPreferences.fullscreenStats = checked }
                 }
             }
             Image { objectName: "outputImage"; anchors.fill: parent; source: sbsOutput.visible && !live.nativeEnabled ? live.imageUrl : ""; fillMode: Image.PreserveAspectFit; cache: false; asynchronous: false }
@@ -304,7 +312,7 @@ ApplicationWindow {
                 Binding { target: nativeOutput.item; property: "demand"; value: sbsOutput.visible; when: nativeOutput.status === Loader.Ready }
             }
             Image { objectName: "vfgTransitionImage"; anchors.fill: parent; source: live.transitionImageUrl; visible: live.vfgSwitching; fillMode: Image.PreserveAspectFit; cache: false; asynchronous: false }
-            Label { visible: !live.hasFrame && !live.vfgSwitching; anchors.centerIn: parent; text: "ScreenTo3D · 화면 대기 중"; color: "#8d98ad" }
+            Label { visible: !live.hasFrame && !live.vfgSwitching; anchors.centerIn: parent; text: qsTr("ScreenTo3D · Waiting for frames"); color: "#8d98ad" }
             Item {
                 id: statsRow
                 readonly property bool topBottom: live.stereoLayout.endsWith("tb")
@@ -357,6 +365,14 @@ ApplicationWindow {
                     target: sbsOutput
                     function onVisibleChanged() { if (!sbsOutput.visible) vfgNotice.show("", false) }
                 }
+                Connections {
+                    target: i18n
+                    function onChanged() {
+                        if (vfgNotice.visible && vfgNotice.message.length > 0)
+                            vfgNotice.message = live.vfgNoticeText
+                        sbsOutput.stats = live.outputSummary()
+                    }
+                }
             }
         }
     }
@@ -365,7 +381,7 @@ ApplicationWindow {
         id: pattern
         objectName: "patternWindow"
         width: 960; height: 540; visible: false; color: "#10141c"
-        title: "ScreenTo3D · 생성 테스트 패턴 (캡처 아님)"
+        title: qsTr("ScreenTo3D · Generated test pattern (no capture)")
         onClosing: function(close) { close.accepted = false; hide() }
         Item {
             anchors.fill: parent; focus: true
@@ -385,8 +401,8 @@ ApplicationWindow {
                     }
                 }
             }
-            Label { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 18; text: "생성 테스트 패턴 · 실제 캡처 / 변환 영상이 아닙니다"; color: "white" }
-            Action { anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter; anchors.bottomMargin: 18; text: "전체화면 / 창 모드 · Esc로 돌아가기"; onClicked: pattern.visibility === Window.FullScreen ? pattern.showNormal() : pattern.showFullScreen() }
+            Label { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 18; text: qsTr("Generated test pattern · Not captured or converted video"); color: "white" }
+            Action { anchors.bottom: parent.bottom; anchors.horizontalCenter: parent.horizontalCenter; anchors.bottomMargin: 18; text: qsTr("Fullscreen / Windowed · Esc to return"); onClicked: pattern.visibility === Window.FullScreen ? pattern.showNormal() : pattern.showFullScreen() }
         }
     }
 }

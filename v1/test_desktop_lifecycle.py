@@ -63,7 +63,7 @@ def main():
         else:
             controller.cancel()
         wait_until(lambda: not controller.busy)
-        assert controller.rows[0]["state"] == "취소됨", controller.status
+        assert controller.rows[0]["state"] == "cancelled", controller.status
         assert target.read_bytes() == sentinel
         assert controller.temp is None and controller.process is None
         if name == "close-cancel":
@@ -77,7 +77,7 @@ def main():
     controller.setOption("engine", str(args.output))
     target = start_with_prior("invalid-engine")
     wait_until(lambda: not controller.busy)
-    assert controller.rows[0]["state"] == "오류"
+    assert controller.rows[0]["state"] == "failed"
     assert target.read_bytes() == sentinel
     assert controller.temp is None and controller.process is None
     evidence.append(
@@ -91,7 +91,7 @@ def main():
         controller.start()
         assert controller.busy
         wait_until(lambda: not controller.busy)
-        assert controller.canOpen and controller.rows[0]["state"] == "완료", (
+        assert controller.canOpen and controller.rows[0]["state"] == "completed", (
             controller.status
         )
         assert controller.temp is None and controller.process is None

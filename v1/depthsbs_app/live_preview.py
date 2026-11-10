@@ -1,5 +1,8 @@
 """Owned live controller: native SBS delivery with explicit host diagnostics."""
 
+from .messages import Message as M, message_value, decode_message
+from .localization import localized, render
+
 import multiprocessing as mp
 import ctypes
 import os
@@ -62,11 +65,12 @@ class LivePreview(QObject):
     vfg_configurable = True
     changed = Signal()
     frameChanged = Signal()
-    errorOccurred = Signal(str)
+    errorOccurred = Signal(object)
     vfgNotification = Signal(str, bool)  # Message and whether preparation is pending.
 
     def reportError(self, message):
-        self.message = str(message) or "SBS 처리 중 알 수 없는 오류가 발생했습니다."
+        self.stop_message_pending = False
+        self.message = message_value(message) or M('An unknown SBS processing error occurred.')
         self.changed.emit()
         self.errorOccurred.emit(self.message)
 
@@ -87,7 +91,8 @@ class LivePreview(QObject):
         self.stereo_renderer = 'cuda'
         self.gpu_capture_selected = False
         self.stopping = False
-        self.message = "볼 창을 선택하세요."
+        self.stop_message_pending = False
+        self.message = M('Select a window to view.')
         self.session = 0
         self.version = 0
         self.meta = [0] * 12
@@ -117,6 +122,7 @@ class LivePreview(QObject):
         self.vfg_switch = None
         self.transition_provider = PreviewImages()
         self.vfg_shortcut = ""
+        self.vfg_notice = ""
         self.processing_stats = None
         self.final_processing_stats = [0] * STAT_COUNT
         self.output_window = None
@@ -145,10 +151,12 @@ class LivePreview(QObject):
         self.refresh()
 
     @Property("QVariantList", notify=changed)
+    @localized
     def sources(self):
         return [dict(label=r["label"]) for r in self.items]
 
     @Property(str, notify=changed)
+    @localized
     def sourceKind(self):
         return self.kind
 
@@ -157,6 +165,7 @@ class LivePreview(QObject):
         return self.selected
 
     @Property(str, notify=changed)
+    @localized
     def sourceIcon(self):
         row = self.items[self.selected] if 0 <= self.selected < len(self.items) else {}
         if row.get("kind") != "window":
@@ -176,10 +185,12 @@ class LivePreview(QObject):
         return self.stopping
 
     @Property(str, notify=changed)
+    @localized
     def status(self):
         return self.message
 
     @Property(str, notify=frameChanged)
+    @localized
     def imageUrl(self):
         return (
             f"image://live/{self.session}/{self.version}"
@@ -188,9 +199,10 @@ class LivePreview(QObject):
         )
 
     @Property(str, notify=changed)
+    @localized
     def metrics(self):
         if not self.started:
-            return "캡처 —   미리보기 —   대기 프레임 0 / 1"
+            return M('Capture —   Preview —   Queued frames 0 / 1')
         elapsed = max(0.001, (self.ended or time.perf_counter()) - self.started)
         age = sorted(self.latencies)
         p95 = f"{age[int((len(age) - 1) * 0.95)]:.1f} ms" if age else "—"
@@ -200,14 +212,11 @@ class LivePreview(QObject):
             main_count = counts["main"]["submitted_frames"]
             output_count = counts["output"]["submitted_frames"]
         return (
-            f"수신 {self.meta[RECEIVED] / elapsed:.1f} fps  ·  미리보기 제출 {main_count / elapsed:.1f} fps\n"
-            f"세션 평균: 처리 {self._stats()[0] / elapsed:.1f} fps · 출력 창 제출 {output_count / elapsed:.1f} fps · 최신 프레임 교체 {self.meta[REPLACED]}\n"
-            f"{LAYOUTS[self.stereo_layout] if self.sbs else '원본'} {self.meta[WIDTH]} × {self.meta[HEIGHT]}  ·  최근 수신→화면 교환 P95 {p95}\n"
+            M('Received {v0:.1f} fps  ·  Preview submitted {v1:.1f} fps\nSession average: processed {v2:.1f} fps · Output submitted {v3:.1f} fps · Latest-frame replacements {v4}\n{v5} {v6} × {v7}  ·  Recent receive-to-swap P95 {v8}\n', v0=self.meta[RECEIVED] / elapsed, v1=main_count / elapsed, v2=self._stats()[0] / elapsed, v3=output_count / elapsed, v4=self.meta[REPLACED], v5=LAYOUTS[self.stereo_layout] if self.sbs else M('Source'), v6=self.meta[WIDTH], v7=self.meta[HEIGHT], v8=p95)
             + (
-                f"{self.liveModelLabel} + CUDA · 처리 {self._stats()[0]} · 입력 교체 {self._stats()[1]} · 재초기화 {self._stats()[2]}\n"
-                f"최근 전처리/추론/SBS {self._stats()[3] / 1e6:.1f}/{self._stats()[4] / 1e6:.1f}/{self._stats()[5] / 1e6:.1f} ms · CPU 전달 경계 있음"
+                M('{v0} + CUDA · Processed {v1} · Input replacements {v2} · Resets {v3}\nRecent preprocessing/inference/SBS {v4:.1f}/{v5:.1f}/{v6:.1f} ms · Includes CPU delivery boundary', v0=self.liveModelLabel, v1=self._stats()[0], v2=self._stats()[1], v3=self._stats()[2], v4=self._stats()[3] / 1e6, v5=self._stats()[4] / 1e6, v6=self._stats()[5] / 1e6)
                 if self.sbs
-                else f"원본 미리보기 · CPU 복사 경로 · 출력 목표 {self.cadence.hz} fps"
+                else M('Source preview · CPU copy path · Output target {v0} fps', v0=self.cadence.hz)
             )
         )
 
@@ -233,12 +242,14 @@ class LivePreview(QObject):
                 for mode in LIVE_MODES]
 
     @Property('QVariantList', notify=changed)
+    @localized
     def depthChoices(self):
         from .desktop_jobs import PORTABLE_DESKTOP
         from .model_presentation import selection_choices
         return selection_choices(LIVE_MODES, self.desktop.engine_paths, portable=PORTABLE_DESKTOP)
 
     @Property(str, notify=changed)
+    @localized
     def depthModelHelp(self):
         from .model_presentation import selection_info
         return selection_info(self.mode, self.live_model, self.desktop.engine_paths)['help']
@@ -262,10 +273,12 @@ class LivePreview(QObject):
         ]
 
     @Property(str, notify=changed)
+    @localized
     def liveModel(self):
         return self.live_model
 
     @Property(str, notify=changed)
+    @localized
     def liveModelLabel(self):
         return self.desktop.models_label(self.live_model)
 
@@ -274,33 +287,36 @@ class LivePreview(QObject):
         return self.ovda_noncommercial
 
     @Property(str, notify=changed)
+    @localized
     def liveMode(self):
         return self.mode
 
     @Property(str, notify=changed)
+    @localized
     def policyDescription(self):
         prefix = (
-            "GPU 직접 출력 · 실험 · "
+            M('Direct GPU output · Experimental · ')
             if self.nativeEnabled
-            else "GPU 가속 · 로컬 기본 · "
+            else M('GPU accelerated · Local default · ')
             if self.gpu_candidate
             else ""
         )
         return (
             prefix
             + LIVE_MODES[self.mode].description
-            + " · Offline Quality는 파일 전용"
+            + M(' · Offline Quality is available for files only')
         )
 
     @Property(str, notify=changed)
+    @localized
     def supportStatus(self):
         from .live_support import guidance
 
         if self.sbs and self.gpu_candidate:
-            return "RTX 5090 로컬 검증 · 다른 GPU 호환성 별도 · 자동 축소/대체 없음 · 60 fps 보장 아님"
+            return M('Locally validated on RTX 5090 · Other GPUs need validation · No automatic scaling or model replacement · 60 fps is not guaranteed')
 
         if not self.sbs:
-            return "원본 미리보기 · SBS 성능 수치와 별개입니다."
+            return M('Source preview · Separate from SBS performance measurements.')
         if self.active and self.meta[WIDTH]:
             return guidance(self.meta[WIDTH] // 2, self.meta[HEIGHT])
         if 0 <= self.selected < len(self.items):
@@ -309,6 +325,7 @@ class LivePreview(QObject):
         return guidance(0, 0)
 
     @Property(str, notify=changed)
+    @localized
     def processingPath(self):
         if self.native_selected:
             return "gpu-texture"
@@ -353,12 +370,25 @@ class LivePreview(QObject):
         return self.vfg_configurable
 
     @Property(str, notify=changed)
+    @localized
     def vfgUnavailableReason(self):
+        return self._vfg_reason()
+
+    def _vfg_reason(self):
         from .vfg_runtime import unavailable_reason
         return unavailable_reason(self.live_model, self.kind,
                                   self.nativeEnabled, self.gpu_candidate and
                                   os.environ.get('DEPTHSBS_GPU_CAPTURE', '1') != '0',
                                   os.environ.get('DEPTHSBS_STEREO_RENDERER', 'cuda'))
+
+    @Property(str, notify=changed)
+    @localized
+    def vfgNoticeText(self):
+        return self.vfg_notice
+
+    def notifyVfg(self, message, pending):
+        self.vfg_notice = message
+        self.vfgNotification.emit(render(message), pending)
 
     @Slot(bool)
     def setVfg(self, enabled):
@@ -367,14 +397,14 @@ class LivePreview(QObject):
         if self.stopping or self.desktop.closing or (self.desktop.busy and not self.active):
             return
         if enabled and self.vfgUnavailableReason:
-            self.reportError(self.vfgUnavailableReason)
+            self.reportError(self._vfg_reason())
             return
         if self.active:
             try:
                 if enabled:
                     from .vfg_runtime import validate_runtime
                     validate_runtime()
-                self.vfgNotification.emit("", False)
+                self.notifyVfg("", False)
                 image = (self.output_window.grabWindow()
                          if self.output_window is not None and self.output_window.isVisible()
                          and self.hasFrame else QImage())
@@ -383,8 +413,9 @@ class LivePreview(QObject):
                 self.transition_provider.image = image
                 self.version += 1
                 self.stop(switching=True)
-                self.message = "VFG 켜는 중…" if enabled else "VFG 끄는 중…"
-                self.vfgNotification.emit("VFG 준비 중…" if enabled else "VFG 끄는 중…", True)
+                self.message = M('Enabling VFG…') if enabled else M('Disabling VFG…')
+                self.stop_message_pending = False
+                self.notifyVfg(M('Preparing VFG…') if enabled else M('Disabling VFG…'), True)
                 self.frameChanged.emit()
                 self.changed.emit()
             except Exception as error:
@@ -404,10 +435,12 @@ class LivePreview(QObject):
         return self.vfg_switch is not None
 
     @Property(str, notify=changed)
+    @localized
     def vfgShortcut(self):
         return self.vfg_shortcut
 
     @Property(str, notify=frameChanged)
+    @localized
     def transitionImageUrl(self):
         return f"image://transition/{self.session}/{self.version}" if not self.transition_provider.image.isNull() else ""
 
@@ -415,7 +448,7 @@ class LivePreview(QObject):
         pending = self.vfg_switch
         self.vfg_switch = None
         self.transition_provider.image = QImage()
-        self.vfgNotification.emit(
+        self.notifyVfg(
             ("VFG ON" if pending["enabled"] else "VFG OFF") if completed and pending else "",
             False,
         )
@@ -457,9 +490,9 @@ class LivePreview(QObject):
         if self.active:
             return
         if path not in ("gpu", "reference", "gpu-texture"):
-            self.reportError("지원하지 않는 처리 경로입니다.")
+            self.reportError(M('Unsupported processing path.'))
         elif path == "gpu-texture" and self.live_model not in NATIVE_MODELS:
-            self.reportError("선택한 실시간 모델은 GPU 직접 출력을 지원하지 않습니다.")
+            self.reportError(M('The selected live model does not support direct GPU output.'))
         else:
             try:
                 if path == "gpu-texture" and self.native is None:
@@ -469,7 +502,7 @@ class LivePreview(QObject):
                 self.native_selected = path == "gpu-texture"
                 self.gpu_candidate = path != "reference"
             except Exception as error:
-                self.reportError(f"GPU 직접 출력 준비 실패: {error}")
+                self.reportError(M('Cannot prepare direct GPU output: {v0}', v0=error))
         self.changed.emit()
 
     @Slot(int)
@@ -487,7 +520,7 @@ class LivePreview(QObject):
     def setMode(self, mode):
         if not self.active:
             if mode not in LIVE_MODES:
-                self.reportError("지원하지 않는 실시간 모드입니다. Offline Quality는 파일 전용입니다.")
+                self.reportError(M('Unsupported live mode. Offline Quality is available for files only.'))
             else:
                 self.mode = mode
                 if self.live_model not in live_model_choices(mode):
@@ -523,12 +556,11 @@ class LivePreview(QObject):
                 self.reportError(error)
 
     @Property("QStringList", notify=changed)
+    @localized
     def outputScreens(self):
         return [
-            f"모니터 {index + 1} · {screen.name()}"
-            f" · {round(screen.size().width() * screen.devicePixelRatio())}"
-            f" × {round(screen.size().height() * screen.devicePixelRatio())}"
-            + (" · 기본" if screen == QGuiApplication.primaryScreen() else "")
+            M('Monitor {v0} · {v1} · {v2} × {v3}', v0=index + 1, v1=screen.name(), v2=round(screen.size().width() * screen.devicePixelRatio()), v3=round(screen.size().height() * screen.devicePixelRatio()))
+            + (M(' · Default') if screen == QGuiApplication.primaryScreen() else "")
             for index, screen in enumerate(QGuiApplication.screens())
         ]
 
@@ -574,13 +606,13 @@ class LivePreview(QObject):
             window.setPosition(screens[index].geometry().topLeft())
         if not self.configureOutputCapture(window):
             self.reportError(
-                "SBS 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다."
+                M('Cannot set the SBS output capture policy. The output window will remain closed.')
             )
             return
         window.showFullScreen() if fullscreen else window.showNormal()
         if not self.configureOutputCapture(window):
             window.hide()
-            self.abort("출력 창 캡처 정책 설정 실패로 중단했습니다.")
+            self.abort(M('Stopped because the output capture policy could not be set.'))
 
     def configureOutputCapture(self, window):
         from .capture_sources import set_output_affinity
@@ -612,6 +644,7 @@ class LivePreview(QObject):
             self._restore_output = False
 
     @Slot(result=str)
+    @localized
     def outputSummary(self):
         now = time.perf_counter_ns()
         seconds = min(2.0, (now / 1e9 - self.started)) if self.started else 0
@@ -628,8 +661,7 @@ class LivePreview(QObject):
         from .gpu_usage import usage_text
         stats = self._stats()
         gpu = usage_text(stats[GPU_USAGE], stats[GPU_USAGE_NS], now, active=self.active)
-        return (f"원본 {rate(len(originals))} · 출력 {rate(len(samples))} · "
-                f"보간 {rate(len(samples) - len(originals))} fps · 지연 {delay} · {gpu}")
+        return (M('Source {v0} · Output {v1} · Interpolated {v2} fps · Latency {v3} · {v4}', v0=rate(len(originals)), v1=rate(len(samples)), v2=rate(len(samples) - len(originals)), v3=delay, v4=gpu))
 
     @Property(float, notify=changed)
     def outputAspect(self):
@@ -638,10 +670,12 @@ class LivePreview(QObject):
         return self.vfg_switch.get("aspect", 0) if self.vfg_switch is not None else 0
 
     @Property(str, notify=changed)
+    @localized
     def stereoLayout(self):
         return self.stereo_layout
 
     @Property(str, notify=changed)
+    @localized
     def stereoLayoutLabel(self):
         return LAYOUTS[self.stereo_layout]
 
@@ -672,7 +706,7 @@ class LivePreview(QObject):
         if self.output_window is not None and self.output_window.isVisible():
             if not self.configureOutputCapture(self.output_window):
                 self.output_window.hide()
-                self.abort("출력 창 캡처 정책 설정 실패로 중단했습니다.")
+                self.abort(M('Stopped because the output capture policy could not be set.'))
         else:
             self.output_pending = None
 
@@ -681,7 +715,7 @@ class LivePreview(QObject):
         # Capture/GPU topology still needs a new validated session. Restore a
         # visible control window rather than leaving the user on a lost display.
         if self.output_window is not None and self.output_window.isVisible():
-            self.abort("디스플레이 구성이 변경되어 중지했습니다. SBS를 다시 시작하세요.")
+            self.abort(M('Stopped because the display configuration changed. Restart SBS.'))
             if not self.active:
                 self.output_window.hide()
         main = getattr(self.desktop, "main_window", None)
@@ -699,7 +733,7 @@ class LivePreview(QObject):
                 self.items, self.selected = [], -1
                 self.selection_required = False
             self.kind = kind
-            self.message = "볼 창을 선택하세요." if kind == "window" else "볼 모니터를 선택하세요."
+            self.message = M('Select a window to view.') if kind == "window" else M('Select a monitor to view.')
             self.refresh()
 
     @Slot(int)
@@ -707,7 +741,7 @@ class LivePreview(QObject):
         if not self.active and 0 <= index < len(self.items):
             self.selected = index
             self.selection_required = False
-            self.message = "시작 대기"
+            self.message = M('Ready to start')
             self.changed.emit()
 
     @Slot(bool)
@@ -740,11 +774,11 @@ class LivePreview(QObject):
                 )
                 if self.selected < 0:
                     self.selection_required = True
-                    self.message = "선택한 화면이 목록에서 사라졌습니다. 캡처할 대상을 다시 선택하세요."
+                    self.message = M('The selected source disappeared from the list. Select the capture source again.')
             else:
                 self.selected = -1
             if not self.items:
-                self.message = "선택할 대상이 없습니다. 볼 앱을 연 뒤 목록을 다시 여세요."
+                self.message = M('No sources are available. Open the app you want to view, then reopen the list.')
         except Exception as error:
             self.selection_required = self.selection_required or previous is not None
             self.items, self.selected = [], -1
@@ -762,20 +796,20 @@ class LivePreview(QObject):
         """User-facing start; capture-only remains a diagnostic API, never a mode."""
         if self.active or self.desktop.busy:
             self.reportError(
-                "SBS가 이미 실행 중입니다. 중지 후 다시 시작하세요."
-                if self.active else "다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 SBS를 시작하세요."
+                M('SBS is already running. Stop it before restarting.')
+                if self.active else M('Another task is running. Finish or stop it before starting SBS.')
             )
             return
         if not 0 <= self.selected < len(self.items):
-            self.reportError("볼 창을 선택하세요. 선택 목록을 열면 다시 확인합니다.")
+            self.reportError(M('Select a window to view. Reopen the source list to refresh it.'))
             return
         if output_style not in (0, 1, 2) or (
             output_style != 2 and not 0 <= screen_index < len(QGuiApplication.screens())
         ):
-            self.reportError("사용 가능한 출력 화면을 선택하세요.")
+            self.reportError(M('Select an available output display.'))
             return
         self.setSbs(True)
-        self.message = "SBS 시작 준비 중… 캡처 대상과 출력 화면을 확인합니다."
+        self.message = M('Preparing SBS… Checking the capture source and output display.')
         self.changed.emit()
         self.start()
         try:
@@ -784,11 +818,11 @@ class LivePreview(QObject):
                 if not self.stopping and (
                     self.output_window is None or not self.output_window.isVisible()
                 ):
-                    self.abort("출력 창을 열지 못해 SBS를 중단했습니다.")
+                    self.abort(M('SBS stopped because the output window could not be opened.'))
             elif self.active and self.output_window is not None:
                 self.output_window.hide()
         except Exception as error:
-            self.abort(f"출력 준비 실패로 SBS를 중단했습니다: {error}")
+            self.abort(M('SBS stopped because output preparation failed: {v0}', v0=error))
 
     @Slot()
     def start(self):
@@ -796,7 +830,7 @@ class LivePreview(QObject):
             return
         try:
             if self.selected < 0:
-                raise ValueError("캡처할 대상을 선택하세요.")
+                raise ValueError(M('Select a capture source.'))
             source = dict(self.items[self.selected])
             validate_source(source)
             validate_shape(source["width"], source["height"])
@@ -817,11 +851,11 @@ class LivePreview(QObject):
                                self.nativeEnabled, self.gpu_capture_selected, self.stereo_renderer)
             if self.nativeEnabled and self.live_model not in NATIVE_MODELS:
                 raise ValueError(
-                    "선택한 실시간 모델은 GPU 직접 출력을 지원하지 않습니다."
+                    M('The selected live model does not support direct GPU output.')
                 )
             if source["kind"] == "monitor" and not self.excluded:
                 raise ValueError(
-                    "이 환경에서 미리보기 창의 재캡처를 차단하지 못했습니다. 창 캡처를 사용하세요."
+                    M('Cannot prevent preview recapture in this configuration. Use window capture.')
                 )
             self.desktop.lease.acquire("live")
             context = mp.get_context("spawn")
@@ -857,7 +891,7 @@ class LivePreview(QObject):
                         self.native = NativeDelivery()
                     except Exception as error:
                         raise RuntimeError(
-                            f"GPU 직접 출력 준비 실패: {error}\n설정과 진단에서 GPU 호스트 출력을 선택해 다시 시도할 수 있습니다."
+                            M('Cannot prepare direct GPU output: {v0}\nYou can try GPU host output in Settings and diagnostics.', v0=error)
                         ) from error
                 self.native.begin(self.session + 1)
                 self.texture_mailbox = TextureMailbox.create(context)
@@ -920,7 +954,7 @@ class LivePreview(QObject):
             self.last_health = self.last_stats = self.started
             self.stopping = False
             self.poll_count = 0
-            self.message = "캡처 시작 중… 화면은 저장되지 않습니다."
+            self.message = M('Starting capture… Your screen is not being recorded.')
             self.timer.setInterval(self.native_wakeup.health_interval_ms if self.native_wakeup else self.cadence.poll_ms)
             self.timer.start()
         except Exception as error:
@@ -962,7 +996,8 @@ class LivePreview(QObject):
             self.output_pending = None
             self.pending_present = None
             self.frameChanged.emit()
-            self.message = "캡처 종료 중…"
+            self.message = M('Stopping capture…')
+            self.stop_message_pending = True
             self.changed.emit()
 
     def abort(self, message):
@@ -984,13 +1019,14 @@ class LivePreview(QObject):
             failure = None
             restart = self.vfg_switch is not None and self.vfg_switch["phase"] == "stopping" and code == 0 and not self.desktop.closing
             if not self.stopping:
-                error = bytes(self.mailbox.error.value).decode("utf-8", "replace")
+                error = decode_message(bytes(self.mailbox.error.value))
                 self.message = (
-                    error or f"캡처가 중단되었습니다 ({code}). 대상을 다시 선택하세요."
+                    error or M('Capture stopped ({v0}). Select the source again.', v0=code)
                 )
                 failure = self.message
-            elif self.message == "캡처 종료 중…":
-                self.message = "SBS를 중지했습니다."
+            elif self.stop_message_pending:
+                self.message = M('SBS stopped.')
+            self.stop_message_pending = False
             self.process.join(timeout=0)
             self.process.close()
             self.closeNativeWakeup()
@@ -1014,7 +1050,7 @@ class LivePreview(QObject):
                 self._cancel_vfg_switch()
                 if self.output_window is not None:
                     self.output_window.hide()
-                failure = failure or "VFG 전환을 완료하지 못해 SBS를 중지했습니다."
+                failure = failure or M('SBS stopped because the VFG transition failed.')
             self.frameChanged.emit()
             self.changed.emit()
             self.desktop.changed.emit()
@@ -1033,15 +1069,16 @@ class LivePreview(QObject):
                 self.process.terminate()
                 if self.preparation is not None and self.preparation.value:
                     # Synchronous compiler work is cancelled with its owned job.
-                    self.message = "입체화 준비를 취소했습니다."
+                    self.message = M('Stereo preparation cancelled.')
+                    self.stop_message_pending = False
                     self.changed.emit()
                     return
-                message = "캡처 응답 지연으로 캡처 프로세스를 종료했습니다. 다시 시작할 수 있습니다."
+                message = M('The capture worker was stopped after a response timeout. You can restart capture.')
                 if self.message != message:
                     self.reportError(message)
             return
         if self.preparation is not None and self.preparation.value:
-            message = self.preparation.value.decode('utf-8','replace')
+            message = decode_message(bytes(self.preparation.value))
             if self.message!=message:
                 self.message=message
                 self.changed.emit()
@@ -1056,7 +1093,7 @@ class LivePreview(QObject):
                 120 if self.sbs else 10
             ):
                 self.abort(
-                    "캡처 프레임을 받지 못했습니다. 창 상태와 캡처 권한을 확인하세요."
+                    M('No capture frames received. Check the window state and capture permissions.')
                 )
                 return
         notify = False
@@ -1074,7 +1111,7 @@ class LivePreview(QObject):
                         self.changed.emit()
                     self.notifyNativeFrame()
             except Exception as error:
-                self.abort(f"GPU 직접 프레임 전달 실패: {error}")
+                self.abort(M('Direct GPU frame delivery failed: {v0}', v0=error))
                 return
         if (self.nativeEnabled or self.cadence.ready(time.perf_counter_ns())) and self.mailbox.lock.acquire(
             False
@@ -1083,7 +1120,7 @@ class LivePreview(QObject):
                 m = self.mailbox.meta
                 self.meta = list(m)
                 if m[STATE] == FAILED:
-                    error = self.mailbox.error.value.decode("utf-8", "replace")
+                    error = decode_message(bytes(self.mailbox.error.value))
                 else:
                     error = None
                 visible = self.preview_visible or (
@@ -1127,12 +1164,12 @@ class LivePreview(QObject):
                     )
                     self.output_source_ns = m[SOURCE_NS]
                     self.message = (
-                        ("● GPU 직접 출력 · VFG 2× / 녹화 안 함" if self.vfg_enabled
-                         else "● GPU 직접 출력 · 실험 / 녹화 안 함")
+                        (M('● Direct GPU output · VFG 2× / Not recording') if self.vfg_enabled
+                         else M('● Direct GPU output · Experimental / Not recording'))
                         if self.nativeEnabled
-                        else f"● {self.liveModelLabel} 실시간 {LAYOUTS[self.stereo_layout]} / 녹화 안 함"
+                        else M('● {v0} live {v1} / Not recording', v0=self.liveModelLabel, v1=LAYOUTS[self.stereo_layout])
                         if self.sbs
-                        else "● 캡처 중 · 원본 미리보기 / 녹화 안 함"
+                        else M('● Capturing · Source preview / Not recording')
                     )
                     if not self.nativeEnabled:
                         if self.notify_unlocked:
@@ -1140,7 +1177,7 @@ class LivePreview(QObject):
                         else:
                             self.notifyFrame()
             except Exception as failure:
-                error = f"화면 프레임 전달 실패: {failure}"
+                error = M('Frame delivery failed: {v0}', v0=failure)
             finally:
                 self.mailbox.lock.release()
             if error:
@@ -1157,7 +1194,7 @@ class LivePreview(QObject):
                 if delay is not None:
                     self.delivery_timer.start(max(1, (delay + 999_999) // 1_000_000))
             except Exception as error:
-                self.abort(f"GPU 직접 출력 대기 실패: {error}")
+                self.abort(M('Direct GPU output wait failed: {v0}', v0=error))
 
     def notifyFrame(self):
         began = time.perf_counter_ns()

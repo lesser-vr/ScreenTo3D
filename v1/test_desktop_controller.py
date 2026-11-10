@@ -5,9 +5,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from PySide6.QtCore import QProcess, QUrl
+from PySide6.QtCore import QProcess, QUrl, QSettings
 from PySide6.QtWidgets import QApplication, QMessageBox
 from depthsbs_app.desktop import DesktopController
+from depthsbs_app.desktop_preferences import DesktopPreferences
 
 APP = QApplication.instance() or QApplication([])
 
@@ -19,7 +20,7 @@ class ControllerTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.source = self.root / "한글 & input.mp4"
         self.source.touch()
-        self.c = DesktopController()
+        self.c = DesktopController(DesktopPreferences(QSettings(str(self.root/'preferences.ini'), QSettings.IniFormat)))
         self.c.add_paths([str(self.source)])
 
     def test_duplicate_and_remote_drop(self):
@@ -41,10 +42,11 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(len(self.c.rows), 32)
 
     def test_settings_and_selection_locked(self):
+        original = self.c.settings["mode"]
         self.c.lease.acquire("live")
-        self.c.setOption("mode", "performance")
+        self.c.setOption("mode", "balanced")
         self.c.removeSelected()
-        self.assertEqual(self.c.settings["mode"], "balanced")
+        self.assertEqual(self.c.settings["mode"], original)
         self.assertEqual(len(self.c.rows), 1)
 
     def test_offline_mode_selects_dedicated_vda_label(self):
@@ -52,7 +54,7 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(self.c.settings["model"], "vda-small")
         self.assertEqual(
             self.c.models,
-            [{"key": "vda-small", "label": "VDA Small · 5프레임 Offline"}],
+            [{"key": "vda-small", "label": "VDA Small · 5-frame Offline"}],
         )
 
     def test_license_reset_on_model_change(self):
@@ -81,7 +83,7 @@ class ControllerTests(unittest.TestCase):
         Path(self.c.destination).touch()
         self.c._finished(0, QProcess.NormalExit)
         self.assertFalse(self.c.canOpen)
-        self.assertEqual(self.c.rows[0]["state"], "오류")
+        self.assertEqual(self.c.rows[0]["state"], "failed")
 
     def test_complete_then_crash_is_error(self):
         self._fake_active()
@@ -101,13 +103,21 @@ class ControllerTests(unittest.TestCase):
         self._fake_active()
         self.c._process_error(QProcess.FailedToStart)
         self.assertFalse(self.c.busy)
-        self.assertIn("시작할 수 없습니다", self.c.status)
+        self.assertIn("Cannot start", self.c.status)
 
     def test_cancel_error_is_not_successful_cancel(self):
         self._fake_active()
         self.c._event({"event": "error", "message": "cleanup failed"})
         self.c._finished(2, QProcess.NormalExit)
-        self.assertEqual(self.c.rows[0]["state"], "오류")
+        self.assertEqual(self.c.rows[0]["state"], "failed")
+
+    def test_malformed_translation_keeps_original_failure(self):
+        self._fake_active()
+        self.c._event(dict(event='error',message='opaque failure CODE-42',
+                           localized=dict(source='{value:1000000000}',values=dict(value='invalid'))))
+        self.c._finished(1,QProcess.CrashExit)
+        self.assertIn('opaque failure CODE-42',self.c.status)
+        self.assertEqual(self.c.rows[0]['state'],'failed')
 
     def test_close_waits_for_cleanup(self):
         self._fake_active()
