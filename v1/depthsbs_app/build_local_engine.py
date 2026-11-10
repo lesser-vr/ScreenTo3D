@@ -1,6 +1,6 @@
 """Isolated builder for the verified Base and VDA ONNX distribution graphs."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M
 from .messages import encode_message
 import hashlib
 import sys
@@ -25,7 +25,7 @@ def sample_outputs(folder, key, width):
     for stage in (('model',) if base else ('warmup', 'cached')):
         engine = runtime.deserialize_cuda_engine((folder/f'{stage}.plan').read_bytes())
         if engine is None:
-            raise RuntimeError(M('Cannot open the {v0} engine.', v0=stage))
+            raise RuntimeError(E('E_ENGINE_OPEN_FAILED', v0=stage))
         ctx = engine.create_execution_context()
         image_shape = (1, 3, 518, width) if base else (1, 1, 3, 518, width)
         inputs = {'image': torch.from_numpy(rng.uniform(-1, 1, image_shape).astype('float32')).cuda()}
@@ -45,7 +45,7 @@ def sample_outputs(folder, key, width):
                     or not ctx.set_tensor_address(name, tensor.data_ptr())):
                 raise ValueError(f'Invalid engine tensor: {name}')
         if not ctx.execute_async_v3(torch.cuda.current_stream().cuda_stream):
-            raise RuntimeError(M('The engine test run failed.'))
+            raise RuntimeError(E('E_ENGINE_TEST_FAILED'))
         torch.cuda.synchronize()
         for name, tensor in outputs.items():
             if not bool(tensor.isfinite().all()):
@@ -67,7 +67,7 @@ def compile_graph(graph_bytes, destination, trt, logger):
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 2 * 1024**3)
     plan = builder.build_serialized_network(network, config)
     if plan is None:
-        raise RuntimeError(M('TensorRT engine build failed. Check the driver and available GPU memory.'))
+        raise RuntimeError(E('E_ENGINE_BUILD_FAILED'))
     data = bytes(plan)
     destination.write_bytes(data)
     return dict(file=destination.name, sha256=hashlib.sha256(data).hexdigest(), bytes=len(data))
@@ -83,7 +83,7 @@ def build(key, folder):
     runtime_directory = prepare_dll_search_path()
     import tensorrt as trt
     if trt.__version__ != TRT_VERSION:
-        raise ValueError(M('The TensorRT version does not match this distribution.'))
+        raise ValueError(E('E_ENGINE_VERSION_MISMATCH'))
     device = device_identity()
     logger = trt.Logger(trt.Logger.ERROR)
     profiles = {}
@@ -96,7 +96,7 @@ def build(key, folder):
             graph = profile/f'{stage}.onnx'
             graph_bytes = graph.read_bytes()
             if hashlib.sha256(graph_bytes).hexdigest() != GRAPH_HASHES[key][width][stage]:
-                raise ValueError(M('Model graph verification failed'))
+                raise ValueError(E('E_MODEL_GRAPH_INVALID'))
             engines[stage] = compile_graph(graph_bytes, profile/f'{stage}.plan', trt, logger)
             del graph_bytes
             graph.unlink()
@@ -119,5 +119,6 @@ if __name__ == '__main__':
     try:
         build(sys.argv[1], Path(sys.argv[2]))
     except Exception as exc:
-        Path(sys.argv[3]).write_bytes(encode_message(exc, limit=2000))
+        from .messages import as_error
+        Path(sys.argv[3]).write_bytes(encode_message(as_error(exc), limit=2000))
         raise

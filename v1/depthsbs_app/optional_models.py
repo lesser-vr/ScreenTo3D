@@ -1,4 +1,5 @@
 """Pinned optional downloads. Only a fully verified installation becomes visible."""
+from .messages import ErrorMessage as E
 
 from .messages import Message as M
 from .messages import decode_message
@@ -97,12 +98,12 @@ def source_for(key):
     if origin.is_file():
         base = origin.read_text(encoding='utf-8').strip().rstrip('/')
         if urlsplit(base).scheme != 'https' or not urlsplit(base).hostname:
-            raise ValueError(M('Check the model distribution URL. An HTTPS URL is required.'))
+            raise ValueError(E('E_MODEL_URL_INVALID'))
         return base + '/' + pack.filename
     for folder in (ROOT.parent / 'packs', ROOT / 'out/desktop-distribution/packs'):
         if (folder / pack.filename).is_file():
             return folder / pack.filename
-    raise FileNotFoundError(M('No model server is configured in this distribution. Select a model pack provided by the distributor.'))
+    raise FileNotFoundError(E('E_MODEL_SERVER_UNCONFIGURED'))
 
 
 def optimize(key, payload, cancelled):
@@ -113,14 +114,14 @@ def optimize(key, payload, cancelled):
         try:
             while child.poll() is None:
                 if cancelled():
-                    raise InterruptedError(M('Installation cancelled.'))
+                    raise InterruptedError(E('E_INSTALL_CANCELLED'))
                 try:
                     child.wait(timeout=0.2)
                 except subprocess.TimeoutExpired:
                     continue
             if child.returncode:
                 reason = decode_message(error.read_text(encoding='utf-8')) if error.is_file() else M('Exit code {v0}', v0=child.returncode)
-                raise RuntimeError(M('GPU engine optimization failed · ') + reason)
+                raise RuntimeError(E('E_ENGINE_OPTIMIZATION',reason=reason))
         finally:
             if child.poll() is None:
                 child.kill()
@@ -134,7 +135,7 @@ def install(key, source, target, progress, cancelled):
 
     def check():
         if cancelled():
-            raise InterruptedError(M('Installation cancelled.'))
+            raise InterruptedError(E('E_INSTALL_CANCELLED'))
 
     with tempfile.TemporaryDirectory(prefix='.install-', dir=target.parent) as scratch:
         archive = Path(scratch) / pack.filename
@@ -144,22 +145,22 @@ def install(key, source, target, progress, cancelled):
         read = 0
         required = pack.size * (4 if key in GRAPH_HASHES else 2)
         if shutil.disk_usage(scratch).free < required:
-            raise OSError(M('Installation needs about {v0:.1f} GB of free space.', v0=required / 1e9))
+            raise OSError(E('E_INSTALL_SPACE_REQUIRED', v0=required / 1e9))
         check()
         with (source.open('rb') if isinstance(source, Path) else urlopen(source, timeout=12)) as stream:
             if not isinstance(source, Path) and urlsplit(stream.geturl()).scheme != 'https':
-                raise ValueError(M("Check the model server's secure connection."))
+                raise ValueError(E('E_MODEL_TLS_INVALID'))
             with archive.open('wb') as output:
                 while chunk := stream.read(1024 * 1024):
                     check()
                     read += len(chunk)
                     if read > pack.size:
-                        raise ValueError(M('The download size does not match the distribution record.'))
+                        raise ValueError(E('E_MODEL_DOWNLOAD_SIZE'))
                     digest.update(chunk)
                     output.write(chunk)
                     progress(M('Downloading files'), read * 100 // pack.size)
         if read != pack.size or digest.hexdigest() != pack.sha:
-            raise ValueError(M('File verification failed. Download the model pack again.'))
+            raise ValueError(E('E_MODEL_CHECKSUM_FAILED'))
         progress(M('Installing verified files'), -1)
         with ZipFile(archive) as z:
             if key == 'vfg':
@@ -172,7 +173,7 @@ def install(key, source, target, progress, cancelled):
             for member, relative in members.items():
                 dest = payload / relative
                 if not dest.resolve().is_relative_to(payload.resolve()):
-                    raise ValueError(M('Invalid model file path.'))
+                    raise ValueError(E('E_MODEL_ARCHIVE_PATH_INVALID'))
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 with z.open(member) as src, dest.open('xb') as dst:
                     while chunk := src.read(1024 * 1024):

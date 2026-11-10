@@ -1,6 +1,6 @@
 """VFG opt-in policy and trusted runtime identity; no GPU/Qt imports."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M
 import hashlib
 from pathlib import Path
 
@@ -24,13 +24,13 @@ PINS = {
 
 def unavailable_reason(model, source_kind, native, gpu, renderer='cuda'):
     if model not in SUPPORTED_MODELS:
-        return M('VFG is available with DA2 Small and DA2 Base.')
+        return E('E_VFG_MODEL')
     if source_kind != 'window':
-        return M('VFG is available with window capture.')
+        return E('E_VFG_CAPTURE')
     if not native or not gpu:
-        return M('VFG requires direct GPU output and GPU capture.')
+        return E('E_VFG_OUTPUT')
     if renderer != 'cuda':
-        return M('VFG requires the default stereo renderer. Close the RowFlow trial and start the normal launcher.')
+        return E('E_VFG_RENDERER')
     return ''
 
 
@@ -40,7 +40,7 @@ def validate_selection(enabled, model, source_kind, native, gpu, renderer='cuda'
     if enabled:
         reason = unavailable_reason(model, source_kind, native, gpu, renderer)
         if reason:
-            raise ValueError(reason + M(' Turn off VFG or choose supported settings.'))
+            raise ValueError(E('E_VFG_SETTINGS',reason=reason))
 
 
 def validate_runtime(sdk=None, bridge=None):
@@ -48,11 +48,11 @@ def validate_runtime(sdk=None, bridge=None):
     bridge = BRIDGE if bridge is None else Path(bridge)
     for path, expected in [(sdk / name, sha) for name, sha in PINS.items()] + [(bridge, BRIDGE_HASH)]:
         if not path.is_file():
-            raise RuntimeError(M('VFG components are not ready. Turn off VFG or check the installation.'))
+            raise RuntimeError(E('E_VFG_NOT_READY'))
         with path.open('rb') as stream:
             actual = hashlib.file_digest(stream, 'sha256').hexdigest()
         if actual != expected:
-            raise RuntimeError(M('VFG component verification failed. Repair the installation, then try again.'))
+            raise RuntimeError(E('E_VFG_VERIFY_FAILED'))
     return sdk, bridge
 
 

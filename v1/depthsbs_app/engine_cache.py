@@ -1,6 +1,6 @@
 """Identity and user-bound build records for locally generated TensorRT plans."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M
 import ctypes as ct
 import hashlib
 import json
@@ -28,7 +28,7 @@ def device_identity(index=0):
         ('cuDeviceGetAttribute', (ct.byref(minor), 76, ordinal)),
     ]:
         if getattr(drv, func)(*args):
-            raise RuntimeError(M('Check that an NVIDIA CUDA GPU and a working driver are available.'))
+            raise RuntimeError(E('E_CUDA_UNAVAILABLE'))
     return dict(uuid=bytes(uuid).hex(), gpu=name.value.decode(), compute_capability=[major.value, minor.value],
                 cuda_driver=driver.value, tensorrt=TRT_VERSION)
 
@@ -47,7 +47,7 @@ def _dpapi(data, *, protect):
     crypto = ct.WinDLL('crypt32', use_last_error=True)
     call = crypto.CryptProtectData if protect else crypto.CryptUnprotectData
     if not call(ct.byref(source), None, None, None, None, 1, ct.byref(dest)):
-        raise ValueError(M('Cannot verify the local engine build record. Reinstall the model.'))
+        raise ValueError(E('E_ENGINE_RECORD_INVALID'))
     try:
         return ct.string_at(dest.data, dest.size)
     finally:
@@ -77,11 +77,11 @@ def local_record(folder, key):
     device = device_identity()
     root = revision / device_key(device)
     if folder.parent != root or folder.name not in {f'518x{w}-{suffix}' for w in (896, 924)}:
-        raise ValueError(M('Install a local model engine compatible with this GPU.'))
+        raise ValueError(E('E_ENGINE_GPU_INCOMPATIBLE'))
     receipt = root/'build.receipt'
     if receipt.resolve().parent != root or receipt.stat().st_size > 65536:
         raise ValueError('Invalid local build record')
     record = json.loads(_dpapi(receipt.read_bytes(), protect=False))
     if record['source'] != source or record['device'] != device:
-        raise ValueError(M('The GPU or TensorRT configuration changed. Reinstall the model.'))
+        raise ValueError(E('E_ENGINE_CONFIG_CHANGED'))
     return record['profiles'][folder.name]

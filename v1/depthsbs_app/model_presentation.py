@@ -1,4 +1,5 @@
 """Model-oriented UI descriptions, without loading engines or importing CUDA."""
+from .messages import ErrorMessage as E
 
 from .messages import Message as M
 from .config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES
@@ -31,7 +32,7 @@ def model_info(model, engine=''):
     if model == 'ovda-small-c16':
         return 'oVDA c16', M('Mixed FP16'), (
             M('A separate video depth model that uses previous-frame history. Available from source only, subject to personal, non-commercial license terms.\n\nUses a 518×924 mixed-precision engine. The encoder and spatial attention use FP16; temporal processing, caches, depth output and floating-point input/output remain FP32.'))
-    raise ValueError(M('Unknown depth model.'))
+    raise ValueError(E('E_MODEL_UNKNOWN'))
 
 
 def selection_info(mode, model, engines):
