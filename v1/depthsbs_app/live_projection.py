@@ -6,6 +6,7 @@ import numpy as np
 
 from cuda_projection_experiment import CudaProjection
 from .desktop_jobs import ROOT
+from .portable_cuda import binary
 
 DLL_SHA256 = "e01f922faab7d839febe084bd113df25c98ce72e654ed7889b465e6a6be9ec73"
 
@@ -15,9 +16,10 @@ class LiveProjection(CudaProjection):
 
     def __init__(self, width, height):
         path = ROOT / "out/cuda-projection-preview/projection.dll"
+        path, expected = binary(path, DLL_SHA256)
         if (
             not path.is_file()
-            or hashlib.sha256(path.read_bytes()).hexdigest() != DLL_SHA256
+            or hashlib.sha256(path.read_bytes()).hexdigest() != expected
         ):
             raise ValueError(
                 "라이브 CUDA DLL 검증 실패: 검증된 로컬 빌드가 필요합니다."

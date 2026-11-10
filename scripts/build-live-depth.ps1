@@ -1,4 +1,4 @@
-param([ValidateSet('live-depth-candidate', 'live-depth-parallel', 'live-depth-guide-shared', 'live-depth-guide-profile', 'live-depth-guide-rolling', 'live-depth-guide-hybrid', 'live-depth-guide-promoted', 'ovda-device-post-spike')][string]$OutputName = 'live-depth-parallel')
+param([ValidateSet('live-depth-candidate', 'live-depth-parallel', 'live-depth-stereo-lr', 'live-depth-stable', 'live-depth-coverage', 'live-depth-range', 'live-depth-window', 'live-depth-budget', 'live-depth-detail', 'live-depth-guide-shared', 'live-depth-guide-profile', 'live-depth-guide-rolling', 'live-depth-guide-hybrid', 'live-depth-guide-promoted', 'ovda-device-post-spike')][string]$OutputName = 'live-depth-detail')
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
@@ -23,7 +23,7 @@ try {
     nvcc_version = (& nvcc --version | Out-String).Trim()
     host_compiler = (Get-Command cl.exe).Source
     architecture = 'sm_120'
-    scope = if ($OutputName -eq 'live-depth-parallel') { 'Prepared-local product DLL; not a public release' } else { 'Opt-in local candidate; not a public release' }
+    scope = if ($OutputName -in @('live-depth-range','live-depth-window','live-depth-budget')) { 'Prepared-local product DLL; not a public release' } else { 'Opt-in local candidate; not a public release' }
     guide_implementation = switch ($OutputName) {
         'live-depth-guide-shared' { 'shared-memory exact-order candidate' }
         'live-depth-guide-profile' { 'global-memory reference with diagnostic subkernel events' }
@@ -31,12 +31,20 @@ try {
         'live-depth-guide-hybrid' { 'exact radius-4 plus rolling radius-8/12 candidate' }
         'live-depth-guide-promoted' { 'production source with exact radius-4 and rolling radius-8/12 guide' }
         'live-depth-parallel' { 'production exact radius-4 plus rolling radius-8/12 guide' }
+        'live-depth-stereo-lr' { 'production guide with physical left/right forward disparity' }
+        'live-depth-stable' { 'production guide with optional bounded subpixel reconstruction and sparse depth sampling' }
+        'live-depth-coverage' { 'production guide with bounded fractional silhouette coverage' }
+        'live-depth-range' { 'coverage plus optional source-time adaptive range response' }
+        'live-depth-window' { 'range/coverage plus optional bounded floating stereo window' }
+        'live-depth-budget' { 'window plus optional fixed compression-only disparity curve' }
+        'live-depth-detail' { 'budget plus selective contour and bounded background fill' }
         default { 'global-memory reference' }
     }
     source_sha256 = (Get-FileHash (Join-Path $repoRoot 'experiments/cuda_projection/live_depth.cu')).Hash
     candidate_source_sha256 = if ($sourceName -ne 'live_depth.cu') { (Get-FileHash (Join-Path $repoRoot "experiments/cuda_projection/$sourceName")).Hash } else { $null }
     projection_source_sha256 = (Get-FileHash (Join-Path $repoRoot 'experiments/cuda_projection/projection.cu')).Hash
     resolve_source_sha256 = (Get-FileHash (Join-Path $repoRoot 'experiments/cuda_projection/resolve_parallel.cuh')).Hash
+    detail_source_sha256 = (Get-FileHash (Join-Path $repoRoot 'experiments/cuda_projection/stereo_detail.cuh')).Hash
     dll_sha256 = (Get-FileHash (Join-Path $buildDir 'live_depth.dll')).Hash
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $buildDir 'build-manifest.json') -Encoding UTF8
 Get-FileHash (Join-Path $buildDir 'live_depth.dll')

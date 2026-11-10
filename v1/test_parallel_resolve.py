@@ -35,10 +35,14 @@ def oracle(rgb, owners):
 
 
 def main():
+    import argparse
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--dll',type=Path,default=Path('out/live-parallel-projection/probe/resolve_probe.dll'))
+    args=parser.parse_args()
     from depthsbs_app.resources import prepare_dll_search_path
 
     prepare_dll_search_path()
-    path = Path("out/live-parallel-projection/probe/resolve_probe.dll").resolve()
+    path = args.dll.resolve()
     dll = ct.CDLL(str(path))
     dll.probe_resolve.argtypes = [ct.c_void_p] * 3 + [ct.c_int] * 4 + [ct.c_void_p]
     rng = np.random.default_rng(5313)

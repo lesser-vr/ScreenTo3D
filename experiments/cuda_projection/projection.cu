@@ -111,7 +111,11 @@ extern "C" __declspec(dllexport) int projection_create(void** output, int width,
     if (status != cudaSuccess) return int(status);
     status = cudaDriverGetVersion(&driver);
     if (status != cudaSuccess) return int(status);
+#ifdef DEPTHSBS_PORTABLE_CUDA
+    if (properties.major * 10 + properties.minor < 75) return int(cudaErrorInvalidDevice);
+#else
     if (properties.major != 12 || properties.minor != 0) return int(cudaErrorInvalidDevice);
+#endif
     if (driver < 13010) return int(cudaErrorInsufficientDriver);
 #endif
     return create_context(output, width, height, 0);

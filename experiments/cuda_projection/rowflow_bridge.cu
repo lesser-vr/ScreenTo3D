@@ -28,7 +28,8 @@ extern "C" __declspec(dllexport) int rowflow_publish(void* value,const unsigned 
         auto stream=static_cast<cudaStream_t>(stream_value);auto& slot=texture->slots[index];
         cudaExternalSemaphoreWaitParams wait={};wait.params.keyedMutex.key=0;wait.params.keyedMutex.timeoutMs=2000;
         CU(cudaWaitExternalSemaphoresAsync(&slot.semaphore,&wait,1,stream));
-        rowflow_pack<<<(w*h+255)/256,256,0,stream>>>(rgb,slot.surface,w,h);
+        for(int eye=0;eye<2;eye++)
+            pack_eye_surface<<<(w*h/2+255)/256,256,0,stream>>>(rgb+eye*(w/2)*3,slot.surface,w/2,h,eye,texture->layout,w);
         CU(cudaGetLastError());cudaExternalSemaphoreSignalParams signal={};signal.params.keyedMutex.key=1;
         CU(cudaSignalExternalSemaphoresAsync(&slot.semaphore,&signal,1,stream));
         CU(cudaStreamSynchronize(stream));return 1;

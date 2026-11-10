@@ -16,9 +16,9 @@ SOURCE = ROOT/'out/iw3-render-source-20261105'
 REVISION = '0d3d92c8f4396da564c44524b6390ee5c76b9668'
 WEIGHT = ROOT/'out/iw3-render-models-20261105/iw3_row_flow_v3_sym_20250628.pth'
 WEIGHT_HASH = 'b61518f9c83e1f0c19d8a8844dbe5304e5f47bfb65928d5bb74256c1640186a0'
-BRIDGE = ROOT/'out/rowflow-bridge/rowflow_bridge.dll'
-BRIDGE_HASH = 'a98ef1bc35e85c1582710c1bcbaf2ccf6663125f551f532f2d87d030ab7e4ec5'
-LAYOUT_HASH = 'e88697254fa9d81ade5d19b84b2f9107d5d1211fbeb9243cb4ec0af77b7ae6df'
+BRIDGE = ROOT/'out/rowflow-bridge-detail/rowflow_bridge.dll'
+BRIDGE_HASH = 'c5096fa3df305baf98a6027f38243e3410078ad316244e4469f5af492ab56d63'
+LAYOUT_HASH = '0394a7b790c92db37aaa49190e213edc65914e79625f03d38d62cf3c2911da85'
 
 
 def bridge():
@@ -101,7 +101,7 @@ class RowFlowRenderer(LiveSourceGpuCandidate):
             if stop is not None and stop.is_set():
                 raise InterruptedError('RowFlow 준비를 취소했습니다.')
             if native:
-                self.pool = RowFlowPool(width,height,diagnostic=diagnostic)
+                self.pool = RowFlowPool(width,height,diagnostic=diagnostic,layout=policy.stereo_layout)
         except BaseException as primary:
             try:self.close()
             except Exception as cleanup:primary.add_note(str(cleanup))
@@ -116,8 +116,8 @@ class RowFlowRenderer(LiveSourceGpuCandidate):
             self.policy.divergence*100,self.policy.convergence,steps=1,enable_amp=True)
         if not bool(torch.isfinite(left).all() & torch.isfinite(right).all()):
             raise ValueError('RowFlow produced nonfinite output')
-        # Upstream eye names are opposite to the calibrated DepthSBS convention.
-        return torch.cat((right,left),3).clamp(0,1).mul(255).round().to(torch.uint8)[0].permute(1,2,0).contiguous()
+        # Standard LR packing. The former swap matched a reversed CUDA baseline.
+        return torch.cat((left,right),3).clamp(0,1).mul(255).round().to(torch.uint8)[0].permute(1,2,0).contiguous()
 
     def _project(self,frame,refined):
         torch = self.engine.torch

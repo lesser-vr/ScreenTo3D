@@ -24,6 +24,16 @@ class LiveSourceGpuCandidate(LiveGpuCandidate):
             ct.c_void_p,
             ct.c_double,
         ]
+        self._post_override = None
+        if policy.temporal_depth_alpha is not None or policy.stabilize_depth_range:
+            try:
+                if policy.depth_backend != 'ovda-small-c16':
+                    raise ValueError('Independent source pixel EMA is validated for oVDA only')
+                from .ovda import postprocess_bridge
+                self._post_override = postprocess_bridge(self)
+            except BaseException:
+                self.close()
+                raise
 
     def infer(self, frame):
         self._owner()
@@ -36,6 +46,11 @@ class LiveSourceGpuCandidate(LiveGpuCandidate):
         input_bytes = getattr(self.engine, 'last_input_bytes', None)
         self.h2d += expected_input_bytes if input_bytes is None else input_bytes
         return depth
+
+    def close(self):
+        super().close()
+        bridge=getattr(self,'_post_override',None)
+        if bridge is not None:bridge.close()
 
     def _input_bytes(self):
         profile = getattr(self.engine, "profile", None)
@@ -64,6 +79,9 @@ class LiveSourceGpuCandidate(LiveGpuCandidate):
             raise ValueError("Invalid inference RGB frame")
 
     def _post(self, frame, depth, aligned, reset):
+        if self._post_override is not None:
+            self._post_override.post(frame,depth,aligned,reset)
+            return
         gpu_frame = isinstance(frame, GpuFrame)
         if gpu_frame:
             frame.validate(self.engine)

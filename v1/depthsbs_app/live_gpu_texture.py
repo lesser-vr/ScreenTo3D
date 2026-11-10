@@ -4,7 +4,7 @@ from .live_gpu_candidate import LiveGpuCandidate
 from .live_texture_pool import LiveTexturePool
 
 BORROWED_LAYOUT_SHA256 = (
-    "e88697254fa9d81ade5d19b84b2f9107d5d1211fbeb9243cb4ec0af77b7ae6df"
+    "0394a7b790c92db37aaa49190e213edc65914e79625f03d38d62cf3c2911da85"
 )
 
 
@@ -20,7 +20,7 @@ class TextureOutputMixin:
         self.slot = None
         super().__init__(width, height, policy, engine)
         try:
-            self.pool = LiveTexturePool(width, height, diagnostic=diagnostic)
+            self.pool = LiveTexturePool(width, height, diagnostic=diagnostic, layout=policy.stereo_layout)
         except BaseException:
             super().close()
             raise
@@ -34,7 +34,7 @@ class TextureOutputMixin:
                 self.pool.dll.live_pool_publish(
                     self.pool.handle,
                     self.handle,
-                    self.policy.convergence,
+                    self.stereo_convergence,
                     max(1.0, self.width * self.policy.divergence),
                     int(self.policy.conservative_stereo_coverage),
                     refined.ctypes.data if refined is not None else None,
