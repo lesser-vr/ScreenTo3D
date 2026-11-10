@@ -1,6 +1,6 @@
 """Explicit Base-only learned-renderer experiment; normal runtime never imports it."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M
 import ctypes as ct
 from functools import lru_cache
 import hashlib
@@ -67,7 +67,7 @@ class RowFlowRenderer(LiveSourceGpuCandidate):
         self.native, self.slot = native, None
         self.rowflow_ms = 0.0
         if policy.depth_backend!='da2-base' or not 0 < policy.divergence*100 <= 5:
-            raise ValueError(M('The RowFlow trial requires Base and depth strength at most 5%.'))
+            raise ValueError(E('E_ROWFLOW_SETTINGS'))
         super().__init__(width,height,policy,engine)
         try:
             self.bridge = bridge()
@@ -101,7 +101,7 @@ class RowFlowRenderer(LiveSourceGpuCandidate):
                 self._render_pixels()  # Compile before offering an output texture.
                 engine.stream.synchronize()
             if stop is not None and stop.is_set():
-                raise InterruptedError(M('RowFlow preparation cancelled.'))
+                raise InterruptedError(E('E_ROWFLOW_CANCELLED'))
             if native:
                 self.pool = RowFlowPool(width,height,diagnostic=diagnostic,layout=policy.stereo_layout)
         except BaseException as primary:

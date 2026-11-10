@@ -1,6 +1,6 @@
 """Explicit pure-D3D11 Qt consumer. Importing this module never imports CUDA."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M
 
 import ctypes as ct
 import hashlib
@@ -21,7 +21,7 @@ def load_native():
     from PySide6.QtCore import qVersion
 
     if qVersion() != "6.10.2":
-        raise RuntimeError(M('Direct GPU output requires the validated Qt 6.10.2 runtime.'))
+        raise RuntimeError(E('E_OUTPUT_QT_VERSION'))
     path = ROOT / "out/qt-native-delivery/qt_native_delivery.dll"
     if hashlib.sha256(path.read_bytes()).hexdigest() != NATIVE_SHA256:
         raise RuntimeError("Native Qt delivery DLL checksum mismatch")

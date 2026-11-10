@@ -1,6 +1,6 @@
 """Model-defined live backend selection with no implicit fallback."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M
 
 from pathlib import Path
 
@@ -9,9 +9,9 @@ from .config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES, MODES, validate_mod
 
 def choices(mode):
     if mode == "offline-quality":
-        raise ValueError(M('Offline Quality is available for files only.'))
+        raise ValueError(E('E_LIVE_OFFLINE_MODE'))
     if mode not in MODE_MODEL_CHOICES:
-        raise ValueError(M('Unsupported live processing mode.'))
+        raise ValueError(E('E_LIVE_MODE_INVALID'))
     return MODE_MODEL_CHOICES[mode]
 
 
@@ -22,23 +22,23 @@ def default_model(mode):
 
 def validate_snapshot(snapshot, mode):
     if not isinstance(snapshot, dict):
-        raise ValueError(M('No live model is configured.'))
+        raise ValueError(E('E_LIVE_MODEL_MISSING'))
     model = snapshot.get("model")
     validate_mode_model(mode, model)
     if model not in choices(mode):
-        raise ValueError(M('The live mode and depth model do not match.'))
+        raise ValueError(E('E_LIVE_MODEL_MISMATCH'))
     runtime = snapshot.get("runtime")
     engine = snapshot.get("engine")
     noncommercial = snapshot.get("noncommercial", False)
     if type(noncommercial) is not bool:
-        raise ValueError(M('Invalid model license confirmation.'))
+        raise ValueError(E('E_MODEL_LICENSE_INVALID'))
     if model != "da2-small":
         if not isinstance(engine, str) or not engine:
-            raise ValueError(M("Check the selected live model's installation folder."))
+            raise ValueError(E('E_LIVE_MODEL_PATH_INVALID'))
         if not isinstance(runtime, str) or not runtime:
-            raise ValueError(M('Check the TensorRT runtime.'))
+            raise ValueError(E('E_LIVE_TENSORRT_PATH_INVALID'))
     if model == "ovda-small-c16" and not noncommercial:
-        raise ValueError(M('Confirm the oVDA license terms and personal, non-commercial use.'))
+        raise ValueError(E('E_LIVE_OVDA_LICENSE_REQUIRED'))
     return {
         "model": model,
         "engine": engine or "",
@@ -76,7 +76,7 @@ def binding(snapshot, mode, metadata, da2_engine_factory, da2_prepare):
             device_depth=True,
         )
     else:  # validate_snapshot owns the public model set.
-        raise ValueError(M('Unsupported live depth model.'))
+        raise ValueError(E('E_LIVE_MODEL_UNSUPPORTED'))
     if result.input_validator is not None:
         result.input_validator(metadata)
     result.validate_policy(MODES[mode])

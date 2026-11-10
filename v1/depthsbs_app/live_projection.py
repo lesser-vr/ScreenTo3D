@@ -1,6 +1,6 @@
 """Pinned local paired-eye CUDA handoff; no native capture/Qt texture sharing."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M
 
 import ctypes
 import hashlib
@@ -24,7 +24,7 @@ class LiveProjection(CudaProjection):
             or hashlib.sha256(path.read_bytes()).hexdigest() != expected
         ):
             raise ValueError(
-                M('Live CUDA DLL verification failed. A validated local build is required.')
+                E('E_CUDA_DLL_INVALID')
             )
         super().__init__(width, height, dll_path=path)
         self.dll.projection_run_pair.argtypes = [ctypes.c_void_p] * 6 + [ctypes.c_int]

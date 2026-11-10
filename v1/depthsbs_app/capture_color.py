@@ -1,6 +1,6 @@
 """Read-only Windows advanced-color policy. Unknown/HDR is not silently SDR."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M
 
 import ctypes as C
 from ctypes import wintypes as W
@@ -38,10 +38,10 @@ def display_colors():
     paths, modes = W.UINT(), W.UINT()
     if user.GetDisplayConfigBufferSizes(2, C.byref(paths), C.byref(modes)) != 0:
         raise ValueError(
-            M('Cannot read display color information. This configuration needs compatibility validation.')
+            E('E_DISPLAY_COLOR_UNAVAILABLE')
         )
     if not 0 < paths.value <= 64 or modes.value > 256:
-        raise ValueError(M('Unsupported display configuration.'))
+        raise ValueError(E('E_DISPLAY_UNSUPPORTED'))
     # ABI: DISPLAYCONFIG_PATH_INFO=72, MODE_INFO=64; extract only named IDs.
     path_data = (C.c_ubyte * (paths.value * 72))()
     mode_data = (C.c_ubyte * (max(1, modes.value) * 64))()
@@ -51,7 +51,7 @@ def display_colors():
         )
         != 0
     ):
-        raise ValueError(M('The display configuration changed. Try again.'))
+        raise ValueError(E('E_DISPLAY_CHANGED'))
     result = {}
     data = bytes(path_data)
     for index in range(paths.value):
@@ -59,11 +59,11 @@ def display_colors():
         low, high, source_id = struct.unpack_from("<IiI", row, 0)
         source = SourceName(Header(1, C.sizeof(SourceName), Luid(low, high), source_id))
         if user.DisplayConfigGetDeviceInfo(C.byref(source)) != 0:
-            raise ValueError(M('Cannot identify the display.'))
+            raise ValueError(E('E_DISPLAY_NOT_FOUND'))
         low, high, target_id = struct.unpack_from("<IiI", row, 20)
         info = ColorInfo(Header(9, C.sizeof(ColorInfo), Luid(low, high), target_id))
         if user.DisplayConfigGetDeviceInfo(C.byref(info)) != 0:
-            raise ValueError(M('Cannot read HDR or advanced color status.'))
+            raise ValueError(E('E_DISPLAY_HDR_UNAVAILABLE'))
         result[source.name] = dict(enabled=bool(info.flags & 2), bits=info.bits)
     return result
 
@@ -81,15 +81,15 @@ def require_sdr(source):
         info.size = C.sizeof(info)
         user32.GetMonitorInfoW.argtypes = [W.HMONITOR, C.POINTER(MonitorInfo)]
         if not user32.GetMonitorInfoW(handle, C.byref(info)):
-            raise ValueError(M('Cannot identify the display containing this window.'))
+            raise ValueError(E('E_WINDOW_DISPLAY_NOT_FOUND'))
         device = info.device
     colors = display_colors()
     if source["kind"] == "window" and any(c["enabled"] for c in colors.values()):
         raise ValueError(
-            M('Window capture requires all connected displays to use SDR. Mixed HDR configurations have not been validated.')
+            E('E_CAPTURE_MIXED_HDR')
         )
     color = colors.get(device)
     if color is None or color["enabled"]:
         raise ValueError(
-            M('This preview supports SDR only. Turn off HDR and advanced color, then restart.')
+            E('E_CAPTURE_HDR_UNSUPPORTED')
         )

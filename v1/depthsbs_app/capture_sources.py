@@ -1,4 +1,5 @@
 """Win32 source identities. Titles are UI-only; never diagnostics identifiers."""
+from .messages import ErrorMessage as E
 
 from .messages import Message as M
 
@@ -84,7 +85,7 @@ def enable_capture_dpi():
     user32.SetThreadDpiAwarenessContext.restype = C.c_void_p
     user32.SetProcessDpiAwarenessContext(C.c_void_p(-4))
     if not user32.SetThreadDpiAwarenessContext(C.c_void_p(-4)):
-        raise ValueError(M("Cannot set the capture worker's DPI coordinate system."))
+        raise ValueError(E('E_CAPTURE_DPI_FAILED'))
 
 
 def windows():
@@ -141,22 +142,22 @@ def validate_source(source):
             for r in current
         ):
             raise ValueError(
-                M('The monitor configuration changed. Refresh the list and select it again.')
+                E('E_MONITOR_CHANGED')
             )
     elif source["kind"] == "window":
         hwnd = source["id"]
         if is_sbs_output(hwnd):
-            raise ValueError(M('An SBS output window cannot be used as input. Select the original game or video window.'))
+            raise ValueError(E('E_CAPTURE_OUTPUT_RECURSION'))
         pid = W.DWORD()
         user32.GetWindowThreadProcessId(hwnd, C.byref(pid))
         if not user32.IsWindow(hwnd) or pid.value != source["pid"]:
-            raise ValueError(M('The selected window closed. Select another window.'))
+            raise ValueError(E('E_CAPTURE_SOURCE_CLOSED'))
         if user32.IsIconic(hwnd) or not user32.IsWindowVisible(hwnd):
             raise ValueError(
-                M('The selected window is minimized or hidden. Restore it, then restart.')
+                E('E_CAPTURE_SOURCE_HIDDEN')
             )
     else:
-        raise ValueError(M('Unsupported capture source.'))
+        raise ValueError(E('E_CAPTURE_SOURCE_UNSUPPORTED'))
     require_sdr(source)
 
 
@@ -174,7 +175,7 @@ def require_input_desktop():
     handle = user32.OpenInputDesktop(0, False, 1)
     if not handle:
         raise ValueError(
-            M('Capture stopped because the screen is locked or access is restricted. Unlock the screen, then restart.')
+            E('E_CAPTURE_LOCKED')
         )
     try:
         name = C.create_unicode_buffer(256)
@@ -186,7 +187,7 @@ def require_input_desktop():
             or name.value.casefold() != "default"
         ):
             raise ValueError(
-                M('Capture is unavailable on a secure or unsupported desktop.')
+                E('E_CAPTURE_DESKTOP_UNAVAILABLE')
             )
     finally:
         user32.CloseDesktop(handle)

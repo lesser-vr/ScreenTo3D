@@ -4,6 +4,7 @@ Capture runs on a thread; CUDA objects remain on the worker's main thread.
 Native delivery exports owned D3D resources through bounded descriptors only.
 No frame is recorded and no CPU renderer fallback occurs.
 """
+from .messages import ErrorMessage as E
 
 from .messages import Message as M
 from .messages import decode_message, encode_message
@@ -139,7 +140,7 @@ def record_ovda_inference(stats, cached):
 
 def validate_strength(value):
     if not 0.25 <= value <= 2.0:
-        raise ValueError(M('Depth strength must be between 0.25 and 2.0.'))
+        raise ValueError(E('E_DEPTH_STRENGTH_INVALID'))
     return float(value)
 
 
@@ -148,7 +149,7 @@ def resolve_renderer(model, gpu, strength=1.0, setting=None):
     if setting not in ('cuda','rowflow-sym'):
         raise ValueError('DEPTHSBS_STEREO_RENDERER must be cuda or rowflow-sym')
     if setting=='rowflow-sym' and (not model_adapter(model).rowflow or not gpu or not 0.25 <= strength <= 5/2.6):
-        raise ValueError(M('The RowFlow trial requires the Balanced/Base GPU path and depth strength at most 1.92.'))
+        raise ValueError(E('E_ROWFLOW_LIVE_SETTINGS'))
     return setting
 
 
@@ -377,7 +378,7 @@ def sbs_worker(
                             raise RuntimeError(decode_message(bytes(incoming.error.value)))
                         if m[SEQ] <= m[ACK]:
                             if not capture.is_alive():
-                                raise RuntimeError(M('The capture worker exited.'))
+                                raise RuntimeError(E('E_CAPTURE_WORKER_EXITED'))
                             wait_seconds = .001
                             continue
                         wait_seconds = 0.0 if fused else .001

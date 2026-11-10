@@ -1,4 +1,5 @@
 """Explicit live-only refinements; file policies are not mutated."""
+from .messages import ErrorMessage as E
 
 from .messages import Message as M
 
@@ -62,7 +63,7 @@ LIVE_MODES = {
 def resolve_live(mode, strength=1.0):
     if mode not in LIVE_MODES:
         raise ValueError(
-            M('Offline Quality is available for files only. Select a supported live mode.')
+            E('E_LIVE_OFFLINE_POLICY')
         )
     return LIVE_MODES[mode].resolve(strength)
 

@@ -1,4 +1,5 @@
 """Isolated Windows Graphics Capture process; single bounded CPU readback slot."""
+from .messages import ErrorMessage as E
 
 from .messages import Message as M
 
@@ -107,7 +108,7 @@ def capture_worker(
                     4,
                 ):
                     raise ValueError(
-                        M('Unsupported capture pixel format. Only SDR preview is supported.')
+                        E('E_CAPTURE_FORMAT_UNSUPPORTED')
                     )
                 sequence += 1
                 source_ns = int(frame.timespan) * 100
