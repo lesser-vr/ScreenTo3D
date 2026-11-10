@@ -18,7 +18,7 @@ from PySide6.QtCore import (
     Slot,
     Qt,
 )
-from PySide6.QtGui import QDesktopServices, QSurfaceFormat
+from PySide6.QtGui import QDesktopServices, QSurfaceFormat, QIcon
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
@@ -26,6 +26,7 @@ from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from .config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES, MODES, OUTPUTS
 from .desktop_jobs import (
     BUNDLE,
+    PORTABLE_DESKTOP,
     ROOT,
     MODELS,
     VIDEO_SUFFIXES,
@@ -33,6 +34,10 @@ from .desktop_jobs import (
     ProcessingLease,
     unused_output,
 )
+from .model_downloads import ModelDownloads
+from .desktop_preferences import DesktopPreferences
+from .engine_cache import device_identity
+from .optional_models import PACKS, available, installed_path, model_root
 
 # pip --target deployments need a retained DLL directory for QML style plugins.
 _qt_dll_directory = (
@@ -46,8 +51,9 @@ class DesktopController(QObject):
     changed = Signal()
     exitReady = Signal()
 
-    def __init__(self):
+    def __init__(self, preferences=None):
         super().__init__()
+        self.preferences = preferences if preferences is not None else DesktopPreferences(portable=PORTABLE_DESKTOP)
         self.rows = []
         self.selected = -1
         self.lease = ProcessingLease()
@@ -64,11 +70,11 @@ class DesktopController(QObject):
         self.check_target = ""
         self.status_text = "파일을 추가하고 변환할 영상을 선택하세요."
         self.progress_value = 0.0
-        self.detail_text = "Full SBS · 원본 크기와 오디오 유지 · 자동 크기 변경 없음"
+        self.detail_text = "선택한 입체 출력 형식으로 변환 · 오디오 유지"
         self.setup_text = "설치 확인은 모델을 실행하지 않습니다. GPU 호환성과 성능은 별도 검증이 필요합니다."
         self.values = dict(
-            model=DEFAULT_MODE_MODELS["balanced"],
-            mode="balanced",
+            model=DEFAULT_MODE_MODELS["performance"],
+            mode="performance",
             codec="h264",
             renderer="cuda",
             runtime=str(BUNDLE / "runtime"),
@@ -76,11 +82,34 @@ class DesktopController(QObject):
             engine="",
             noncommercial=False,
             letterbox=False,
+            stereo_layout="half-tb",
         )
         self.engine_paths = {
             key: str(ROOT / "out" / info[1]) for key, info in MODELS.items() if info[1]
         }
+        for key in self.engine_paths.keys() & PACKS.keys():
+            try:
+                if model_root(key).is_dir():
+                    path = installed_path(key)
+                    if available(key, path):
+                        self.engine_paths[key] = str(path)
+                        continue
+                if Path(self.engine_paths[key]).is_dir() and device_identity()['gpu'] != 'NVIDIA GeForce RTX 5090':
+                    self.engine_paths[key] = ''
+            except (OSError, RuntimeError):
+                self.engine_paths[key] = ''
+        self.values.update(self.preferences.selection('file', MODES))
+        self.values['engine'] = self.engine_paths.get(self.values['model'], '')
+        self.downloads = ModelDownloads(self)
         self.active = None
+
+    @Property(QObject, constant=True)
+    def modelDownloads(self):
+        return self.downloads
+
+    @Property("QVariantMap", notify=changed)
+    def missingModels(self):
+        return {key: self.downloads.needed(key) for key in PACKS}
 
     @Property("QVariantList", notify=changed)
     def jobs(self):
@@ -106,20 +135,36 @@ class DesktopController(QObject):
                 ),
             )
             for key in MODE_MODEL_CHOICES[self.values["mode"]]
+            if not (PORTABLE_DESKTOP and key == "ovda-small-c16")
         ]
 
     def models_label(self, key):
         return MODELS[key][0]
 
-    @Property("QVariantList", constant=True)
+    @Property('QVariantList', notify=changed)
+    def depthChoices(self):
+        from .model_presentation import selection_choices
+        return selection_choices(MODES, self.engine_paths, portable=PORTABLE_DESKTOP)
+
+    @Property(str, notify=changed)
+    def depthModelHelp(self):
+        from .model_presentation import selection_info
+        return selection_info(self.values['mode'], self.values['model'], self.engine_paths)['help']
+
+    @Slot(str)
+    def selectDepthModel(self, key):
+        if self.busy:
+            return
+        selected = next((entry for entry in self.depthChoices if entry['key'] == key), None)
+        if selected is not None:
+            self.setOption('mode', selected['mode'])
+            self.setOption('model', selected['model'])
+
+    @Property("QVariantList", notify=changed)
     def modes(self):
-        labels = {
-            "performance": "빠른 처리",
-            "balanced": "균형",
-            "video-quality": "영상 품질",
-            "offline-quality": "오프라인 품질",
-        }
-        return [dict(key=k, label=labels[k]) for k in MODES]
+        from .model_presentation import selection_info
+        return [dict(key=mode, label=selection_info(mode, DEFAULT_MODE_MODELS[mode], self.engine_paths)['label'])
+                for mode in MODES]
 
     @Property(str, notify=changed)
     def licenseNotice(self):
@@ -182,6 +227,7 @@ class DesktopController(QObject):
             "mode": MODES,
             "codec": OUTPUTS,
             "renderer": ("cpu", "cuda"),
+            "stereo_layout": ("full-sbs", "half-sbs", "full-tb", "half-tb"),
         }
         if name in allowed and value not in allowed[name]:
             return
@@ -203,6 +249,14 @@ class DesktopController(QObject):
             self.engine_paths[self.values["model"]] = str(value)
         self.values[name] = value
         self.changed.emit()
+
+    @Slot()
+    def rememberSelection(self):
+        if not self.busy:
+            try:
+                self.preferences.remember('file', self.values['mode'], self.values['model'], self.values['stereo_layout'])
+            except (ValueError, OSError) as error:
+                self.inform(str(error))
 
     @Slot()
     def chooseFiles(self):
@@ -295,6 +349,9 @@ class DesktopController(QObject):
     def start(self):
         if self.busy:
             return
+        if self.downloads.needed(self.values['model']):
+            self.showLiveError('선택한 모델을 먼저 설치하세요. 파일 변환의 처리 모드 아래에서 설치할 수 있습니다.')
+            return
         try:
             job = self.snapshot()
             job.validate()
@@ -385,7 +442,10 @@ class DesktopController(QObject):
             meta = event.get("metadata", {})
             w, h = meta.get("width"), meta.get("height")
             if type(w) is int and type(h) is int:
-                self.detail_text = f"원본 / 각 눈 {w} × {h}  →  Full SBS {w * 2} × {h}"
+                from .stereo_layout import dimensions, LAYOUTS
+                layout = self.active.stereo_layout if self.active is not None else self.values["stereo_layout"]
+                ow, oh = dimensions(w, h, layout)
+                self.detail_text = f"원본 {w} × {h}  →  {LAYOUTS[layout]} {ow} × {oh}"
         elif kind == "progress" and not self.cancelling:
             self.progress_value = max(0, min(99, float(event.get("percent") or 0)))
             self.status_text = f"변환 중 · {event.get('frame', 0)} / {event.get('total_frames', '?')} 프레임"
@@ -551,7 +611,9 @@ class DesktopController(QObject):
         )
         if answer == QMessageBox.Yes:
             self.closing = True
-            if self.lease.owner == "live":
+            if self.lease.owner == "model-install":
+                self.downloads.cancel()
+            elif self.lease.owner == "live":
                 self.live.stop()
             elif not self.checking:
                 self.cancel()
@@ -574,8 +636,17 @@ class DesktopController(QObject):
             self.live.message = str(message) + " · 오류 창 캡처 차단에 실패해 창을 표시하지 않았습니다."
             self.live.changed.emit()
 
+    def showModelError(self, message):
+        if not self.error_dialog.showError(message, '모델 설치 오류'):
+            self.inform(message)
 
-def create_app():
+
+def create_app(preferences=None):
+    if sys.platform == "win32":
+        import ctypes
+        result = ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("ScreenTo3D.Desktop")
+        if result < 0:
+            raise OSError(f"Cannot set ScreenTo3D taskbar identity: {result}")
     # Qt 6.10.2's DXGI VBlank service can stall update delivery on this local
     # display topology. Use Qt's bounded platform timer scheduling, still D3D11.
     # This is explicit, not a software renderer or per-failure fallback.
@@ -590,11 +661,14 @@ def create_app():
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("DepthSBS")
     app.setOrganizationName("DepthSBS")
+    # Retain the existing QSettings namespace across the display-name change.
+    app.setApplicationDisplayName("ScreenTo3D")
+    app.setWindowIcon(QIcon(str(Path(__file__).with_name("assets") / "depthsbs.png")))
     app.styleHints().setColorScheme(Qt.ColorScheme.Light)
     from PySide6.QtQuickControls2 import QQuickStyle
 
     QQuickStyle.setStyle("Basic")
-    controller = DesktopController()
+    controller = DesktopController(preferences)
     from .live_preview import LivePreview
 
     controller.live = LivePreview(controller)
@@ -605,6 +679,7 @@ def create_app():
     engine.rootContext().setContextProperty("desktop", controller)
     engine.rootContext().setContextProperty("live", controller.live)
     engine.addImageProvider("live", controller.live.provider)
+    engine.addImageProvider("transition", controller.live.transition_provider)
     from .window_icons import WindowIcons
     engine.addImageProvider("windowicons", WindowIcons(controller.live))
     engine.load(QUrl.fromLocalFile(str(Path(__file__).with_name("qml") / "Main.qml")))
@@ -615,8 +690,15 @@ def create_app():
     from .error_dialog import LiveErrorDialog
 
     controller.error_dialog = LiveErrorDialog(window)
+    from .taskbar_identity import attach
+    for target in (window, window.findChild(QQuickWindow, "toolsWindow"),
+                   window.findChild(QQuickWindow, "sbsOutput"),
+                   window.findChild(QQuickWindow, "patternWindow"),
+                   controller.error_dialog.windowHandle()):
+        attach(target)
     controller.live.errorOccurred.connect(controller.showLiveError)
     controller.live.output_window = window.findChild(QQuickWindow, "sbsOutput")
+    controller.live.output_window.setTransientParent(None)
     # Hiding the only output on Stop must retire native scene-graph nodes even
     # when Qt will never render another frame for this window.
     controller.live.output_window.setPersistentSceneGraph(False)
@@ -639,6 +721,9 @@ def create_app():
     controller.live.excluded = exclude_preview(window.winId())
     controller.protectWindow(window.findChild(QQuickWindow, "toolsWindow"))
     controller.exitReady.connect(app.quit)
+    from .vfg_hotkey import VfgHotkey
+    controller.vfg_hotkey = VfgHotkey(app, controller.live)
+    window.destroyed.connect(controller.vfg_hotkey.close)
     return app, engine, controller
 
 

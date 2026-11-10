@@ -7,9 +7,10 @@ import os
 from .config import MODES, OUTPUTS, validate_mode_model
 
 ROOT = Path(__file__).resolve().parents[2]
+PORTABLE_DESKTOP = (ROOT / "desktop-portable").is_file()
 BUNDLE = ROOT / "out/gpu-preview/DepthSBS-GPU-Preview/_internal"
 MODELS = {
-    "da2-small": ("DA2 Small", "", "", "Apache-2.0 · Performance 모델"),
+    "da2-small": ("DA2 Small", "", "", "Apache-2.0 · DA2 Small"),
     "da2-base": (
         "DA2 Base",
         "da2-base-local",
@@ -46,8 +47,12 @@ class Job:
     media: str
     noncommercial: bool = False
     letterbox: bool = False
+    stereo_layout: str = "full-sbs"
 
     def validate(self):
+        from .stereo_layout import LAYOUTS
+        if self.stereo_layout not in LAYOUTS:
+            raise ValueError("입체 출력 형식을 확인하세요.")
         source, output = Path(self.source), Path(self.output)
         if not source.is_file() or source.suffix.lower() not in VIDEO_SUFFIXES:
             raise ValueError("지원되는 로컬 영상 파일을 선택하세요.")
@@ -94,6 +99,8 @@ class Job:
             self.mode,
             "--output-codec",
             self.codec,
+            "--stereo-layout",
+            self.stereo_layout,
             "--depth-backend",
             self.model,
             "--stereo-renderer",
