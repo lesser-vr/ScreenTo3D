@@ -49,5 +49,18 @@ class OutputLimitTests(unittest.TestCase):
 
     def test_first_width_above_limit_rejected(self):
         with patch.object(pipeline, '_run', return_value=self.probe_result(2049)):
-            with self.assertRaisesRegex(ValueError, 'input width must be <= 2048'):
+            with self.assertRaisesRegex(ValueError, '4098.*4096'):
                 pipeline.probe_video(Path('input.mp4'))
+
+    def test_half_sbs_accepts_4k_with_h264(self):
+        with patch.object(pipeline, '_run', return_value=self.probe_result(3840)):
+            self.assertEqual(pipeline.probe_video(Path('input.mp4'), 'h264', 'half-sbs')['width'], 3840)
+
+    def test_top_bottom_checks_encoded_height(self):
+        payload = json.loads(self.probe_result(3840).stdout)
+        payload['streams'][0]['height'] = 2160
+        result = subprocess.CompletedProcess([], 0, json.dumps(payload), '')
+        with patch.object(pipeline, '_run', return_value=result):
+            with self.assertRaisesRegex(ValueError, '3840x4320'):
+                pipeline.probe_video(Path('input.mp4'), 'h264', 'full-tb')
+            self.assertEqual(pipeline.probe_video(Path('input.mp4'), 'hevc', 'full-tb')['height'], 2160)

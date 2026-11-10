@@ -46,7 +46,7 @@ def _run(arguments: list[str]) -> subprocess.CompletedProcess:
     )
 
 
-def probe_video(path: Path, output_codec='h264') -> dict:
+def probe_video(path: Path, output_codec='h264', stereo_layout='full-sbs') -> dict:
     if output_codec not in OUTPUTS:
         raise ValueError(f'Unknown output codec: {output_codec}')
     output_policy = OUTPUTS[output_codec]
@@ -64,13 +64,15 @@ def probe_video(path: Path, output_codec='h264') -> dict:
     width, height = int(video.get("width", 0)), int(video.get("height", 0))
     if width < 16 or height < 16 or width > 7680 or height > 4320:
         raise ValueError(f"Unsupported video dimensions: {width}x{height}")
-    # Conservative release boundary, verified on the current H.264 NVENC path.
-    # Full SBS doubles input width; never silently resize or switch codec.
-    if width * 2 > output_policy.max_sbs_width:
+    from .stereo_layout import dimensions, LAYOUTS
+    packed_width, packed_height = dimensions(width, height, stereo_layout)
+    if packed_width % 2 or packed_height % 2:
+        raise ValueError("Selected stereo layout requires even encoded width and height for YUV420.")
+    if packed_width > output_policy.max_sbs_width or packed_height > output_policy.max_sbs_width:
         raise ValueError(
-            f'{output_policy.name} Full SBS output width {width * 2} exceeds this release limit '
-            f'of {output_policy.max_sbs_width} pixels (input width must be <= {output_policy.max_sbs_width // 2}). '
-            'For 4K input, explicitly select HEVC output and a compatible player.'
+            f'{output_policy.name} {LAYOUTS[stereo_layout]} output {packed_width}x{packed_height} exceeds '
+            f'this release limit of {output_policy.max_sbs_width} pixels per axis. '
+            'Select HEVC or a Half stereo layout explicitly.'
         )
     rate_text = video.get("avg_frame_rate") or video.get("r_frame_rate") or "0/1"
     numerator, denominator = (int(value) for value in rate_text.split("/"))
@@ -131,6 +133,11 @@ class StereoSynthesizer:
         self.previous_frame = None
         self.flat_background_frames = 0
         self.padding = None
+        self.source_ns = None
+        self.range_tracker = None
+        if policy.stabilize_depth_range:
+            from .depth_range import DepthRangeTracker
+            self.range_tracker = DepthRangeTracker()
         if policy.letterbox_refinement:
             from .padding import PaddingRefiner
             self.padding = PaddingRefiner(policy.letterbox_stable_frames)
@@ -153,19 +160,27 @@ class StereoSynthesizer:
         resized = cv2.resize(depth[0], (self.width, self.height), interpolation=cv2.INTER_CUBIC)
         low, high = map(float, np.percentile(resized, [2.0, 98.0]).astype(resized.dtype))
         alpha = self.policy.temporal_alpha
-        self.low = low if self.low is None else alpha * low + (1.0 - alpha) * self.low
-        self.high = high if self.high is None else alpha * high + (1.0 - alpha) * self.high
+        if self.range_tracker is not None:
+            self.low,self.high=self.range_tracker.update(resized,frame,self.previous_frame,(low,high),
+                self.source_ns,reset=self.low is None)
+            if self.range_tracker.reset_applied:
+                self.smoothed_depth=None
+                self.previous_frame=None
+        else:
+            self.low = low if self.low is None else alpha * low + (1.0 - alpha) * self.low
+            self.high = high if self.high is None else alpha * high + (1.0 - alpha) * self.high
         normalized = np.clip((resized - self.low) / max(self.high - self.low, 1.0e-6), 0.0, 1.0)
         if self.smoothed_depth is not None and self.previous_frame is not None:
+            pixel_alpha = self.policy.temporal_depth_alpha if self.policy.temporal_depth_alpha is not None else alpha
             changed = color_change(frame, self.previous_frame)
             changed = cv2.dilate((changed > self.policy.temporal_color_threshold).astype(np.uint8), np.ones((7, 7), np.uint8)) != 0
             changed |= np.abs(normalized - self.smoothed_depth) > self.policy.temporal_depth_threshold
             if self.policy.temporal_depth_transition > 0:
                 from .temporal_blend import blend_depth
-                normalized = blend_depth(normalized, self.smoothed_depth, changed, alpha,
+                normalized = blend_depth(normalized, self.smoothed_depth, changed, pixel_alpha,
                     self.policy.temporal_depth_threshold, self.policy.temporal_depth_transition)
             else:
-                normalized = np.where(changed, normalized, alpha * normalized + (1.0 - alpha) * self.smoothed_depth)
+                normalized = np.where(changed, normalized, pixel_alpha * normalized + (1.0 - pixel_alpha) * self.smoothed_depth)
         self.smoothed_depth = normalized
         self.previous_frame = frame.copy()
         aligned = guide_depth(frame, normalized, radius=self.policy.depth_guide_radius)
@@ -182,12 +197,14 @@ class StereoSynthesizer:
             1.0, self.width * self.policy.divergence
         )
         if self.project_pair is not None:
-            left, right = self.project_pair(frame, aligned, -disparity * 0.5,
+            left, right = self.project_pair(frame, aligned, disparity * 0.5,
                 conservative_coverage=self.policy.conservative_stereo_coverage)
         else:
-            left = self.project_eye(frame, aligned, -disparity * 0.5,
+            # Forward splatting uses destination x = source x + shift. Near
+            # inverse depth must move right in the LEFT eye (crossed disparity).
+            left = self.project_eye(frame, aligned, disparity * 0.5,
                                conservative_coverage=self.policy.conservative_stereo_coverage)
-            right = self.project_eye(frame, aligned, disparity * 0.5,
+            right = self.project_eye(frame, aligned, -disparity * 0.5,
                                 conservative_coverage=self.policy.conservative_stereo_coverage)
         result = np.concatenate((left, right), axis=1)
         return self.padding.restore(result, frame) if self.padding is not None else result
@@ -234,6 +251,7 @@ def convert_video(
     cancel_path: Path | None = None,
     *, projection_factory=None, diagnostic_hashes=False, output_codec='h264', depth_backend=None,
     letterbox_refinement=False,
+    stereo_layout="full-sbs",
 ) -> dict:
     job_started = time.perf_counter()
     import hashlib
@@ -248,8 +266,9 @@ def convert_video(
     probe_started = time.perf_counter()
     if type(letterbox_refinement) is not bool:
         raise ValueError('letterbox_refinement must be boolean')
-    policy = replace(MODES[mode], letterbox_refinement=letterbox_refinement)
-    metadata = probe_video(input_path, output_codec=output_codec)
+    policy = replace(MODES[mode], letterbox_refinement=letterbox_refinement, stereo_layout=stereo_layout)
+    from .stereo_layout import dimensions, pack
+    metadata = probe_video(input_path, output_codec=output_codec, stereo_layout=stereo_layout)
     backend = depth_backend if depth_backend is not None else resolve_backend(policy.depth_backend, DepthEngine, preprocess)
     backend.validate_policy(policy)
     offline_factory = backend.offline_processor_factory
@@ -267,6 +286,7 @@ def convert_video(
     partial_path = output_path.with_name(f".{output_path.name}.{token}.partial.mp4")
     video_path = output_path.with_name(f".{output_path.name}.{token}.video-only.mp4")
     width, height = metadata["width"], metadata["height"]
+    packed_width, packed_height = dimensions(width, height, stereo_layout)
     decode = encode = None
     started, frames, decoded_frames, last_depth = time.perf_counter(), 0, 0, None
     metrics = StageMetrics()
@@ -290,7 +310,7 @@ def convert_video(
             )
             encode = subprocess.Popen(
                 [_tool("ffmpeg"), "-y", "-v", "error", "-f", "rawvideo",
-                 "-pix_fmt", "rgb24", "-s", f"{width * 2}x{height}",
+                 "-pix_fmt", "rgb24", "-s", f"{packed_width}x{packed_height}",
                  "-r", f"{metadata['fps']:.8f}", "-i", "pipe:0", "-an",
                  "-c:v", output_policy.encoder, "-tag:v", output_policy.tag,
                  "-preset", policy.nvenc_preset,
@@ -314,7 +334,7 @@ def convert_video(
             def write_sample(output_frame, output_depth):
                 nonlocal encoded_pipe_bytes, frames
                 with metrics.measure('temporal_stereo'):
-                    rendered = synthesizer.render(output_frame, output_depth).tobytes()
+                    rendered = pack(synthesizer.render(output_frame, output_depth), stereo_layout).tobytes()
                 if hashes is not None:
                     hashes['depth'].update(output_depth.tobytes())
                     hashes['sbs_rgb'].update(rendered)
@@ -442,6 +462,7 @@ def convert_video(
             "elapsed_seconds": elapsed, "processing_fps": frames / elapsed,
             "mode": mode, "policy": policy.__dict__,
             'output_codec': output_codec, 'output_policy': output_policy.__dict__,
+            'stereo_layout': stereo_layout, 'output_width': packed_width, 'output_height': packed_height,
             'depth_backend': backend.describe(),
         }
         result['telemetry'] = {
