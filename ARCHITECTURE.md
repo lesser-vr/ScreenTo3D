@@ -41,15 +41,32 @@ Processing-backend default and delivery-path default are separate decisions.
 
 ## Components and ownership
 
-`messages.py` carries English templates and scalar arguments without importing Qt.
-Exceptions are detached from tracebacks before a message is retained; bounded
-worker errors preserve message metadata when it fits and otherwise retain their
-original text. `localization.py` owns trusted bundled/Qt translators on the GUI
+`catalogs.py` loads the trusted bundled language and error registries in
+`translations/languages.json` and `translations/errors.json` without Qt.
+`messages.py` carries ordinary English templates and scalar arguments; errors
+carry a stable semantic `error_id`, parameters, optional opaque details and a
+public/redacted flag. Error translations use `Errors`/`PublicErrors` contexts
+keyed by ID, so changing English wording does not change identity. Exceptions
+are detached from tracebacks before retention. Bounded worker error transport
+reduces oversized diagnostic strings while preserving the ID and valid JSON;
+very small legacy buffers fall back to ID-prefixed diagnostic text. Unknown IDs
+keep their identity/details and use a generic description. `error_reporting.py`
+retains an explicit adapter for unconverted media-tool English prefixes; typed
+application errors bypass it. Default file-worker events omit private values,
+details and notes; detailed mode is opt-in.
+
+`localization.py` owns trusted bundled/Qt translators on the GUI
 thread, the saved `ui/language` selection and display-number formatting. It
 retranslates QML and notifies Python display properties without modifying session
 plans. File rows expose a translated `stateLabel` separately from their stable
 state code; live stop completion uses a flag rather than matching status text.
 The Qt-free launcher reads the same language selection for pre-GUI errors.
+Both UI and build discovery use `languages.json`; no per-language Python/C++
+branches are required. `scripts/build-translations.py` validates parameter parity
+and completeness, compiles all registered catalogs and generates the native
+launcher's table from the same definitions. Its `--check` rejects a stale native
+table; the EXE/portable builders consume this pipeline. See
+[adding languages and errors](docs/LOCALIZATION.md) for the maintenance procedure.
 
 Stereo arrangement is defined in `stereo_layout.py` and snapshotted per live/file
 job. The renderer API defaults to Full SBS; the GUI passes its explicit session

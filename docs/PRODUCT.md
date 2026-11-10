@@ -37,6 +37,12 @@ notice keeps its existing hold/fade timing. File states use stable internal code
 External window titles, filenames, original licenses and unknown diagnostic text
 are preserved. Windows-owned file-dialog buttons can follow the OS language.
 The first languages use left-to-right UI; packed eye order is never mirrored.
+Error windows show a stable error ID, localized explanation and available original
+diagnostics. Ctrl+C copies the whole displayed document; Close, Esc and the title
+bar close button remain available. An unknown error uses a generic explanation
+and keeps its original diagnostic details. Pre-GUI launcher failures use the
+same language selection and stable IDs. Default file-worker logs omit private
+diagnostics; detailed file errors require the explicit diagnostic option.
 
 The Qt/QML desktop opens a compact 420x260 logical-pixel control window (minimum
 380x260). Its primary controls are an explicit source picker and SBS start/stop.

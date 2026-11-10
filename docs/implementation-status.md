@@ -1,18 +1,23 @@
 # Current implementation status
 
-Korean/English desktop localization implemented (2026-11-10). The saved system/
-Korean/English choice updates QML, Python display models, progress, errors, output
-titles and active VFG notices without resetting the session. Stable file states
-and a live stop flag replace language-dependent comparisons. All 454 Korean
-catalog entries validate; 419 CPU/Qt and 26 runtime contracts, 24 additional
-desktop/preference tests and real CPU media publication/cancel/failure checks pass.
-Rendered 125%/150%/200% checks cover bilingual controls, keyboard selection,
-error copying and unchanged notice timing. An owned generated-window Small/Half
-TB native session retains its PID/session through four language changes while
-output advances. The native launcher builds and has been applied locally; the
-portable builder compiles/includes catalogs. This is local implementation and
-bounded runtime evidence, not new GPU compatibility or stereo comfort acceptance.
-See [scope and reproduction](evidence/localization-20261110.md).
+Korean/English localization with shared language registration and stable error
+IDs implemented (2026-11-10). One bundled registry drives language choices,
+locale/catalog loading, catalog builds and native launcher tables. A synthetic
+third-language fixture verifies extension without per-language source changes.
+135 semantic error IDs map to translated descriptions and parameter-free public
+worker guidance; original diagnostics remain separate. Error windows retain ID,
+Ctrl+C, Close/Esc and live retranslation. 728 Korean entries validate; 431 CPU/Qt,
+26 runtime and 24 additional desktop/preference checks pass, as do real CPU media
+publication/cancel/failure checks. The Qt-free CI core subset passes independently
+(97 tests). Rendered 125%/150%/200% checks cover both languages and error copying.
+An owned generated-window Small/Half TB native session retains its PID/session
+through four language changes while output advances. Native core/launcher builds
+pass; the new launcher is applied locally with its prior EXE backed up. Existing
+portable folders are not replaced. This is bounded local runtime evidence, not
+new GPU compatibility, long-session performance or stereo comfort acceptance.
+See [initial scope](evidence/localization-20261110.md),
+[registry/error evidence](evidence/localization-error-ids-20261110.md) and
+[maintenance procedure](LOCALIZATION.md).
 
 Full-reference native SBS RGB evaluation completed (2026-11-10). Four
 project-authored three-view scenes test both native eyes; the same four Spring
