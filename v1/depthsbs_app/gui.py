@@ -18,7 +18,7 @@ class DepthSbsGui:
         self.runtime_dir, self.media_tools = runtime_dir, media_tools
         self.root, self.process = root, None
         self.status_file = self.cancel_file = None
-        root.title("DepthSBS GPU Preview (experimental)" if gpu_preview else "DepthSBS v1")
+        root.title("ScreenTo3D GPU Preview (experimental)" if gpu_preview else "ScreenTo3D v1")
         root.geometry("740x840")
         root.minsize(660, 830)
         self.input_value, self.output_value = tk.StringVar(), tk.StringVar()
@@ -38,7 +38,7 @@ class DepthSbsGui:
     def _build(self):
         panel = ttk.Frame(self.root, padding=20)
         panel.pack(fill="both", expand=True)
-        ttk.Label(panel, text="DepthSBS", font=("Segoe UI", 20, "bold")).grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 16))
+        ttk.Label(panel, text="ScreenTo3D", font=("Segoe UI", 20, "bold")).grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 16))
         ttk.Label(panel, text="Input video").grid(row=1, column=0, sticky="w")
         ttk.Entry(panel, textvariable=self.input_value).grid(row=2, column=0, columnspan=2, sticky="ew")
         ttk.Button(panel, text="Browse", command=self.choose_input).grid(row=2, column=2, padx=(8, 0))
@@ -89,7 +89,7 @@ class DepthSbsGui:
 
     def check_ovda_setup(self):
         if self.process is not None:
-            messagebox.showinfo('DepthSBS', 'Wait for the active conversion to finish before checking setup.')
+            messagebox.showinfo('ScreenTo3D', 'Wait for the active conversion to finish before checking setup.')
             return
         from .ovda_installation import installation_report, summary
         report = installation_report(Path(self.engine_value.get()), self.runtime_dir, self.media_tools, self.stereo_value.get())
@@ -109,10 +109,10 @@ class DepthSbsGui:
     def start(self):
         source, destination = Path(self.input_value.get()), Path(self.output_value.get())
         if not source.is_file():
-            messagebox.showerror("DepthSBS", "Select a valid input video.")
+            messagebox.showerror("ScreenTo3D", "Select a valid input video.")
             return
         if destination.suffix.lower() != ".mp4":
-            messagebox.showerror("DepthSBS", "Select an MP4 output path.")
+            messagebox.showerror("ScreenTo3D", "Select an MP4 output path.")
             return
         if self.backend_value.get() == 'ovda-small-c16':
             try:
@@ -120,7 +120,7 @@ class DepthSbsGui:
                 binding(Path(self.engine_value.get()), self.runtime_dir,
                         self.ovda_noncommercial.get()).validate_policy(MODES[self.mode_value.get()])
             except Exception as error:
-                messagebox.showerror('DepthSBS oVDA', str(error))
+                messagebox.showerror('ScreenTo3D oVDA', str(error))
                 return
         if self.backend_value.get() == 'vda-small':
             try:
@@ -128,7 +128,7 @@ class DepthSbsGui:
                 create_binding = vda_offline_binding if self.mode_value.get() == 'offline-quality' else vda_binding
                 create_binding(Path(self.engine_value.get()), self.runtime_dir).validate_policy(MODES[self.mode_value.get()])
             except Exception as error:
-                messagebox.showerror('DepthSBS VDA', str(error))
+                messagebox.showerror('ScreenTo3D VDA', str(error))
                 return
         self.start_button.configure(state="disabled")
         if self.backend_value.get() == 'da2-base':
@@ -137,7 +137,7 @@ class DepthSbsGui:
                 binding(Path(self.engine_value.get()), self.runtime_dir)
             except Exception as error:
                 self.start_button.configure(state='normal')
-                messagebox.showerror('DepthSBS DA2 Base', str(error))
+                messagebox.showerror('ScreenTo3D DA2 Base', str(error))
                 return
         self.cancel_button.configure(state="normal")
         self.progress_value.set(0)
@@ -176,7 +176,7 @@ class DepthSbsGui:
             self.start_button.configure(state='normal')
             self.cancel_button.configure(state='disabled')
             self.status_value.set('Could not start conversion')
-            messagebox.showerror('DepthSBS', str(error))
+            messagebox.showerror('ScreenTo3D', str(error))
             return
         threading.Thread(target=self._watch_worker, daemon=True).start()
 
@@ -231,14 +231,14 @@ class DepthSbsGui:
             self.status_value.set("Cancelled")
         elif kind == "error" and not self.status_value.get().startswith("Cancelling"):
             self.status_value.set("Conversion failed")
-            messagebox.showerror("DepthSBS", event.get("message", "Unknown conversion error"))
+            messagebox.showerror("ScreenTo3D", event.get("message", "Unknown conversion error"))
 
     def _finished(self, return_code: int):
         self.process = None
         self.start_button.configure(state="normal")
         self.cancel_button.configure(state="disabled")
         if return_code == 0:
-            messagebox.showinfo("DepthSBS", "Conversion complete.")
+            messagebox.showinfo("ScreenTo3D", "Conversion complete.")
         elif return_code == 2:
             self.status_value.set("Cancelled")
         for path in (self.status_file, self.cancel_file):
