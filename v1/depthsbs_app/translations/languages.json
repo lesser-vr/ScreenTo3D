@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "default": "en",
+  "languages": [
+    {"code": "ko", "name": "한국어", "locale": "ko-KR", "catalog": "screento3d_ko", "qt_catalogs": ["qtbase_ko", "qtdeclarative_ko"]},
+    {"code": "en", "name": "English", "locale": "en-US", "catalog": null, "qt_catalogs": []}
+  ]
+}
