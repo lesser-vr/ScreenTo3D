@@ -5,12 +5,13 @@ import time
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from PySide6.QtCore import QObject, QPointF, Qt, QMimeData, qInstallMessageHandler
+from PySide6.QtCore import QObject, QPointF, Qt, QMimeData, QSettings, qInstallMessageHandler
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QImage
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtTest import QTest
 from depthsbs_app.desktop import create_app
+from depthsbs_app.desktop_preferences import DesktopPreferences
 
 
 def main():
@@ -22,7 +23,7 @@ def main():
     previous = qInstallMessageHandler(lambda kind, context, message: warnings.append(message))
     rows = [dict(kind='window', id=11, pid=1, label='영상 플레이어 — 여행 영상.mp4')]
     with patch('depthsbs_app.live_preview.windows', side_effect=lambda: [dict(r) for r in rows]) as enumerate_windows:
-        app, engine, desktop = create_app()
+        app, engine, desktop = create_app(DesktopPreferences(QSettings(str(args.output/'preferences.ini'), QSettings.IniFormat)))
         window = desktop.main_window
         live = desktop.live
         # These mocked frame/lifecycle cases use host images explicitly.
@@ -67,18 +68,36 @@ def main():
             click('captureSource')
             assert enumerate_windows.call_count >= 2
             assert live.selectedIndex == -1 and not live.active
+            tab_position = control('monitorInputs').mapToGlobal(QPointF(0, 0))
+            main_geometry = window.geometry()
+            click('monitorInputs'); assert live.sourceKind == 'monitor' and live.selectedIndex == -1
+            after_switch = control('monitorInputs').mapToGlobal(QPointF(0, 0))
+            assert after_switch == tab_position, (tab_position, after_switch)
+            assert window.geometry() == main_geometry
+            screenshot(window, 'monitor-picker')
+            click('dismissSource')
+            assert window.isVisible() and not control('dismissSource').isVisible()
+            click('captureSource')
+            window.close(); pump()
+            assert window.isVisible() and not control('dismissSource').isVisible()
+            click('captureSource')
+            click('windowInputs'); assert live.sourceKind == 'window' and live.selectedIndex == -1
+            control('captureSource').forceActiveFocus()
             QTest.keyClick(window, Qt.Key_Down)
             QTest.keyClick(window, Qt.Key_Return)
             pump()
             assert live.selectedIndex == 0 and control('captureStart').property('enabled')
             screenshot(window, 'ready')
             # Exercise the visible menu by keyboard, not a direct page assignment.
-            click('mainMenuButton')
-            screenshot(window, 'menu')
+            click('openFiles')
+            assert window.property('page') == 1 and not tools.isVisible()
+            click('fileOptions'); assert control('modePicker').isVisible()
+            screenshot(window, 'files')
+            click('returnLive')
             click('openLiveOptions')
             pump()
             assert tools.isVisible() and window.property('page') == 3
-            assert control('liveStrength').property('value') == 1.0
+            assert control('liveStrength').property('value') == 0.5
             screenshot(tools, 'options')
             control('cursorIncluded').forceActiveFocus(); pump()
             assert control('cursorIncluded').property('checked')
@@ -87,26 +106,19 @@ def main():
             assert not live.cursorIncluded
             QTest.keyClick(tools, Qt.Key_Space); pump()
             assert live.cursorIncluded
-            tools.showMinimized(); pump()
-            click('mainMenuButton')
-            QTest.keyClick(window, Qt.Key_Down)
-            QTest.keyClick(window, Qt.Key_Return); pump()
-            assert tools.visibility() == QQuickWindow.Windowed
+            limit = control('livePresentationHz')
+            assert live.presentationHz == 60 and limit.property('currentIndex') == 1
+            limit.forceActiveFocus(); pump()
+            QTest.keyClick(tools, Qt.Key_Down); pump()
+            assert live.presentationHz == 0
+            QTest.keyClick(tools, Qt.Key_Up); pump()
+            assert live.presentationHz == 60
+            control('openSettings').forceActiveFocus(); pump()
+            QTest.keyClick(tools, Qt.Key_Space); pump()
+            assert window.property('page') == 2 and not limit.isVisible()
+            screenshot(tools, 'settings')
             tools.close(); pump()
-            assert window.property('page') == 0 and not tools.isVisible()
-            for page, name in [(1, 'files'), (2, 'settings')]:
-                window.setProperty('page', page); pump()
-                if page == 2:
-                    limit = control('livePresentationHz')
-                    assert live.presentationHz == 0 and limit.property('currentIndex') == 0
-                    assert limit.property('count') == 3
-                    limit.forceActiveFocus(); pump()
-                    for key, expected in [(Qt.Key_Down, 30), (Qt.Key_Down, 60),
-                                          (Qt.Key_Home, 0)]:
-                        QTest.keyClick(tools, key); pump()
-                        assert live.presentationHz == expected, live.presentationHz
-                screenshot(tools, name)
-                tools.close(); pump()
+            assert window.property('page') == 0
             # Selection stays pinned through reordering and requires reselection
             # after HWND reuse by a different process, even on another refresh.
             rows[:] = [dict(kind='window', id=11, pid=9, label='Different process')]
@@ -126,10 +138,10 @@ def main():
                     assert item is not None
                     point = item.mapToScene(QPointF(0, 0))
                     assert 0 <= point.y() and point.y()+item.height() <= window.height()
-            # Real start handler invokes the controller and preserves Base.
+            # Real start handler invokes the controller and preserves Small.
             with patch.object(live, 'start') as start:
                 click('captureStart'); start.assert_called_once()
-            assert live.liveModel == 'da2-base'
+            assert live.liveModel == 'da2-small'
             live.process = Mock()
             live.mailbox = Mock()
             live.changed.emit(); pump()

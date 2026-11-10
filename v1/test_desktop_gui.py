@@ -6,7 +6,8 @@ import time
 from pathlib import Path
 
 from depthsbs_app.desktop import create_app
-from PySide6.QtCore import QObject, QPointF, Qt
+from depthsbs_app.desktop_preferences import DesktopPreferences
+from PySide6.QtCore import QObject, QPointF, Qt, QSettings
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtTest import QTest
 
@@ -22,7 +23,7 @@ def main():
     args = parser.parse_args()
     args.output = args.output.resolve()
     args.output.mkdir(parents=True, exist_ok=True)
-    app, engine, controller = create_app()
+    app, engine, controller = create_app(DesktopPreferences(QSettings(str(args.output/'preferences.ini'), QSettings.IniFormat)))
     warnings = []
     engine.warnings.connect(
         lambda errors: warnings.extend(e.toString() for e in errors)
@@ -38,10 +39,7 @@ def main():
             time.sleep(0.01)
 
     pump(1)
-    assert window.findChild(QObject, "modePicker").property("currentText") == "균형"
-    assert (
-        window.findChild(QObject, "modelPicker").property("currentText") == "DA2 Base"
-    )
+    assert window.findChild(QObject, "modePicker").property("currentText") == "DA2 Small · FP16 · 기본"
     graphics = str(window.rendererInterface().graphicsApi())
     assert (
         window.rendererInterface().graphicsApi() == QSGRendererInterface.Direct3D11
@@ -50,6 +48,7 @@ def main():
     window.setProperty("page", 1)
     if args.input:
         controller.add_paths([str(args.input)])
+        controller.setOption("mode", {"da2-small": "performance", "da2-base": "balanced"}.get(args.model, "video-quality"))
         controller.setOption("model", args.model)
         controller.setOption("codec", args.codec)
         controller.setOption("noncommercial", args.model == "ovda-small-c16")
@@ -61,13 +60,12 @@ def main():
             controller.setOption("engine", str(args.output))
         controller.changed.emit()
     pump(0.5)
-    tools.grabWindow().save(str(args.output / "files.png"))
+    window.grabWindow().save(str(args.output / "files.png"))
     controller.setOption("mode", "offline-quality")
     window.setProperty("page", 2)
     pump(0.2)
     assert (
-        window.findChild(QObject, "modelPicker").property("currentText")
-        == "VDA Small · 5프레임 Offline"
+        window.findChild(QObject, "modePicker").property("currentText").startswith("VDA Small · 5프레임 · FP")
     )
     tools.grabWindow().save(str(args.output / "settings-offline.png"))
     controller.setOption("mode", "balanced")
@@ -114,7 +112,7 @@ def main():
         assert controller.canOpen == (expected == "완료")
         assert controller.temp is None and controller.lease.owner is None
         pump(0.2)
-        tools.grabWindow().save(str(args.output / "result.png"))
+        window.grabWindow().save(str(args.output / "result.png"))
     assert not warnings, warnings
     report = {
         "graphics": graphics,

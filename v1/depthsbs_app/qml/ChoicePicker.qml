@@ -9,6 +9,46 @@ ComboBox {
     Layout.fillWidth: true
     leftPadding: 12
     rightPadding: 36
+    palette.text: theme.ink
+    palette.buttonText: theme.ink
+    palette.highlight: theme.selection
+    palette.highlightedText: theme.ink
+    delegate: ItemDelegate {
+        required property int index
+        width: control.popup.availableWidth
+        implicitHeight: 40
+        highlighted: index === control.highlightedIndex
+        contentItem: Text {
+            text: control.textAt(index)
+            font: control.font
+            color: control.theme.ink
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+        background: Rectangle {
+            radius: 5
+            color: parent.highlighted || parent.hovered || index === control.currentIndex
+                ? control.theme.selection : control.theme.surface
+        }
+    }
+    popup: Popup {
+        y: control.height
+        width: control.width
+        padding: 6
+        implicitHeight: Math.min(contentItem.implicitHeight + topPadding + bottomPadding, 320)
+        background: Rectangle {
+            radius: 8
+            color: control.theme.surface
+            border.color: control.theme.border
+        }
+        contentItem: ListView {
+            clip: true
+            implicitHeight: contentHeight
+            model: control.popup.visible ? control.delegateModel : null
+            currentIndex: control.highlightedIndex
+            ScrollIndicator.vertical: ScrollIndicator {}
+        }
+    }
     indicator: Canvas {
         width: 12; height: 8
         x: control.width - width - 14

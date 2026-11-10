@@ -5,44 +5,38 @@ import QtQuick.Window
 
 Item {
     id: page
-    readonly property Theme theme: Theme {}
-    component MenuEntry: MenuItem {
-        id: entry
-        implicitWidth: 208
-        implicitHeight: 36
-        background: Rectangle { radius: 6; color: entry.highlighted ? page.theme.selection : "transparent" }
-        contentItem: Text { text: entry.text; font: entry.font; color: entry.enabled ? page.theme.ink : page.theme.disabledInk; verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+    function dismissSourcePicker() {
+        if (!sourcePicker.popup.visible) return false
+        sourcePicker.popup.close()
+        sourcePicker.forceActiveFocus()
+        return true
     }
+    component KindButton: Button {
+        id: kind
+        required property string sourceKind
+        readonly property bool selected: live.sourceKind === sourceKind
+        Accessible.checkable: true; Accessible.checked: selected
+        implicitHeight: 32; horizontalPadding: 14
+        background: Rectangle {
+            radius: 6; color: kind.selected ? page.theme.surface : "transparent"
+            border.color: kind.activeFocus ? page.theme.blue : "transparent"
+        }
+        contentItem: Label {
+            text: kind.text; color: kind.selected ? page.theme.ink : page.theme.muted
+            font.weight: kind.selected ? Font.DemiBold : Font.Normal
+            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+        }
+        onClicked: live.setKind(sourceKind)
+    }
+    readonly property Theme theme: Theme {}
+    readonly property bool installNeeded: desktop.missingModels[live.liveModel] === true || (live.vfgEnabled && desktop.missingModels.vfg)
     Component.onCompleted: live.setPreviewVisible(false)
     ColumnLayout {
         anchors.fill: parent; anchors.margins: 24; spacing: 14
-        RowLayout {
-            Label { text: "DepthSBS"; color: page.theme.ink; font.pixelSize: 18; font.weight: Font.DemiBold; Layout.fillWidth: true }
-            ToolButton {
-                id: menuButton
-                objectName: "mainMenuButton"; text: "메뉴"; Accessible.name: "메뉴"; implicitWidth: 32; implicitHeight: 30
-                background: Rectangle { radius: 7; color: menuButton.down || menuButton.hovered ? page.theme.hover : "transparent"; border.color: menuButton.activeFocus ? page.theme.blue : "transparent" }
-                contentItem: Canvas {
-                    implicitWidth: 20; implicitHeight: 20
-                    onPaint: {
-                        const ctx = getContext("2d"); ctx.clearRect(0, 0, width, height); ctx.fillStyle = page.theme.muted
-                        for (let offset of [-6, 0, 6]) { ctx.beginPath(); ctx.arc(width/2 + offset, height/2, 1.5, 0, Math.PI*2); ctx.fill() }
-                    }
-                }
-                ToolTip.visible: hovered || activeFocus; ToolTip.text: "메뉴"; ToolTip.delay: 500
-                onClicked: mainMenu.popup()
-                Menu {
-                    id: mainMenu
-                    implicitWidth: 220
-                    padding: 6
-                    background: Rectangle { radius: 10; color: page.theme.surface; border.color: page.theme.border }
-                    MenuEntry { objectName: "openLiveOptions"; text: "화질과 입체감"; onTriggered: page.Window.window.openPage(3) }
-                    MenuEntry { text: live.sourceKind === "window" ? "모니터 전체 선택" : "창 선택으로 전환"; enabled: !live.active; onTriggered: live.setKind(live.sourceKind === "window" ? "monitor" : "window") }
-                    MenuSeparator {}
-                    MenuEntry { objectName: "openFiles"; text: "파일 변환"; onTriggered: page.Window.window.openPage(1) }
-                    MenuEntry { objectName: "openSettings"; text: "설정과 진단"; onTriggered: page.Window.window.openPage(2) }
-                }
-            }
+        TaskHeader {
+            Layout.fillWidth: true
+            onTaskSelected: index => page.Window.window.openPage(index)
+            onSettingsRequested: page.Window.window.openPage(3)
         }
         ChoicePicker {
             id: sourcePicker; objectName: "captureSource"
@@ -51,7 +45,48 @@ Item {
             currentIndex: live.selectedIndex
             displayText: currentIndex < 0 ? (count ? "대상을 선택하세요" : "선택할 대상이 없습니다") : currentText
             onActivated: live.select(currentIndex)
-            Accessible.name: live.sourceKind === "window" ? "볼 창" : "볼 모니터"
+            Accessible.name: "캡처할 창 또는 모니터"
+            delegate: ItemDelegate {
+                required property int index
+                required property var modelData
+                width: ListView.view ? ListView.view.width : sourcePicker.width
+                highlighted: index === sourcePicker.highlightedIndex || index === live.selectedIndex
+                contentItem: Label { text: modelData.label; color: page.theme.ink; elide: Text.ElideRight }
+                background: Rectangle { radius: 5; color: parent.highlighted || parent.hovered ? page.theme.selection : page.theme.surface }
+            }
+            popup: Popup {
+                y: sourcePicker.height
+                width: sourcePicker.width
+                padding: 6
+                // Keep the tab strip stationary while switching between lists of different lengths.
+                height: 200
+                margins: 4
+                background: Rectangle { radius: 10; color: page.theme.surface; border.color: page.theme.border }
+                onAboutToShow: live.refresh()
+                contentItem: ColumnLayout {
+                    spacing: 4
+                    RowLayout {
+                        id: kinds
+                        Rectangle {
+                            radius: 8; color: page.theme.hover
+                            implicitWidth: tabs.implicitWidth + 6; implicitHeight: tabs.implicitHeight + 6
+                            Row {
+                                id: tabs; anchors.centerIn: parent
+                                KindButton { objectName: "windowInputs"; width: 48; text: "창"; sourceKind: "window" }
+                                KindButton { objectName: "monitorInputs"; text: "모니터 전체"; sourceKind: "monitor" }
+                            }
+                        }
+                        Item { Layout.fillWidth: true }
+                        ToolButton { objectName: "dismissSource"; text: "닫기"; Accessible.name: "입력 선택 닫기"; onClicked: page.dismissSourcePicker() }
+                    }
+                    ListView {
+                        id: sourceList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+                        model: sourcePicker.delegateModel
+                        currentIndex: sourcePicker.highlightedIndex
+                        ScrollIndicator.vertical: ScrollIndicator {}
+                    }
+                }
+            }
             contentItem: Item {
                 property bool truncated: sourceTitle.truncated
                 RowLayout {
@@ -75,12 +110,12 @@ Item {
                     }
                     ColumnLayout {
                         Layout.fillWidth: true; spacing: 3
-                        Text { text: live.sourceKind === "window" ? "볼 창" : "볼 모니터"; font.pixelSize: 11; color: page.theme.muted }
+                        Text { text: live.sourceKind === "window" ? "캡처할 창 또는 모니터" : "캡처 대상 · 모니터 전체"; font.pixelSize: 11; color: page.theme.muted }
                         Text { id: sourceTitle; text: sourcePicker.displayText; font.pixelSize: 14; font.weight: Font.Medium; color: page.theme.ink; elide: Text.ElideRight; Layout.fillWidth: true }
                     }
                 }
             }
-            Connections { target: sourcePicker.popup; function onAboutToShow() { live.refresh() } }
+
         }
         Item { Layout.fillHeight: true; Layout.minimumHeight: 0 }
         RowLayout {
@@ -90,16 +125,16 @@ Item {
             objectName: "captureStatus"; Layout.fillWidth: true
             color: page.theme.muted; wrapMode: Text.WordWrap; font.pixelSize: 12
             maximumLineCount: 2; elide: Text.ElideRight
-            text: live.stoppingNow ? "SBS 종료 중…" : live.active ? (live.hasFrame ? "SBS 실행 중" : "SBS 화면 준비 중…") : desktop.busy ? "다른 작업이 끝나면 시작할 수 있습니다" : live.status
+            text: live.vfgSwitching ? "프레임 보간 전환 중…" : live.stoppingNow ? "SBS 종료 중…" : live.active ? (live.hasFrame ? "SBS 실행 중" : "SBS 화면 준비 중…") : desktop.busy ? "다른 작업이 끝나면 시작할 수 있습니다" : live.status
             Accessible.role: Accessible.StaticText
             }
         }
         ActionButton {
             objectName: "captureStart"; Layout.fillWidth: true; primary: true
             symbol: live.active ? "stop" : "play"
-            text: live.stoppingNow ? "종료 중…" : live.active ? (live.hasFrame ? "SBS 중지" : "취소") : "SBS 시작"
-            enabled: live.active ? !live.stoppingNow : !desktop.busy && live.selectedIndex >= 0
-            onClicked: live.active ? live.stop() : live.startMinimal()
+            text: live.vfgSwitching ? "전환 취소" : live.stoppingNow ? "종료 중…" : live.active ? (live.hasFrame ? "SBS 중지" : "취소") : page.installNeeded ? "설치 옵션 열기" : "SBS 시작"
+            enabled: live.vfgSwitching || (live.active ? !live.stoppingNow : !desktop.busy && (page.installNeeded || live.selectedIndex >= 0))
+            onClicked: live.active ? live.stop() : page.installNeeded ? page.Window.window.openPage(3) : live.startMinimal()
         }
     }
 }
