@@ -10,7 +10,7 @@ extern "C" __declspec(dllexport) int live_pool_paint(void* value,int index,int f
         auto* texture=pool->texture.get();texture->check();auto& slot=texture->slots[index];
         cudaExternalSemaphoreWaitParams wait={};wait.params.keyedMutex.key=0;wait.params.keyedMutex.timeoutMs=2000;
         CU(cudaWaitExternalSemaphoresAsync(&slot.semaphore,&wait,1,nullptr));
-        paint<<<dim3((texture->w*2+31)/32,(texture->h+7)/8),dim3(32,8)>>>(slot.surface,texture->w*2,texture->h,frame,clear!=0);
+        paint<<<dim3((texture->out_w+31)/32,(texture->out_h+7)/8),dim3(32,8)>>>(slot.surface,texture->out_w,texture->out_h,frame,clear!=0);
         CU(cudaGetLastError());cudaExternalSemaphoreSignalParams signal={};signal.params.keyedMutex.key=1;
         CU(cudaSignalExternalSemaphoresAsync(&slot.semaphore,&signal,1,nullptr));
         CU(cudaStreamSynchronize(nullptr));return 1;

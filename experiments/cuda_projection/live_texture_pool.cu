@@ -8,8 +8,8 @@ struct OwnedTexturePool {
     std::unique_ptr<ProjectionTexture> texture;
     HANDLE handles[2]={};
     LUID luid={};
-    OwnedTexturePool(int width,int height,bool diagnostic) {
-        texture=std::make_unique<ProjectionTexture>(width,height,diagnostic);
+    OwnedTexturePool(int width,int height,bool diagnostic,int layout=0) {
+        texture=std::make_unique<ProjectionTexture>(width,height,diagnostic,layout);
         try {
             for(int i=0;i<2;i++) {
                 ComPtr<IDXGIResource1> resource;
@@ -36,6 +36,12 @@ extern "C" __declspec(dllexport) void* live_pool_create(int w,int h,int diagnost
     try {
         if(diagnostic!=0 && diagnostic!=1)throw std::runtime_error("Invalid pool diagnostic flag");
         return new OwnedTexturePool(w,h,diagnostic!=0);
+    }catch(const std::exception& e){projection_texture_error=e.what();return nullptr;}
+}
+extern "C" __declspec(dllexport) void* live_pool_create_layout(int w,int h,int diagnostic,int layout) {
+    try {
+        if(diagnostic!=0 && diagnostic!=1)throw std::runtime_error("Invalid pool diagnostic flag");
+        return new OwnedTexturePool(w,h,diagnostic!=0,layout);
     }catch(const std::exception& e){projection_texture_error=e.what();return nullptr;}
 }
 extern "C" __declspec(dllexport) int live_pool_descriptor(void* value,

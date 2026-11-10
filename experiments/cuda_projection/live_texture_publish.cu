@@ -1,5 +1,6 @@
 // Standalone public-video producer extension, not loaded by the live app.
 #include "live_texture_projection.cu"
+#include "half_render.cuh"
 #include <tlhelp32.h>
 
 extern "C" __declspec(dllexport) int live_texture_export(void* value,unsigned long parentId,
@@ -47,6 +48,8 @@ extern "C" __declspec(dllexport) int live_texture_publish(void* value,void* live
         if(!c || c->w!=texture->w || c->h!=texture->h || index<0 || index>1 ||
             !std::isfinite(convergence) || !std::isfinite(scale) || scale<0 ||
             (coverage!=0 && coverage!=1) || (clear!=0 && clear!=1))throw std::runtime_error("Invalid publish descriptor");
+        if(!clear && texture->layout==3)
+            return publish_reduced_half(texture,c,convergence,scale,coverage,refined,index,1);
         auto& slot=texture->slots[index];auto stream=c->stream;int blocks=(c->n+255)/256;
 #ifdef DEPTHSBS_TEXTURE_TIMING
         CU(cudaEventRecord(c->events[7],stream));
@@ -60,9 +63,9 @@ extern "C" __declspec(dllexport) int live_texture_publish(void* value,void* live
         cudaExternalSemaphoreWaitParams wait={};wait.params.keyedMutex.key=0;wait.params.keyedMutex.timeoutMs=2000;
         CU(cudaWaitExternalSemaphoresAsync(&slot.semaphore,&wait,1,stream));
         if(clear) {
-            paint<<<dim3((texture->w*2+31)/32,(texture->h+7)/8),dim3(32,8),0,stream>>>(slot.surface,texture->w*2,texture->h,0,true);
+            paint<<<dim3((texture->out_w+31)/32,(texture->out_h+7)/8),dim3(32,8),0,stream>>>(slot.surface,texture->out_w,texture->out_h,0,true);
         } else {
-            make_shift<<<blocks,256,0,stream>>>(*c,convergence,scale);
+            CU(live_make_shift(c,convergence,scale));
 #ifdef DEPTHSBS_TEXTURE_TIMING
             CU(cudaEventRecord(c->projection_events[0],stream));
 #endif
@@ -75,10 +78,13 @@ extern "C" __declspec(dllexport) int live_texture_publish(void* value,void* live
 #endif
                 if(c->parallel_resolve)launch_resolve_parallel(c->rgb,c->owners,c->output,c->w,c->h,stream);
                 else resolve<<<(c->h+63)/64,64,0,stream>>>(c->rgb,c->owners,c->output,c->w,c->h);
+                live_reconstruct(c);
+                live_mask_window(c,eye);
 #ifdef DEPTHSBS_TEXTURE_TIMING
                 CU(cudaEventRecord(c->projection_events[eye*3+2],stream));
 #endif
-                pack_eye_surface<<<blocks,256,0,stream>>>(c->output,slot.surface,c->w,c->h,eye);
+                int packed_pixels=texture->out_w*texture->out_h/2;
+                pack_eye_surface<<<(packed_pixels+255)/256,256,0,stream>>>(c->output,slot.surface,c->w,c->h,eye,texture->layout);
 #ifdef DEPTHSBS_TEXTURE_TIMING
                 CU(cudaEventRecord(c->projection_events[eye*3+3],stream));
 #endif
@@ -100,8 +106,8 @@ extern "C" __declspec(dllexport) int live_texture_readback(void* value,int index
         hr(slot.reader_mutex->AcquireSync(1,2000),"Oracle acquire");slot.reader_locked=true;
         context->CopyResource(slot.staging.Get(),slot.reader.Get());D3D11_MAPPED_SUBRESOURCE mapped={};
         hr(context->Map(slot.staging.Get(),0,D3D11_MAP_READ,0,&mapped),"Oracle map");
-        for(int y=0;y<texture->h;y++)memcpy(diagnostic+static_cast<size_t>(y)*texture->w*8,
-            static_cast<unsigned char*>(mapped.pData)+static_cast<size_t>(y)*mapped.RowPitch,texture->w*8);
+        for(int y=0;y<texture->out_h;y++)memcpy(diagnostic+static_cast<size_t>(y)*texture->out_w*4,
+            static_cast<unsigned char*>(mapped.pData)+static_cast<size_t>(y)*mapped.RowPitch,texture->out_w*4);
         context->Unmap(slot.staging.Get(),0);hr(slot.reader_mutex->ReleaseSync(0),"Oracle release");slot.reader_locked=false;return 1;
     }catch(const std::exception& e){projection_texture_error=e.what();return 0;}
 }
