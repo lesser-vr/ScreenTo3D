@@ -31,6 +31,11 @@ def copy(src, dst):
 def build(dest, python_zip, origin):
     sys.path.insert(0, str(ROOT/'v1'))
     from depthsbs_app.portable_cuda import PINS
+    import importlib.util
+    spec=importlib.util.spec_from_file_location('depthsbs_translations',ROOT/'scripts/build-translations.py')
+    translations=importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(translations)
+    translations.build()
     if dest.exists():
         raise ValueError('Choose a new output directory.')
     if origin and (urlsplit(origin).scheme != 'https' or not urlsplit(origin).hostname):

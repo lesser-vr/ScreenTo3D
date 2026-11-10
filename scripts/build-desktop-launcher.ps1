@@ -43,6 +43,6 @@ Push-Location $build
 try {
     & rc.exe /nologo /I $build /I $source /fo app.res (Join-Path $source 'app.rc')
     if ($LASTEXITCODE) { throw 'Launcher resources failed.' }
-    & cl.exe /nologo /std:c++17 /EHsc /MT /O2 /utf-8 (Join-Path $source 'main.cpp') app.res /Fe:ScreenTo3D.exe /link /SUBSYSTEM:WINDOWS /MANIFEST:NO user32.lib shell32.lib ole32.lib
+    & cl.exe /nologo /std:c++17 /EHsc /MT /O2 /utf-8 (Join-Path $source 'main.cpp') app.res /Fe:ScreenTo3D.exe /link /SUBSYSTEM:WINDOWS /MANIFEST:NO user32.lib shell32.lib ole32.lib advapi32.lib
     if ($LASTEXITCODE) { throw 'Launcher build failed.' }
 } finally { Pop-Location }
