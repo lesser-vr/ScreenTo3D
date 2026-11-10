@@ -26,6 +26,7 @@ class ModePolicy:
     nvenc_preset: str
     cq: int
     depth_backend: str = 'da2-small'
+    stereo_layout: str = 'full-sbs'
     temporal_color_threshold: float = 0.04
     temporal_depth_threshold: float = 0.08
     scene_cut_threshold: float = 0.18
@@ -43,6 +44,8 @@ class ModePolicy:
     letterbox_refinement: bool = False
     letterbox_stable_frames: int = 3
     temporal_depth_transition: float = 0.0
+    temporal_depth_alpha: float | None = None
+    stabilize_depth_range: bool = False
 
 
 MODES = {
