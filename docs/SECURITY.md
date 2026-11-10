@@ -13,6 +13,11 @@ current loader, not permanent restrictions on future implementations.
   arbitrary host plugins. Verify trusted provenance, hashes, tensor contracts,
   precision and runtime/device compatibility before loading. A matching checksum
   detects corruption; it does not authenticate an untrusted producer.
+- The portable Base and VDA installers pin archive and ONNX digests, build in
+  an isolated child process, and compare tensor outputs against packaged reference
+  samples before publishing. The per-user Windows DPAPI record binds engine
+  hashes to the source revision and GPU/runtime identity. Workers verify those
+  hashes before deserialization. Explicit legacy plan imports retain their own checks.
 - Load native code only from explicitly trusted sources with provenance,
   containment and integrity checks; do not accept arbitrary ambient DLL search
   paths or construct shell commands from media names. Current engine/DLL pins
@@ -28,16 +33,37 @@ Recording is off by default and unsupported by the current live profile; no
 implicit audio recording/download/build is added. Explicitly designed future
 features must retain provenance, destination and privacy controls.
 
-The main UI, utility window, error window and SBS output use capture exclusion.
+In normal application launch, the main UI, utility window and error window use
+capture exclusion. The marked SBS output allows external capture for window input,
+including by other recording software. Monitor input requires capture exclusion
+on that output to prevent feedback.
 Utility/error exclusion is checked before showing them; an error-dialog exclusion
 failure keeps the dialog hidden and stops live capture while retaining its error
 in status. The application
-does not offer an option to clear SBS capture protection for external applications.
+does not offer a normal GUI option to clear SBS capture protection for external applications.
+
+The user-requested Owl3D trial (`Run-Compare-A.cmd` / `Run-Compare-B-VFG.cmd` /
+`Run-Compare-Small.cmd` / `Run-Compare-Small-VFG.cmd`)
+allows external capture of its owned SBS output, so the display compositor can
+include it. Other applications can capture that output too; this is not an Owl3D
+process allowlist. Main/tools/errors remain excluded. Only original window input
+is supported by the trial; monitor capture is rejected. Output windows carry a
+process-owned Win32 property and are excluded from DepthSBS source enumeration
+and rejected again during source validation across processes, without title-based
+identity or a separate-monitor requirement. The marker is a recursion guard, not
+an OS security boundary or a guarantee against third-party capture relay chains.
+The experiment changes only its own output affinity, verifies it by readback,
+and stops visibly on failure. It never clears protection on another app's window.
 
 Cross-process GPU transport needs validated process identity, access control,
 resource/adapter properties and lifetime. The current path uses unnamed handles;
 an alternative transport can be implemented with equivalent isolation. Request
 minimal rights, close owned duplicates and never terminate unrelated processes.
+The native frame-ready socket pair is local, carries only bounded wakeup bytes
+and has no listening endpoint after creation. A wakeup conveys no authority or
+GPU completion: session/PID/resource validation and final-lease acknowledgments
+still occur through the existing metadata/native protocol. No captured pixels
+or window identities are sent through this channel.
 
 Do not put private frames, paths, dumps or unpublished model artifacts in public
 issues. A disclosure contact/process remains required before public release.

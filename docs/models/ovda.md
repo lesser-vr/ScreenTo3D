@@ -2,11 +2,12 @@
 
 
 Scope: prepared local source application, personal/non-commercial use. Not a
-portable public release or clean-machine installer. Mode defaults do not change.
+portable public release or clean-machine installer. oVDA uses the adopted
+518x924 mixed-FP16 engine; the application's default DA2 Small selection is unchanged.
 
 ## Start
 
-Double-click `Run-oVDA.cmd` in the repository, or run:
+Run the prepared source application:
 
 ```powershell
 ./scripts/run-ovda.ps1
@@ -14,11 +15,17 @@ Double-click `Run-oVDA.cmd` in the repository, or run:
 
 The GUI starts with `ovda-small-c16`, Video Quality, CUDA stereo and the installed
 engine root selected. CPU stereo can be chosen explicitly; no fallback occurs.
+The same adopted mixed-FP16 engine is used by normal desktop live oVDA and file
+conversion. Encoder/spatial attention use mixed FP16; temporal blocks, cache,
+depth head and floating input/output remain FP32. The UI and diagnostics label
+this as mixed FP16.
 Choose input/output MP4 paths, read `experiments/ovda/LICENSE`, confirm
 personal/non-commercial use with the oVDA checkbox, then Convert. Progress and
 Cancel use the normal app worker. Completion means final mux/publication finished.
 The output contains both eyes side by side: each eye preserves input dimensions.
-No implicit crop, padding or aspect-ratio change is applied to source geometry.
+Source and SBS geometry retain the selected dimensions and aspect ratio. Model
+input alone may use replicated-edge padding; depth is cropped to that content
+region before resizing to the original source.
 
 oVDA is a Video Quality choice only. Performance is incompatible with its
 full-rate temporal cache, Balanced belongs to DA2 Base, and Offline Quality now
@@ -48,21 +55,24 @@ choose a new name if you want to retain an earlier successful version.
 
 ## Supported environment and geometry
 
-- NVIDIA GeForce RTX 5090 (SM 12.0), Windows. Engines were validated on driver
-  616.56; the 2026-09-08 public file/lifecycle runs observed driver 616.64.
+- NVIDIA GeForce RTX 5090 (SM 12.0), Windows. The adopted mixed-FP16 plan was
+  validated on driver 621.14; prior FP32 evidence used older recorded drivers.
 - TensorRT 11.2.1.2 runtime; `-RuntimeDirectory` may override its DLL location.
 - Prepared Python 3.13 packages under `out/vda-oracle-env`, torch 2.7.1+cu128.
   If its old launcher points at a removed WindowsApps interpreter, the launcher
   resolves an installed compatible CPython 3.13; the 2026-09-08 runs used 3.13.9.
-- Source width 16..4096, height 16..2160, landscape AND an exact preprocessing
-  match to an installed 518x686, 518x896 or 518x924 engine.
+- Source width 16..4096, height 16..2160. The installed 518x924 mixed-FP16
+  canvas supports 4:3, ultrawide, portrait, square and other ratios by aspect-fit.
+  Matching 16:9 native inputs retain their original transform; other ratios fit
+  the same 518x924 canvas without changing source/eye dimensions.
   Verified examples: 4:3 960x720, original 1056x608, standard 1280x720,
   1920x1080 and short 3840x2160 HEVC input/output.
 - 4K requires explicit HEVC output (Full SBS 7680x2160). H.264 output is rejected
   at that width. The 30-frame 4K test is compatibility evidence, not sustained FPS.
   This gate uses 8-bit SDR media; HDR color-management correctness is not certified.
-- Unsupported profile gaps, portrait, square and ultrawide inputs are rejected, not converted
-  through padding or resizing to another aspect ratio.
+- Padding is confined to depth inference. It is removed before depth restoration,
+  never added to the input or SBS eyes. Missing all validated engines, invalid
+  dimensions and unsupported HDR remain explicit errors.
 - No 124-frame application limit. The model retains 16 cache slots regardless
   of duration; scene cuts clear temporal state. Long-duration stability and VR
   playback are not certified by removing the short diagnostic limit.
@@ -71,11 +81,45 @@ choose a new name if you want to retain an earlier successful version.
 
 ## Local installation and reproducibility
 
+Live window GPU output now uses WGC GPU capture and an oVDA-specific FP32 input
+kernel. Build the optional local kernel with `./scripts/build-ovda-input.ps1`;
+the runtime verifies `out/ovda-gpu-input-resolution/ovda_input.dll` against its source pin.
+Live source-depth stereo also requires `./scripts/build-ovda-postprocess.ps1`,
+which builds the separately pinned `out/ovda-postprocess-range/ovda_postprocess.dll`.
+It separates pixel EMA from source-time depth-range stabilization and is source-only,
+like the model runtime. Rebuild this bridge when updating from the pixel-EMA-only
+version; an older bridge is rejected rather than silently falling back.
+It also uses the existing trusted GPU-capture and Base input thumbnail binaries.
+This kernel remains outside portable bundles. Missing/corrupt input binaries
+fail visibly; there is no automatic CPU fallback. File conversion, explicit host
+reference output and default monitor input retain CPU preprocessing. The shared
+diagnostic `DEPTHSBS_GPU_CAPTURE=0` explicitly selects the original live input path.
+
 The current workspace is prepared. These files are not included in Git/old
 portable builds; copying just the launcher is insufficient on another computer.
 There is no general end-user installer for oVDA yet.
 
-Required local assets:
+### Explicit live resolution / mixed-FP16 comparison
+
+The prepared workspace has an isolated live comparison launcher:
+
+```powershell
+./scripts/run-ovda-resolution-trial.ps1                         # 518x924 mixed FP16
+./scripts/run-ovda-resolution-trial.ps1 -Variant fp32-current   # 518x924 FP32 control
+./scripts/run-ovda-resolution-trial.ps1 -Variant low-fp32       # 392x700 FP32
+./scripts/run-ovda-resolution-trial.ps1 -Variant low-fp16       # 392x700 mixed FP16
+```
+
+Select the source and confirm the normal non-commercial-use checkbox. The
+launcher selects oVDA, strength follows the normal 0.5 default, Half TB and 60 Hz.
+It changes live inference only; source/eyes keep their dimensions and file
+conversion uses the adopted mixed-FP16 path. Trial settings/placement are isolated
+under `out/ovda-resolution-20261109/manual/`, and trial precision is labelled.
+The ordinary application now selects the 518x924 mixed-FP16 artifact. Trial plan
+hashes, builds and results are in the
+[resolution/precision evidence](../evidence/ovda-resolution-fp16-20261109.md).
+
+### Required local assets
 
 1. `out/vda-oracle-env/Lib/site-packages`, with the pinned torch/TensorRT/CV
    environment recorded above, plus a compatible Python 3.13 interpreter. The
@@ -86,9 +130,12 @@ Required local assets:
 3. FFmpeg/FFprobe at `out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg`.
    CUDA stereo additionally uses the checksum-validated local preview
    `_internal/projection/projection.dll`. CPU selection does not require this DLL.
-4. Trusted validated `model.plan` under named direct children
-   `out/ovda-local/518x686-fp32`, `518x896-fp32` and `518x924-fp32`.
-   A subset can be installed; inputs needing a missing profile fail explicitly.
+4. Trusted validated `model.plan` at `out/ovda-local/518x924-fp16/model.plan`,
+   91370692 bytes, SHA256
+   `394894301beee2302decaf43e7dd4912c043cae469a07f19f4848774a5eb0ec1`.
+   It is installed from the validated `out/ovda-precision-20261109/encoder-spatial`
+   candidate. Old FP32 plans can remain on disk but are not automatic substitutes.
+   The loader fails explicitly if this adopted artifact is missing or corrupt.
 
 The application verifies plan size/SHA256 before deserialization, GPU/runtime and
 all tensor signatures. Runtime inference uses exact-validated local preprocessing
@@ -104,24 +151,28 @@ in `out/ovda-python-deps`. Do not install upstream requirements over the app sta
 
 ```powershell
 $env:PYTHONPATH='experiments/ovda;v1;out/ovda-python-deps;out/v1-python-deps'
-out/vda-oracle-env/Scripts/python.exe experiments/ovda/build_engine.py --fold-position --width 896 --input '<1056x608 calibration clip with at least 32 frames>'
 out/vda-oracle-env/Scripts/python.exe experiments/ovda/build_engine.py --fold-position --width 924 --input '<16:9 calibration clip with at least 32 frames>'
-out/vda-oracle-env/Scripts/python.exe experiments/ovda/build_engine.py --fold-position --width 686 --input '<4:3 calibration clip with at least 32 frames>'
+# The known verified FP32 export is then lowered using the selected recipe:
+out/vda-oracle-env/Scripts/python.exe experiments/ovda/precision_trial.py --spatial-only --output '<new mixed-FP16 build directory>'
 ```
 
 Build additionally requires the pinned, checksum-verified c16 checkpoint at
 `out/models/ovda/oVDA_c16.pth` (source/weight URLs and hashes in the experiment
 README). It runs original-vs-export position checks and 32 self-fed comparisons
-of depth and all four cache outputs at atol/rtol .001. Inspect `report.json`;
-never install a failed engine. Different regenerated hashes require explicit
+of depth and all four cache outputs at atol/rtol .001 for the FP32 reference.
+The mixed-FP16 candidate intentionally uses the separate numerical quality
+contract in the [resolution/precision evidence](../evidence/ovda-resolution-fp16-20261109.md),
+not a claim of strict FP32 parity. Inspect the respective build/validation reports.
+Different regenerated hashes require explicit
 validation and an allowlist update in `v1/depthsbs_app/ovda.py`, not trust in an
 arbitrary engine manifest. See the user integration execution plan for evidence.
 
 For another GPU, build and validate on that device before extending its loader
 profile; changing only a GPU name or manifest is not sufficient. Quality, precision decisions and final repeated
 benchmarks are in [ovda.md](../evidence/ovda.md#record-result-ovda-expansion-results-2026-09-05).
-The tested CUDA path is faster but still not a real-time guarantee. c8/FP16 are
-not user selections; validated c16 FP32 remains the model configuration.
+The tested CUDA path is faster but still not a real-time guarantee. Cache size,
+inference resolution and precision are not additional normal user options;
+validated c16 518x924 mixed FP16 is the selected oVDA model configuration.
 
 ## License and delivery boundary
 

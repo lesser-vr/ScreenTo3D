@@ -12,7 +12,8 @@ See [measured results and limits](../implementation-status.md).
 Base live window GPU paths use owned WGC/D3D11-to-CUDA capture and CUDA
 preprocessing with the same float64 cubic/normalization arithmetic as the CPU
 reference. Source-local builds require `scripts/build-base-input.ps1` and
-`scripts/build-gpu-capture.ps1`, plus the current `build-live-depth.ps1` artifact
+`scripts/build-gpu-capture.ps1`, plus `scripts/build-gpu-load-opt.ps1` for the
+current shared depth/Small/native postprocessing artifacts
 and validated loader pins. The preprocessing binary's OpenCV notice is generated
 beside the DLL. No upstream Veyra/iw3 runtime code or dependency is bundled.
 
@@ -61,11 +62,10 @@ The retained `*-fp32` folders are historical controls and are not automatic fall
 engines. Install both FP16 profiles to preserve the prepared checkout's complete
 profile selection. Missing or modified FP16 artifacts fail explicitly.
 
-The application accepts only the exact locally validated plan hash and byte size
-listed in `v1/depthsbs_app/da2_base.py`, and checks GPU, runtime and tensor signatures.
-A fresh rebuild may have a different hash and requires validation and an explicit
-allowlist update. This is a fixed local installation, not a general artifact
-installer. No upstream source/checkpoint is imported at application runtime.
+The [portable installer](desktop-distribution.md) obtains verified ONNX graphs,
+builds both engines on the current GPU and records their tested hashes.
+Explicit legacy development plans must match the fixed hashes and byte sizes in
+`v1/depthsbs_app/da2_base.py`. Both paths check GPU, runtime and tensor signatures.
 
 For eye-4K Full SBS file conversion, select HEVC with `-OutputCodec hevc`.
 Recorded numerical/FP16 results are in [DA2 Base evidence](../evidence/da2-base.md).

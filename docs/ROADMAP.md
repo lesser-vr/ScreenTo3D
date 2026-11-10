@@ -1,6 +1,6 @@
 # Current work
 
-User-directed priorities, updated 2026-11-05. Choose the next useful task within the current
+User-directed priorities, updated 2026-11-06. Choose the next useful task within the current
 request; these are independent work areas, not a mandatory staged sequence.
 The outcome is defined in [PRODUCT](PRODUCT.md), delivered facts and unpassed
 acceptance in [implementation status](implementation-status.md).
@@ -14,6 +14,7 @@ every candidate; stop or reorder a branch when a small comparison falsifies it.
 
 | Priority | Task | Useful outcome / decision |
 |---|---|---|
+| P0 | Validate coverage and depth stability at strength 0.5 | View coverage, depth-range stabilization, motion history, floating window, disparity compression and selective contour/background fill on Owl3D; assess remaining moving-object errors, thin edges, exposed background, edge masking, depth strength and lag. [Detail evidence](evidence/stereo-detail-20261106.md), [disparity evidence](evidence/disparity-budget-20261106.md), [window evidence](evidence/stereo-window-20261106.md), [motion evidence](evidence/motion-history-20261106.md), [range evidence](evidence/depth-range-20261106.md), [coverage evidence](evidence/stereo-coverage-20261106.md) |
 | P0 | Establish the matched Small + LSFG comparison | Reuse the existing harness; capture the actual baseline/settings on games and video, exact geometry/rates and latency. Include short binocular/HMD review early, not only at the end |
 | P0 | Separate high-quality model cost and history behavior | Measure preprocessing, GPU inference/cache, upscale/sync and stereo separately; inspect intentional sampling versus true discontinuity resets. Do not infer a model ceiling from aggregate depth timing |
 | P2 | Evaluate Lightly DA3-relative-small if useful | Confirm artifact/license scope, output-depth direction and sky processing, then run the matched comparison; proceed only if it adds value over P1 candidates |
@@ -33,14 +34,16 @@ See [current implementation status](implementation-status.md) for completed test
 The bounded P1 Small-model, aspect-input and temporal-history experiments have
 left this work list. Their decisions and unpassed acceptance are owned by
 [implementation status](implementation-status.md); candidate rejection does not
-constitute product quality acceptance. GPU motion-aligned history remains relevant
-to the P2 propagation experiment if its cost and quality justify it.
+constitute product quality acceptance. The implemented fresh-frame GPU motion
+history does not establish the separate P2 lower-rate depth propagation case.
 
 These remain useful when relevant to the user's active request.
 
 | Work area | Useful next outcome |
 |---|---|
 | GPU data path | Reduce capture/input transfers, unnecessary preview work or synchronization where profiling predicts a benefit; retain correct resource ownership |
+| 4K GPU load and output pacing | Native cadence/deadline waits/frame-ready delivery are applied. Qualify longer sessions, irregular source rates and physical display timing; evaluate wider-radius guide costs and measured source-depth CUDA events. [Applied timing evidence](evidence/cadence-product-20261106.md) |
+| Maxine VFG 2x | Qualify the default-off desktop option on sustained actual content, investigate variable Small 4K results, and improve original-frame throughput/latency/memory; complete binocular review, portable packaging and runtime redistribution scope. [Small trial](evidence/small-vfg-20261106.md), [current status](implementation-status.md#vfg-experiment) |
 | Simpler operation | Improve source/output selection and game/video workflows from the existing desktop shell |
 | Reliability and support | Close the specific content, display, long-session or hardware gaps needed for the claim being made |
 | Artifact setup | When needed, replace repetitive code pins with a trusted validated artifact registry; current loaders remain enforced until implementation changes |

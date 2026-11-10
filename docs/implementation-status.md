@@ -1,14 +1,443 @@
 # Current implementation status
 
-Reviewed 2026-11-05. Small/Base window GPU sessions now use owned WGC/D3D11/CUDA capture
-and exact GPU preprocessing. VDA/oVDA and monitor paths retain mapped capture;
+Full-reference native SBS RGB evaluation completed (2026-11-10). Four
+project-authored three-view scenes test both native eyes; the same four Spring
+scenes additionally test left-input to original right-camera RGB. Both Full SBS
+and Half TB are measured with PSNR, Gaussian RGB SSIM, LPIPS-Alex v0.1 and
+GT-defined edge/disocclusion errors. Camera calibration is fixed before scoring;
+nonlinear disparity compression and window masks are disabled only in this
+diagnostic to match physical target views. Ordinary application defaults are
+unchanged. In Spring Half TB, Base/VDA/oVDA beat Small on all three global RGB
+metrics in all four scenes; Base has highest mean PSNR, oVDA highest SSIM/lowest
+LPIPS. Their small-sample pairwise intervals overlap; procedural-scene rankings
+differ and do not support a universal winner. All 102 quality contracts and 12
+exact Full-output/depth comparisons with secondary Half TB publication pass.
+Numerical tests and inspected boundary crops do not establish physical comfort.
+See [references, results and scope](evidence/sbs-rgb-quality-20261110.md).
+
+Known-truth Spring subset evaluated (2026-11-10). Current Small/Base/VDA/oVDA
+GPU/native bindings complete four preselected public training scenes, 80 ordered
+frames each: 32 warmup, 16 fixed affine calibration, 32 held-out scoring frames.
+Both backend inverse depth and final application disparity are measured against
+GT disparity; temporal errors subtract GT depth changes using supplied flow.
+All three alternatives beat Small in final-disparity spatial MAE and temporal
+RMSE in all four scenes. Equal-scene mean final MAE/temporal RMSE are Small
+3.922/.761, Base 2.930/.544, VDA 3.050/.444 and oVDA 2.693/.425 in 1080p px.
+oVDA has the lowest mean final errors, Base the lowest boundary MAE, and VDA
+the lowest raw-depth MAE. oVDA is not uniformly better than VDA/Base; the small
+paired scene sample does not settle their overall ranking. All 99 quality
+contracts pass, as do 12 exact native/disparity comparisons with diagnostic raw
+readback on/off. Defaults are unchanged. These are locally calibrated numerical
+quality results, not official stereo scores, performance or physical comfort
+acceptance. See [data, results and limits](evidence/spring-quality-20261110.md).
+
+Unified native SBS quality dashboard added (2026-11-10). Small, Base, VDA and
+oVDA now have a reproducible three-part diagnostic: motion-aligned temporal
+disparity change, boundary preservation/error, and within-model tracking response.
+The initial public baseline covers three clips x 120 input frames per model,
+with 32-frame post-reset warmup excluded, plus controlled composite relocation
+and independent layered renderer fixtures. All 94 quality contracts and the
+native Half TB zero-disparity calibration pass. Input is 1080p; disparity alone
+is expressed in logical 3840-wide eye pixels. Natural metrics have no depth truth,
+and different parallax magnitudes prevent a simple cross-model quality ranking.
+The relocation response is source-time settling, not physical latency. Production
+defaults are unchanged; viewing comfort and sustained performance remain separate.
+See [measurements and interpretation](evidence/sbs-quality-20261110.md) and
+[reproduction methods](BENCHMARKS.md#matched-sbs-quality-dashboard).
+
+Bounded VDA live history retention adopted (2026-11-10). Ordinary VDA now retains
+model/renderer history across one missing capture with increasing source time
+<=50 ms; consecutive captures keep their <=100 ms pause bound. Larger skips,
+invalid/reversed indices or clocks, cuts and source/size changes reset. File
+cadence and other models' policies remain separate. Seven repeated-drop native
+comparisons against full-rate VDA pass: moving-edge depth-change residual falls
+88.7–97.0% versus reset-on-skips; all 448 no-drop and 28 first-cut comparisons
+are exact. The actual 4K default path records zero gap resets in 18 measured ON
+seconds, passes the unchanged 4K performance-TC subset, and confirms 12 retained
+single skips in the available ON traces. 203 platform/profile and five model
+contracts pass. These are bounded numerical/runtime checks, not physical 3D,
+multi-hour or FPS-gain acceptance. See
+[policy, quality comparison and runtime limits](evidence/vda-single-skip-adoption-20261110.md).
+
+VDA uniform-background TC added (2026-11-10). The secured TC-UBG-01 now accepts
+`-Model vda-small` through the ordinary Video Quality / GPU capture / native Half
+TB path. Installed mixed-FP16 v3, 518x924 passes both initial and repeated runs
+against the unchanged throughput/frame-budget limits. The six-window repeat gives
+1080p ON/OFF 54.67/56.57 FPS with 1.93 ms background processing, and 4K
+41.70/45.38 FPS with 4.33 ms. Seven TC unit checks pass. The 4K repeat also records
+39 gap-induced history resets with correction versus one without over 18 measured
+seconds per condition. Follow-up instrumented reproduction identifies the default
+VDA strict capture-index continuity check: all 14 traced post-warmup resets have
+one skipped capture, 25–33 ms source intervals and no cut. ON processing takes
+17.80 ms median versus 12.42 ms OFF; added work increases latest-frame replacement.
+The existing opt-in single-skip setting retains all identical traced events and
+records zero gap resets in a separate live comparison. That investigation retained
+the then-strict production default; the subsequent adoption and repeated-drop
+quality comparison are recorded above.
+See [reset cause and scope](evidence/vda-background-history-20261110.md) and
+[VDA methods, artifacts and both runs](evidence/uniform-background-gpu-20261110.md#vda-follow-up-tc).
+
+Shared GPU uniform-background correction adopted (2026-11-10). Live CUDA
+correction keeps full-resolution border-connected masks and component means on
+the GPU, replacing the full RGB/depth CPU roundtrip with small coverage reads.
+The bounded median/distance replacement retains correction and history-reset
+semantics. Performance/DA2 Small now enables the same conditional correction;
+its former skip was a CPU-cost policy, not a model requirement. At 4K it owns
+about 238.3 MiB of reused workspace, released before the renderer/engine stream.
+The independently secured 1.5-second TC-UBG-01 flower excerpt now passes actual
+WGC/native Half TB checks for Small, Base and oVDA at both 1080p and 4K. Paired
+ON/OFF ratios are .914–1.057 and background wall intervals 1.79–4.79 ms.
+The secured oVDA 4K case rises from 3.16 to 42.52 submitted FPS (current OFF
+control 46.54); these fixture rates are not maximum FPS or a 4K60 guarantee.
+Thirty-seven mask/depth cases, 204 matched-model native comparisons including
+strength 2, and 290 affected CPU contracts pass. The first Small boundary-error
+candidate was corrected rather than exempted or given looser thresholds.
+Physical Owl3D visual/comfort acceptance is separate; archived ZIPs were not
+rebuilt. See [implementation, measurements and limits](evidence/uniform-background-gpu-20261110.md)
+and [secured case origin](evidence/uniform-background-tc-20261110.md).
+
+GPU utilization in output debug information (2026-11-10). The shared SBS title/
+binocular fullscreen text now includes `GPU n%`, sampled once a second for the
+actual CUDA GPU by UUID. It reports device-wide activity, not this process alone;
+unavailable/stale/inactive readings show `GPU —`. Optional query failure does not
+stop output. Sixty-one affected unit/controller checks pass, as do actual Small
+Half TB and oVDA Half SBS GUI/fullscreen/stop/restart checks. Both eye labels match
+the title and retain the existing font/packing compensation. Explicit NVML query
+timing has 0.0007 ms median/0.1838 ms maximum over 50 calls; this is query overhead,
+not an end-to-end FPS benchmark. See
+[validation and screenshots](evidence/gpu-usage-display-20261110.md).
+
+oVDA 518x924 mixed FP16 adopted (2026-11-09). Ordinary source live and file
+loading now selects the previously validated encoder+spatial mixed-FP16 plan.
+Temporal blocks/cache/depth head/floating I/O remain FP32. The canonical artifact
+is installed at `out/ovda-local/518x924-fp16/model.plan`; UI/backend/CLI/engine
+diagnostics identify mixed precision. All source ratios fit the single canvas;
+normal loading does not silently substitute archived FP32 engines. Existing
+quality/performance evidence remains applicable to these exact engine bytes.
+Eight geometries/24 frames pass host/device depth parity, 15 affected unit checks
+and actual normal GUI resize/movement/fullscreen/stop/restart/cancel pass.
+The normal file CLI also completes and fully decodes a 360-frame/6-second
+1920x1080 60 Hz Half TB public clip with matching frame count and duration. See
+[adoption verification](evidence/ovda-fp16-adoption-20261109.md).
+
+Prior oVDA resolution/mixed-FP16 evaluation (2026-11-09). With the current c16 history,
+pixel EMA and range tracker, retained 518x924 mixed FP16 passes the declared
+numerical budgets on nine public cases/1002 matched frames. The 392x700 FP32 and
+mixed-FP16 candidates lower cost but fail edge/depth/native-image budgets and are
+not selected as defaults. In short actual WGC/native Half TB tests, retained
+resolution mixed FP16 improves 4K output 46.16->62.42 FPS and device-wide GPU
+86.95->64.55%; optimized variants reach the ~62.5 Hz source ceiling. This is not
+maximum FPS, ground-truth accuracy or comfort acceptance. Both mixed candidates
+pass actual GUI resize/movement/fullscreen/stop/restart/cancel. Seven unit checks,
+160 preprocessing combinations, 30 exact old/new GPU-input controls and six
+padding restoration checks pass. At that evaluation stage the ordinary FP32 registry was unchanged;
+an isolated-preference live comparison GUI is ready through
+`scripts/run-ovda-resolution-trial.ps1`. See
+[methods, pins, numerical tradeoffs and limits](evidence/ovda-resolution-fp16-20261109.md).
+
+oVDA depth-range stabilization (2026-11-09). The source live adapter now uses a
+causal raw-anchor range tracker, 2% endpoint deadband and source-time asymmetric
+response, retaining pixel EMA 0.5, c16/FP32 and bounded short-skip history.
+The optional bridge adds 4 KiB GPU state with no extra production readback or
+per-frame allocation. Compatibility control is exact on 1890 synthetic/public
+frames; product/native parity and anchor cleanup pass on 720 more. Low-motion
+eye-shift RMS falls 1.9–30.6% in nine longer sampled public cases. A two-case
+saturation audit finds no loss above 5% of the current P2/P98 normalized span;
+small endpoint clipping can increase. These are stability proxies, not comfort
+or ground-truth accuracy. Thirty-eight affected unit checks, error cleanup and
+actual GUI resize/movement/fullscreen/stop/restart pass. Short native Half TB FPS
+is essentially unchanged: 59.20->59.32 at 1080p and 46.32->46.23 at scaled 4K.
+See [methods, native pins and limits](evidence/ovda-depth-range-20261109.md).
+
+Prior oVDA independent pixel EMA tuning (2026-11-09; its range stage is superseded
+above). The comparison selected pixel EMA 0.5 with range EMA 0.18, c16/FP32 and
+bounded short-skip history.
+The optional pinned bridge preserves the existing borrowed native layout; shared
+production CUDA binaries are unchanged. Legacy/0.18 compatibility and range
+identity pass on 468 synthetic/public native frames; product routing and error
+cleanup pass on 48 more. Synthetic 90% step response improves 12->4 updates.
+Weight 0.5 meets the declared subpixel variation budget in nine public cases;
+0.75 and 1.0 exceed it. These are response/stability proxies, not comfort or
+ground-truth accuracy acceptance. Thirty-four affected unit checks and actual
+GUI resize/movement/stop/restart pass. Short native Half TB FPS is essentially
+unchanged: 58.65->58.95 at 1080p and 46.12->46.40 at scaled 4K. See
+[methods, bridge pins and limits](evidence/ovda-pixel-ema-20261109.md).
+
+oVDA bounded short-skip history (2026-11-09). Source live oVDA retains model and
+renderer history across one missing capture update with forward timestamps no
+more than 50 ms apart; cuts, larger/longer gaps, invalid clocks and geometry
+changes still reset. File cadence, model precision and postprocessing selection
+are unchanged. Bounded metadata now measures actual pre-inference cache occupancy.
+Thirty-two affected unit checks and actual GUI resize/movement/stop/restart pass.
+No-drop depth/native output is exact on 72 comparisons. Nine sampled public-video
+cases are closer to dense oVDA in raw/temporal/edge/native-SBS proxies; these are
+not ground-truth accuracy or comfort measurements. In six short 4K timed windows,
+gap resets fell 279->0 and full-context use rose 0->100%, with median native FPS
+47.09->46.43; 1080p measured 59.98->59.53. See
+[policy, comparison contract and limits](evidence/ovda-short-skip-20261109.md).
+
+oVDA runtime allocation/validation cleanup (2026-11-09). The source live device
+engine reuses input/output/schedule buffers and one retained cache bank, with
+in-place temporal shifting and a single combined finite-output validation wait.
+Completion/ownership fences and NaN/Inf failure behavior remain. Before/after
+depth, sampled caches and native Half TB pixels match exactly on 330 public
+frames. Persistent pointers, resets, nonfinite injections and host-input parity
+pass; GUI resize, both-screen movement, stop/restart and cancellation pass, as do
+17 affected unit checks. At 1280x720, steady inference's extra Torch allocation
+peak fell from 208.26 to 3.52 MiB, with 18.68 MiB of retained inference buffers
+and no second cache bank. Short final uncapped Half TB comparisons improved
+median native FPS 58.20->60.05 at 1080p and 45.54->47.09 at scaled 4K; GPU use
+rose slightly with throughput. Precision and user settings are unchanged. See
+[scope, reference pins and limits](evidence/ovda-runtime-cleanup-20261109.md).
+
+oVDA GPU input (2026-11-09). Source-only live window GPU sessions now use existing
+WGC GPU capture and separately pinned, same-stream oVDA FP32 preprocessing. No
+model precision, source geometry, CPU thread or history policy changed. Tensor,
+depth/cache and actual native Half TB comparisons are exact on the checked public
+fixtures; actual GUI input resizing, both-screen movement, stop/restart and
+cancellation pass. Seventeen affected unit checks pass. In short reversed-order
+uncapped Half TB runs, median native output rose 25.12->58.21 FPS at 1080p and
+9.98->45.78 at scaled 4K; device-wide GPU use rose about 42->84% and 47->85% as
+throughput increased. This is RTX 5090 source-local evidence, not other-GPU,
+long-run or physical-display-quality acceptance. See
+[methods, artifact pins and limits](evidence/ovda-gpu-input-20261109.md).
+
+oVDA aspect-fit and mixed precision experiment (2026-11-09). The source c16 FP32
+path now fits arbitrary ratios into its installed canvases, retaining native
+transforms and source/SBS geometry. CPU native parity, padding restoration,
+binding/installation contracts and actual host/device depth parity pass. Actual
+ultrawide, portrait and square native GUI sessions passed fullscreen, both-screen
+movement, stop/restart and preparation cancellation. Two isolated mixed-FP16
+recipes were built and compared on 360 public frames. Encoder + spatial FP16
+reduced 4K replay's TensorRT median from 16.28 to 6.18 ms; actual uncapped Full
+SBS rose 25.08->29.97 FPS at 1080p and 9.20->10.62 at scaled 4K. Mean device-wide
+GPU use fell 45.75->31.96% and 50.57->45.79%, respectively, in short reversed-order
+runs. Both candidates exceed strict depth/cache parity; FP32 remains the normal
+oVDA configuration. Physical comfort, long histories and other GPUs are not
+established. See [methods, artifacts and precision/geometry limits](evidence/ovda-precision-aspect-20261109.md).
+
+Model-oriented selection and precision (2026-11-09). Live/file settings now use
+one depth-model picker instead of a quality-tier picker plus a conditional model
+picker. Labels identify Small FP16 (default), Base mixed FP16 and VDA's installed
+mixed FP16 or legacy FP32; missing VDA describes the mixed-precision download
+target. Source-only oVDA remains an explicit FP32 entry, and file-only VDA
+five-frame processing is named separately. Shared hover/focus help describes
+model purpose and FP32 boundaries. Internal mode/model routing and saved keys
+are retained; no inference or rendering policy changed. Ten preference/selection
+tests, 52 controller/hotkey checks and four VFG contracts pass. Actual Qt choice,
+precision help, file/live selection and fresh-process restoration passed without
+QML warnings in source and portable code:
+out/model-picker-fp-release-20261109/ and
+out/model-picker-fp-portable-release-20261109/. Existing shell and D3D11/file
+settings regressions passed at out/model-picker-fp-shell-20261109/ and
+out/model-picker-fp-desktop-20261109/. Rendered help and choice lists were reviewed;
+no new GPU-performance or physical-display-quality claim is made.
+
+Defaults and compact VFG help (2026-11-09). Fresh source and portable desktops
+now select Performance/DA2 Small and Half Top-and-Bottom. Each task restores its
+last explicit user mode/model/layout through validated QSettings; programmatic
+test/comparison changes do not save. VFG descriptions, shortcut registration
+status and restrictions moved into the adjacent ? hover/focus popup. Transition
+notice text is now 14 pixels; performance statistics retain their existing size.
+Seven preference tests and 52 controller/hotkey regressions pass. Actual Qt
+keyboard activation, hover/focus help, unsupported-mode explanations and a fresh
+process readback passed in both source and portable code, with no QML warnings:
+out/selection-defaults-help-20261109-r2/ and
+out/selection-defaults-portable-20261109/. All four 14-pixel notice layouts,
+receiver proportions, hold/fade timing and cancellation passed at
+out/vfg-notice-14px-20261109/; the existing shell regression passed at
+out/selection-help-shell-20261109-r2/. These checks do not remeasure GPU performance
+or physical display quality.
+
+VFG transition notices (2026-11-09). Windowed/fullscreen output now shows a
+centered notice in each eye during preparation, followed by VFG ON or VFG OFF for
+1.5 seconds and a 250 ms fade. Preparation is not subject to that timeout;
+interruption restarts feedback, and cancellation/failure/hide clears it without
+false success. The previous packed aspect is retained while worker metadata is
+empty. Small/Half SBS and Base/Half Top-and-Bottom actual global-key transitions
+passed on/off notices, expiry, cancellation and existing native lifecycle checks:
+out/vfg-notice-live-small-half-sbs-20261109/ and
+out/vfg-notice-live-base-half-tb-20261109/. Rendered tests passed all four layouts,
+per-eye centering, Half receiver proportions, timing and interruption with no
+QML warnings, including the updated portable code:
+out/vfg-notice-render-20261109-r2/ and
+out/vfg-notice-portable-render-20261109/. The 52 controller/hotkey regressions
+also pass. These checks do not replace physical Owl3D visual acceptance.
+
+Running VFG toggle (2026-11-09). The normal app now switches VFG through output
+settings, the output context menu, or global Ctrl+Alt+S, including with another
+process in the foreground. It keeps the selected source, output geometry and
+fullscreen state while a bounded last-frame image covers the owned worker
+restart. Missing-runtime preflight preserves the running session; repeated
+requests cannot queue more workers. Stop cancels pending restart. Registration
+conflicts are visible in settings, and fixed comparison launchers do not register
+the shortcut. Defaults and existing compatibility requirements remain unchanged.
+52 Qt controller/hotkey checks and four VFG contracts pass. Actual Small/Half SBS
+and Base/Half Top-and-Bottom passed four on/off transitions each across windowed
+and fullscreen output, generated-frame delivery, cancellation, restart placement,
+and zero native pools/nodes after stop. Both display moves also passed. Artifacts:
+out/vfg-switch-small-half-sbs-20261109-r4/ and
+out/vfg-switch-base-half-tb-20261109-r2/. The updated portable code also passed
+the same Full SBS/Small lifecycle at out/vfg-switch-portable-small-20261109-r2/,
+with the checked SDK temporarily staged for QA and removed afterward; optional
+VFG installation remains required. These are generated-input lifecycle
+checks, not performance or physical Owl3D quality acceptance. The final Qt input,
+settings, error-dialog and stop regression also passed without Qt warnings at
+out/vfg-switch-shell-20261109/.
+
+Half-format overlay playback proportions (2026-11-09). The earlier window-only
+8×8-unit check did not account for the receiver expanding the compressed Half
+axis. Half SBS now doubles the overlay's vertical axis; Half Top-and-Bottom
+doubles its horizontal axis. The 8-pixel base font then becomes a proportional
+16×16-unit glyph after the receiver's matching expansion, without the prior
+overall text shrink. Base margins remain 6 pixels. Both Half formats passed
+actual Small native output/fullscreen/restart tests and scene-coordinate checks
+including the receiver transform. Captures are in
+out/overlay-playback-final-half-sbs/ and out/overlay-playback-final-half-tb/.
+Physical Owl3D visual acceptance remains unverified.
+
+Taskbar icon correction (2026-11-09). The running source app was identified by
+Windows as the Microsoft Store Python host despite the process AppID and Qt
+window icon. Each main/utility/output/pattern/error native window now receives
+an explicit ScreenTo3D AppID and relaunch command/name/icon via its Windows
+property store, with reapplication on native surface recreation. The approved
+multi-size ICO is shared by shell metadata and the launcher build.
+Actual property-store reads passed for all four QML windows, including fullscreen
+transitions. The two already-running app windows also received updated shell
+properties without stopping SBS. Taskbar screenshots were unavailable through
+the window-scoped UI inventory; visible user confirmation remains separate.
+
+Half-height stereo synthesis (2026-11-09). Native CUDA Half Top-and-Bottom with
+VFG off now reduces rows before projection, using guided-filter scratch after
+full-resolution depth/history/disparity preparation. Half SBS, file/host, VFG
+and RowFlow retain their existing synthesis paths. The
+[quality contract and measurements](evidence/half-render-20261109.md) record
+42 passing production comparisons with exact depth history, Small/Base/VDA GUI
+checks and a sampled projection interval reduction from approximately 0.79 ms
+to 0.38 ms. The production confirmation used approximately 40% device-wide GPU
+versus 42.5% for the prior implementation, at approximately 62.4 FPS.
+The source limited output cadence; no maximum-FPS improvement is established.
+Reduced Half SBS failed the 1080p comparison and remains an explicit experiment.
+Owl3D binocular playback and native-4K detail review remain unverified.
+
+Stereo output formats (2026-11-09). Live and file settings support Full/Half SBS
+and Full/Half Top-and-Bottom, with Full SBS retained as default. Native output
+packs directly into final-sized shared textures, with the Half Top-and-Bottom
+synthesis refinement described above.
+The [packing validation and 4K measurements](evidence/stereo-layout-20261109.md)
+record exact GPU/CPU comparisons, real output/file tests and five observation
+windows per format. Half formats saved approximately 95 MiB of GPU memory.
+All formats delivered approximately 62.4 FPS with approximately 62 FPS source
+painting; a material GPU usage or FPS improvement was not demonstrated.
+Physical stereo playback/comfort remains a device acceptance check.
+
+ScreenTo3D rename (2026-11-09). App window titles, launcher product resources,
+the CLI product label and desktop taskbar identity use ScreenTo3D.
+Source and current portable `ScreenTo3D.exe` both opened the renamed QML window
+and exited normally. The existing settings namespace and model/cache/log paths
+remain compatible with DepthSBS installations. The GitHub repository is
+`lesser-vr/ScreenTo3D`; the local origin URL was updated and remote HEAD access
+verified after the repository rename.
+
+Desktop EXE launcher (2026-11-09). The native Windows launcher is built by
+`scripts/build-desktop-launcher.ps1` and included automatically by the portable
+builder. Source and current portable EXEs opened the actual QML GUI from an
+unrelated working directory and exited with zero after the GUI closed.
+A Unicode/space-containing junction path to the portable also passed.
+Isolated missing-runtime and injected Python-import failures produced Windows
+error dialogs and exit code 1; the Python failure included a UTF-8 traceback.
+Local QA is in `out/desktop-launcher/`. These checks cover launch and shutdown,
+not a new SBS performance measurement.
+
+The approved overlapping blue/mint screen icon is stored in
+`v1/depthsbs_app/assets/depthsbs.png`. The launcher build embeds
+16/20/24/32/40/48/64/128/256-pixel ICO entries derived from this artwork.
+Qt uses the same artwork for app windows with Windows app ID
+`DepthSBS.Desktop`. Main, utility and SBS window icon handles and the app ID
+passed runtime checks; both updated EXEs opened and closed normally.
+
+VDA Small aspect-fit (2026-11-08, RTX 5090). The portable file worker completed
+24-frame moving test patterns in Video Quality and Offline Quality at 3440×1440,
+1440×1080, 1080×1920 and 1920×1080. Each output contained 24 frames at twice
+the source width and the source height. Both original profiles produced bit-exact
+depth against the prior transform and resize on three consecutive frames each.
+Native SBS continued through an owned window's ultrawide → portrait → 4:3 →
+16:9 changes, with three resize resets and at least eight new output submissions
+at each geometry. Wide and portrait FloorballGame excerpts also converted at
+120 frames each; source and both eye images were inspected at three positions.
+Physical stereo comfort and sustained playback performance remain unmeasured for these ratios.
+The [short native VDA throughput and GPU measurements](evidence/vda-native-fps-gpu-20261108.md)
+include 60 FPS and unlimited output, a playback baseline, and a slower-input history check.
+
+The 2026-11-08 QML portable build includes Small and installs portable ONNX
+packs for Base and VDA. On the RTX 5090, the packaged GUI fetched both over
+loopback HTTPS, cancelled and retried a Base build, and built and numerically
+checked two Base and four VDA engines on-device. All four file modes produced
+12-frame, 2112×608 SBS files; all three depth models produced live native SBS
+from an owned synthetic window. The seven release CUDA DLLs contain compute_75
+PTX and SM120 machine code. Forcing PTX JIT on the projection DLL produced the
+same output bytes on this GPU. Other GPU models remain untested. The official NVIDIA
+VFG wheel passed a separate direct HTTPS download/install check; the same pinned
+wheel's installed runtime produced generated live frames with both Small and Base.
+The build and file/live tests also ran with the developer Toolkit removed from
+PATH and CUDA_PATH unset. Public model hosting and a
+separate clean-PC run remain unverified. [Distribution procedure](models/desktop-distribution.md)
+
+Small, Base and VDA Small window GPU sessions use owned WGC/D3D11/CUDA capture.
+For VDA, the [GPU input comparison](evidence/vda-gpu-input-20261108.md) covers
+input and temporal depth parity, resize, and 1080p/4K native throughput.
+The Windows desktop portable now ships the full-resolution fixed radius-12
+guide. On an RTX 5090 it delivered 43.2 FPS in a short 4K native run at the
+default 60 FPS limit. Aligned depth and native SBS bytes matched the previous
+DLL on 120 paired frames. [Release verification](evidence/vda-radius12-review-20261108.md#portable-release-verification)
+The subsequent VDA Small v2 model pack uses encoder mixed FP16. Against FP32
+with the same renderer, median native throughput at the 60 FPS cap rose from
+52.22 to 54.99 FPS at 1080p and from 43.08 to 45.58 FPS at 4K. The packaged
+installer rebuilt both graph pairs on the RTX 5090 and the file and native
+paths exercised the new engines. [Precision and output checks](evidence/vda-mixed-fp16-20261108.md)
+An isolated [spatial attention trial](evidence/vda-spatial-fp16-20261108.md)
+reached 58.06 FPS at 4K on the same GPU. Both original attention recipes and
+the [two partial FP32 restorations](evidence/vda-spatial-fp16-20261108.md#streaming-with-blocks-restored)
+exceeded the v2 depth reference tolerance. The v3 VDA pack adopts the all-fused
+recipe following user comparison. Its local build check uses the pinned v3
+depth and cache samples at the existing 0.001 absolute and relative tolerances.
+An opt-in [single skipped-frame trial](evidence/vda-single-skip-20261108.md)
+measured VDA depth continuity and 4K throughput on the installed v3 pack.
+oVDA and default monitor paths retain mapped capture;
 the hybrid guided filter remains. Native output is now the prepared-local default;
 host output is an explicit diagnostic choice. Native mixed-size restart is fixed.
 Base now defaults to user-selected mixed-FP16 TensorRT plans with FP32 I/O;
 Small was already FP16. Precision promotion and its checks are recorded below.
-Output now defaults to unlimited; settings offers unlimited/30/60 FPS. Native
+Settings offers unlimited/30/60 FPS. Native
 publication obeys the selected cap while release/error/retirement servicing stays
-active. The verification record is linked below.
+active. Non-VFG native workers also pace before acquiring fresh input, avoiding
+precomputed results waiting behind occupied output slots. `Run-Compare-Small.cmd` prepares Small FP16 without VFG
+for the same Owl3D-compatible output trial as Base A/B. All three actual Qt
+paths pass startup/default/reset, native output, two-screen movement, fullscreen,
+hide/restore, stop/restart/close and zero-pool/node cleanup. Nine comparison/timing
+unit tests pass. A fast-Small timestamp-order failure is fixed by preserving raw
+source and ready times and scheduling original output after both, with a bounded
+100ms source lead. See [Small launcher validation](evidence/small-comparison-20261106.md).
+Physical Small binocular quality and sustained performance remain unverified.
+`Run-Compare-Small-VFG.cmd` now adds the shared Medium 2x VFG experiment to Small.
+It retains Small's GPU preprocessing, FP16 inference and native output; the VFG
+layer is shared with Base. Small/Base original-frame parity, actual GUI lifecycle
+and Small cut/resize/cancel checks pass. The short public 1080p trial increases
+output 70.73→102.92 fps while original SBS falls to 51.46 fps and median source
+age rises 17.00→28.24ms. Repeated 4K results vary substantially: baseline
+28.91/38.43 fps versus VFG 56.11/35.30 fps, with higher latency under VFG.
+Consistent 4K benefit is not established. See [Small VFG validation](evidence/small-vfg-20261106.md).
+Live Small/Base now default to source-time depth-range stabilization plus GPU
+motion-aligned one-frame history plus a bounded left/right floating window and
+fixed compression of large near/far disparities and selective contour/background
+reconstruction (`detail`), including A/B and Small VFG. The prior same-depth
+540-frame budget comparison at strength 0.5 reduces absolute disparity
+P95 by 18.1–25.1% for Base and 6.9–14.0% for Small; central-third P50 is unchanged
+in all six sequences. This is not a physical comfort result. Public
+moving-region residuals improve 2.76–3.44% for Base and 3.76–5.79% for Small over
+the prior range default; this is a temporal proxy, not physical viewing acceptance.
+Details and limits are below.
+The verification record is linked below.
 Additional Base profiling and the iw3 renderer comparison retain TensorRT and
 CUDA stereo as defaults. Scoped regression coverage and
 measurements below do not establish general 4K60 support.
@@ -23,9 +452,339 @@ in [ROADMAP](ROADMAP.md). Unpassed acceptance is recorded below.
 | Python file conversion | Mode-owned routing now enforces Performance/DA2 Small, Balanced/DA2 Base, Video Quality/explicit oVDA or VDA, and Offline Quality/VDA with a dedicated centered five-frame processor; SBS, FFmpeg/NVENC, audio/publication and cancellation remain shared | Offline is bounded, future-aware and file-only; it is not motion-warped or a new trained model. Artifact/shape/license-specific local use; [model specifications](PRODUCT.md#files-and-models) |
 | Capture-only diagnostic | Explicit WGC window/monitor capture, source transitions and isolated worker retained for diagnostic callers | Removed from user-facing mode selection; GUI defaults to SBS, with no automatic capture; [desktop behavior](PRODUCT.md#live-capture-and-output) |
 | Live depth modes / host output | Immutable session routing selects Performance/DA2 Small, Balanced/DA2 Base, or Video Quality/explicit oVDA or VDA; Base/VDA/oVDA live GPU depth remains on its owner CUDA stream through GPU SBS | Explicit reference and file paths retain host depth. Offline Quality is file-only; correct artifacts, shapes and oVDA confirmation are required with no fallback |
-| Live native texture output | Prepared-local default `gpu-texture` transport into Qt/D3D11 windows supports DA2 Small plus Base/VDA/oVDA device-depth live sessions with worker-owned bounded textures | Small/Base window input stays on GPU; VDA/oVDA and monitor inputs retain host capture. Native dependencies load at Start; failure is visible without automatic fallback. Broad display/game/VR acceptance remains separate; [default validation](evidence/native-default-20261105.md) |
+| Live native texture output | Prepared-local default `gpu-texture` transport into Qt/D3D11 windows supports DA2 Small plus Base/VDA/oVDA device-depth live sessions with worker-owned bounded textures | Small/Base/VDA window input uses GPU capture; oVDA and default monitor inputs retain host capture. Native dependencies load at Start; failure is visible without automatic fallback. Broad display/game/VR acceptance remains separate; [default validation](evidence/native-default-20261105.md) |
 | Temporal/model GPU experiments | Device boundaries and selected NVOF components have bounded evidence | Components are not general live model integration; fixed 1:2 NVOF cadence is rejected; [actual skip](evidence/nvof.md#record-result-ovda-nvof-actual-skip-2026-09-07) |
 | Post-SBS Streamline DLSSG proposal | Feasibility review completed | Current adapter rejected at input-contract boundary; not a rejection of all external RGB FG; [feasibility](evidence/frame-generation.md#record-result-dlssg-feasibility-2026-09-07) |
+
+## ZipDepth retired
+
+ZipDepth was discarded at the user's request on 2026-11-07. Its desktop launchers
+and dedicated checks in the shared runtime suites have been removed. It is not
+an app model or a planned integration. Historical experiment code, downloaded
+artifacts and [measurement evidence](evidence/zipdepth-20261106.md) remain for
+traceability; shared Small/guide/pacing measurement tools remain usable.
+Matched-frame temporal residuals worsened in all three tested clips, especially
+OfficeWalk, and the complete-pipeline gain was limited. See the
+[4K120 comparison](evidence/zipdepth-hfr-20261106.md).
+
+## Shared GPU and delivery improvements
+
+The normal app and all four Small/Base comparison launchers now start at 60 FPS
+and strength 0.5; the strength reset also restores 0.5. VFG remains off by default
+in the normal app. The measurements below predate this default change and retain
+their original strength 0.25 conditions; they are not fresh performance claims
+at strength 0.5.
+The normal desktop and all four comparison entry points pass actual QML loading,
+default/reset and 0/30/60 selection checks without capture or native model loading;
+ten cadence/Qt-notification regression tests pass. Portable packages were not rebuilt.
+
+A matched Jockey telemetry rerun shows about 83%/82% whole-GPU activity and
+306W/299W for Small/ZipDepth, including player/desktop costs; these counters
+do not establish peak-compute utilization or isolate a pipeline bottleneck.
+A subsequent [GPU load audit](evidence/gpu-load-audit-20261106.md) isolates the
+full-4K guided filter (47.6%) and stereo resolve (17.1%) in summed CUDA kernel
+time. In its matched cap comparison, unlimited/60/30 output uses 80.3/46.4/31.1%
+whole-GPU activity, but 60/30 caps deliver 55.9/29.1 FPS and increase software
+frame age. The subsequent [shared GPU optimization](evidence/gpu-load-optimization-20261106.md)
+promotes exact bitmap stereo resolve and early capped-input pacing. Five-window
+paired Jockey runs improve unlimited output 83.60→94.59 FPS; at 60 cap, whole-GPU
+activity falls 48.75→40.06%, power 221.21→184.16W and callback-to-Qt median age
+43.11→16.31ms, with actual output 55.80→54.49 FPS. At 30 cap, age falls
+77.16→17.58ms and power 142.58→128.66W, with output 29.10→28.60 FPS. These are
+windowed software measurements, not physical display latency or sustained support.
+Same-input depth/native pixels, Small GPU input/output, motion/RowFlow borrowed
+layout, VFG compatibility, capped resize/restart and cleanup checks pass.
+The later [radius-4 guide optimization](evidence/guide-compensated-20261106.md)
+now uses two-component FP32 accumulation with FP64 final mean/conversion in the
+prepared-local Small/ZipDepth path. Its guide kernels fall 3.60→0.85ms/frame.
+All 792 synthetic/public matched frames have exact SBS RGB; Small's largest depth
+difference is 5.96e-8. This includes genuine native-4K Jockey/Beauty checks.
+Actual ZipDepth Jockey output improves 93.80→119.78 FPS, now source-limited near
+120 FPS, with whole-GPU activity 79.62→66.45%. That change covered radius 4.
+Native/Small/VFG/reuse/resize/restart checks pass.
+
+On 2026-11-07 the two input adapters began sharing postprocessing after raw depth
+reaches source resolution. In a paired RTX 5090 check with identical 4K Jockey
+Base FP16 outputs, radius-8 guide GPU time (CUDA events 5–6) fell from 4.115 to
+2.792 ms median over 30 order-alternated frame pairs after six warmups. This
+measures the guide stage. At strength 0.5, twelve 4K frames per model had equal
+old/new native SBS pixels; peak guided-depth difference was 1.78e-15 for Base
+and zero for Small. Radius 8 and 12 also passed eight odd-sized synthetic frames
+each. Five 60 FPS target live sessions covering Small/Base with VFG on/off passed
+with zero retained native resources at cleanup. Local reports are under
+`out/guide-common/{matched-output.json,guide-timing.json,runtime/result.json}`.
+
+The user preferred radius 8 in the [4/8 quality comparison](evidence/guide-radius-ab-20261107.md)
+and selected it for both live DA2 models. Performance/Small now shares Balanced/Base's
+guide radius. The five-clip comparison records the guide-time cost and edge stability
+for both radii.
+
+The prepared DA2 desktop now runs the radius-8 filter on the same fixed-radius
+kernel templates as radius 4. On the RTX 5090, the 4K Jockey Base guide fell
+from 2.90 to 0.57 ms in a 30-pair isolated check. Native SBS output matched
+byte for byte across 432 paired frames including motion, resets and odd edges.
+See the [quality and native power measurements](evidence/guide-fixed8-20261107.md).
+
+A separate [two-thirds guide experiment](evidence/guide-resolution-20261107.md)
+builds the coefficients at 1440p for 4K input and applies them at full resolution.
+Both DA2 modes still use the full-resolution radius-8 guide by default.
+
+The prepared native DA2 detail path now [retains a settled SBS texture](evidence/static-sbs-20261108.md)
+on exact repeat inputs. The session report counts held captures in
+`reused_sbs_frames` separately from inference, rendered frames and new submissions.
+
+The [native render notification fix](evidence/native-notification-20261106.md)
+resolved the earlier missed-wakeup tail regression. The subsequent
+[cadence implementation](evidence/cadence-product-20261106.md) now applies a
+single non-VFG native work-rate owner, bounded publication guard, interruptible
+deadline waits and frame-ready Qt delivery with bounded lease/health service.
+In five-window actual Qt-loop 4K120 checks, ZipDepth 60-target output improves
+54.70→60.00 FPS, callback-age P95 17.17→16.48ms, GUI polls 998→80/s and GUI-process
+CPU time 13.91→9.06% of one logical CPU. Whole-GPU power is 169.24→177.83W while
+processing more frames. ZipDepth 30/unlimited reaches 30.00/119.79 FPS and Small
+60 reaches 59.90 FPS. These are windowed software rates, not physical refresh.
+Host/VFG retain their full-period caps. Slow-source pause/resume, actual host
+delivery, native resize/hide/fullscreen/source loss/restart, Base/Small VFG at
+60/unlimited and notification/GPU cleanup pass; 52 scoped protocol and 13 Qt
+tests pass. Timing contracts intentionally differ from strict per-frame spacing.
+That scheduling change preserved stereo quality. Source-depth stage
+timings now report unavailable rather than uninstrumented zeroes; CUDA events
+for those stages remain future work.
+
+## VFG experiment
+
+The prepared normal desktop now offers an explicit VFG toggle, disabled on every
+new app launch. Small/Base GPU window/native sessions use Medium 2x when selected;
+off retains ordinary rendering. The worker owns the promoted renderer/producer
+directly, and the GUI selects timed delivery without importing CUDA. The runtime
+is the locally staged, pinned five-DLL official wheel candidate. Fixed A/B
+launchers retain their separate measurement path and hide this toggle. This is a
+local feature integration, not public packaging or license clearance. See
+[VFG option validation](evidence/vfg-option-20261106.md).
+
+Distribution clearance is not established. The 2026-11-06 review distinguishes
+the permissive model license from the SDK runtime entitlement: Developer Program
+Enterprise access does not authorize production distribution, and no applicable
+customer-PC redistribution agreement has been verified. See the
+[VFG license review](evidence/vfg-license-review-20261106.md) for checked terms and
+the unresolved entitlement/Embedded licensing questions.
+The [distribution case survey](evidence/vfg-distribution-cases-20261106.md) also
+verified anonymous access to NVIDIA's public `nvidia-vfx` 0.2.0.0 wheel and that
+its three core license PDFs match the NGC package. ComfyUI dependency installation
+and Veyra's documented DLL bundle are distinct distribution examples; neither
+settles DepthSBS's entitlement. NGC sign-in is not universally required, and the
+public wheel's product classification remains unresolved rather than assumed to
+inherit a Developer Program entitlement. No runtime or installer was changed.
+The subsequent [bundling review](evidence/vfg-bundle-review-20261106.md) downloaded
+and hash-verified that complete wheel and staged a local five-DLL candidate
+(210,788,400 DLL bytes; 187,067,228-byte ZIP including notices). All five DLLs have
+valid NVIDIA signatures but differ from the NGC file hashes. Four isolated probe
+runs (640x180 Low/Medium/High, 7680x2160 Medium) pass; all 16 RGB results exactly
+match preserved NGC outputs from the identical probe and verified fixtures.
+This supports the proposed bundle's standalone feasibility, not application
+coexistence, clean-machine qualification, broader GPU support or redistribution
+clearance. That review did not change the app; the subsequent opt-in integration
+above now uses the staged wheel runtime and its own pins.
+
+The independent 2x Maxine VFG experiment now runs with official SDK/feature 1.3.0.0
+on RTX 5090. All three modes accept 7680x2160 Full SBS. Three public Base FP16
+native-SBS triplets measure approximately 1.00/2.71/11.42ms for Low/Medium/High
+per generated frame, excluding transfers, depth rendering and presentation.
+Medium beats frame hold/blend on the three held-out midframes; High's additional
+error reduction is small in this bounded sample. Medium is an isolated prototype,
+not a product default or perceptually accepted mode.
+
+Manual cuts copy current exactly and resetting the flag restores the previous
+non-cut result. Automatic Medium cuts instead hold previous in the tested
+synthetic and cross-video cases. The native prototype disables SDK automatic cuts,
+resets from the app cut/source timeline, and emits only the original at reset.
+A one-triplet per-eye comparison reduces seam error but leaves overall error
+nearly unchanged, with higher summed isolated cost.
+
+The isolated Base FP16 native prototype now completes actual WGC/Qt measurement
+under model contention: at 3840x2160 input / 7680x2160 Full SBS, five 4-second
+windows give median native output 50.47 fps baseline versus 71.92 fps with Medium
+(+42.50%). Fresh Base SBS falls from 50.23 to 35.94 fps; original capture-to-Qt
+completion median rises from 23.51 to 41.58 ms. Worker private memory is about
+2.96 versus 6.81 GiB (not VRAM). This is a short public-preview test with a fitted
+output window, not physical scanout or general game performance.
+
+Six original/native GPU parity cases, 31 scoped CPU tests, native hide/restore,
+resize, stop/restart, preparation cancellation and injected cut-boundary handling
+pass. Resource create/close counts balance and stopped native pools/nodes are zero.
+Continuous motion/binocular review, natural-cut detector quality, long sessions
+and physical display latency remain unmeasured. Normal GUI/default behavior is
+unchanged at that experiment checkpoint; the normal desktop now also has the
+explicit opt-in described above. A user-selected
+window comparison is now prepared through `Run-Compare-A.cmd` and
+`Run-Compare-B-VFG.cmd`. Both actual Qt paths pass start, measured original/generated
+counts, restart and close cleanup using an owned public source; unsupported model
+selection is rejected before capture. The expanded scoped suite has 33 passing
+tests. The Owl3D follow-up permits external capture of the comparison output only
+and adds cross-process output-source rejection. Both A/B pass movement across
+the two connected screens, hide/restore and lifecycle with verified output affinity
+0 and protected control/error windows; 34 scoped tests pass. A follow-up found
+that the nested QML output was a native owned window rooted at the small control
+window. Comparison output now clears its transient parent while retaining QObject
+ownership and normal stop/close cleanup. Actual Owl3D 2.4.2 / screen 0.0.31 logs
+recognize the revised fullscreen output, switch to whole-source localization,
+confirm FullSBS and enable weaving; this is stronger integration evidence than
+our own frame counters. On 2026-11-06 the user confirmed that stereo now works,
+but reported uncomfortable near/far gaze changes compared with Owl3D Live 3D.
+Reducing strength to 0.50x helped somewhat, but the user still found it
+uncomfortable while Owl3D Live 3D appeared deeper and comfortable. Investigation
+then reproduced a physical eye-order error: near inverse depth moved left in
+the left eye, giving the opposite of standard LR stereo. CPU, CUDA host/native
+and VFG projection now use the corrected sign; optional RowFlow no longer swaps
+upstream eyes to match the erroneous baseline. A generated three-plane test
+fails on the former implementation and passes after correction. Six actual GPU
+geometry cases through 4K, real Base/native/VFG checks at 1080p and 4K, a pinned
+RowFlow eager geometry check, and 143 scoped CPU tests pass. Old binary outputs
+are retained separately; a full app restart loads the new pinned binaries.
+That geometry correction left strength and convergence defaults unchanged; the
+earlier user-requested strength default was 0.5; the current default is recorded above. The user subsequently
+reported substantial improvement, but residual wobble/focus discomfort and lower
+quality than Owl3D Live 3D; full comfort acceptance remains open. See
+[stereo geometry correction](evidence/stereo-eye-order-20261106.md).
+The [Owl3D Live 3D investigation](evidence/owl3d-live3d-analysis-20261106.md)
+confirmed shipped content-weighted convergence, disparity budgeting/edge fade and
+weighted subpixel reconstruction, with stored runtime logs corroborating the
+view-synthesis family. Exact runtime flags and Owl3D temporal state remain unknown.
+It also found that normal capture index skips reset DepthSBS depth history; an
+earlier 1,040-original-frame VFG session had 784 gap resets. DA2 Small/Base now keep
+history across timestamp-valid capture replacement and use bounded subpixel
+reconstruction by default in live CUDA sessions. Actual discontinuities still
+reset depth and VFG history. Three public 3-second clips show temporal depth-error
+proxy changes of +2.2%, -14.6% and -25.1%; these are not ground-truth depth scores.
+The independent fractional-shift oracle improves maximum marker error from 1 px
+to 0.00197 px. Small's rebuilt input DLL passes 27 preprocessing fixtures and 72
+public/adapted host/native cases; Base/native/VFG original parity passes six cases
+through 4K, with generated-frame runtime checks at both sizes. 236 scoped CPU
+contracts pass. The content-plane experiment is retained explicitly but not
+promoted: its central disparity reduction increases whole-frame P95 disparity by
+up to 33.4% in these clips. Defaults for strength/convergence remain unchanged.
+See [stereo stability validation](evidence/stereo-stability-20261106.md) for
+timing, live lifecycle evidence and remaining physical-viewing limits.
+The user subsequently reports that strength 0.5 feels similar to Owl3D Live 3D;
+this is the next comparison baseline, not a change to the global default or full
+quality acceptance. A follow-up review reproduces a remaining 1 px silhouette
+transition across a 0.1 px projected motion at both strengths 1.0 and 0.5, with
+identical reference/subpixel output on the isolated layered-color fixture.
+Current CUDA motion rejection bypasses temporal blending on 13.4–69.3% of pixels
+in three public clips. A separate 480x270 CPU one-frame motion-history candidate
+reduces an aligned full-image proxy by 4.0–5.6%, leaves edge error nearly unchanged,
+and adds about 7 ms before full-resolution rendering. It is not integrated.
+The subsequent coverage update remains part of the live DA2 CUDA default for Small/Base,
+native/host and the VFG comparison. Partial foreground coverage combines with a
+locally visible farther sample, retaining existing unresolved-hole filling. An
+independent analytic oracle passes 16 strength/thickness configurations, including
+one-pixel objects and near-integer shifts in both eyes. At strength 0.5 the isolated
+coverage transition is at most 2/255 per tested small step rather than an opaque
+on/off jump. Three public 90-frame comparisons preserve the old subpixel mode
+exactly; the new mode changes more than one RGB level on 0.31–0.66% of pixels on
+average. 236 CPU contracts, 72 Small host/native cases, six Base/native/VFG original
+cases and both actual A/B lifecycle runs pass. The isolated 4K projection cost is
+1.654 ms old binary versus 1.667 ms new coverage. Current full-path measurements
+are about 24.26→24.22 fps for subpixel/coverage; B produces about 19.15 fresh plus
+19.15 generated fps. These short runs are slower than earlier measurements even
+in the control; the cause is not isolated, so they do not establish a new general
+performance envelope. See [coverage validation](evidence/stereo-coverage-20261106.md).
+The follow-up depth-range update is included in the default on these
+same Small/Base CUDA paths, including A/B and Small comparison launchers. It
+transports prior percentile bounds into current model units only when a bounded
+stationary-anchor fit is reliable, then applies a separate source-time response.
+Cut/discontinuity resets are exact, and motion/weak anchors fall back to the time
+response. A simple slower-range candidate increased one public temporal error by
+7.9% and was not promoted. The final candidate reduces motion-aligned mean depth
+disparity residual by 0.34–18.8% for Base and 5.34–22.1% for Small across three
+90-frame public clips at strength 0.5; edge residuals also decline in all six
+model/clip combinations. Whole-image P95 absolute disparity changes by less than
+1.5% on these samples; this is not a blanket depth-quality/comfort claim.
+The final parallel kernel adds about 0.054/0.067ms to isolated 1080p/4K GPU source
+postprocessing. The disabled path stays exact over all 540 paired public frames;
+238 scoped CPU tests, 27 Small resize fixtures, 72 Small host/native cases, six
+Base/native/VFG cases and actual Small/A/B lifecycle checks pass. See
+[range stabilization validation](evidence/depth-range-20261106.md).
+The subsequent motion stage adds bidirectional GPU optical-flow alignment of
+one previous pre-motion depth observation, without inference skipping or future
+frames. Reversible-flow/color/depth/edge gates and a source-age-weighted capped
+contribution protect unreliable areas; rejected pixels, cuts and time resets stay
+exact to current range-only depth. Across the same three 90-frame public clips,
+mean residual falls 1.37–3.45% for Base and 1.53–5.76% for Small; moving-region
+residual falls 2.76–3.44% / 3.76–5.79%, with edge residual also lower in all six
+combinations. This is an intentional quality change, not baseline pixel parity.
+Isolated added stream time is about 1.07ms at 1080p and 1.56ms at 4K, with measured
+P95 1.85/2.57ms. Two depth buffers and one RGB history add about 87MiB at 4K plus
+small flow buffers. CPU contracts (243), 27 Small resize fixtures, 72 Small
+host/GPU/native comparisons and six original/native VFG cases per model pass.
+Actual Base and Small VFG GUI checks pass source selection, output capture policy,
+two-screen movement/fullscreen, stop/restart and zero-pool/node cleanup.
+The short Small VFG 4K run also passes resize/hide/restart/preparation-cancel;
+77.51–78.03 native fps there is an unpaired observation, not a demonstrated
+speedup or sustained physical 4K cadence.
+See [motion-history validation](evidence/motion-history-20261106.md).
+The retained `window` stage adds narrow masks for left/right screen-edge
+violations without altering depth or projection geometry. Masks are capped at
+1.5% of one eye's width; public strength-0.5 samples use at most 13.73px for Base
+and 9.50px for Small at 1920px. All pixels outside the masks remain exact in
+180 paired public frames; 105 analytic cases also verify side/direction, width,
+no-change cases, disabled-path parity and source-time release/reset. Scoped CPU
+contracts (243), Small resize (27)/host-native (72), Base/Small VFG original/native
+checks and actual Base/Small VFG GUI lifecycle pass. VFG initially revealed up to
+20/255 RGB inside a protected border; post-interpolation remasking fixes the
+tested 1080p/4K generated borders to exact black. A bounded native-projection
+benchmark shows no resolved cost increase at its noise level (1080p medians
+0.4310→0.4332ms, 4K 1.8467→1.8461ms); this is not a full-app FPS claim.
+See [window validation](evidence/stereo-window-20261106.md). Actual Owl3D viewing,
+edge-HUD visibility and sustained generated-frame quality remain open. Top/bottom
+window violations are outside this correction. The subsequent `budget` default
+adds an exact linear core and a smooth compression-only near/far disparity curve
+before projection. It leaves depth/history and convergence unchanged, uses no
+scene statistic or new temporal state, and calculates edge masks from the actual
+compressed shift. At strength 0.5, the same three public 90-frame clips for each
+model (540 frames) retain central-third P50 exactly; Base central P95 changes by
+0.04–4.50%, while Small central P95 stays exact. Same-pixel temporal differences
+never increase in the tested pairs, excluding resets; this is a pointwise curve
+contract, not motion-aligned perceptual quality. A bounded alternating benchmark
+measures native projection/publication medians of 0.4412→0.4343ms at 1080p and
+1.8321→1.8349ms at 4K. It excludes capture, inference and VFG; no full-app FPS
+improvement is claimed. See [disparity validation](evidence/disparity-budget-20261106.md).
+The final budget binaries pass 21 synthetic shape/strength conditions, actual
+RGB eye-direction checks, Small preprocessing/host-native parity, Base/Small
+VFG original/native parity and generated-edge protection. Existing window and
+motion regressions, 243 CPU and 12 VFG contracts also pass. Actual Base A and
+Small VFG GUI sessions confirm the budget default, start/stop/restart, two-screen
+fullscreen, capture policy and zero-pool/node cleanup. Physical comfort and
+sustained binocular quality remain unverified.
+The subsequent `detail` default adds selective subpixel contour correction and
+bounded farther-surface reconstruction, with user-requested strength/reset 0.25.
+Contour shifts stay inside the original splat cells and retain original depth
+for visibility/surface classification, so they cannot change owners or holes.
+The first candidate's large RGB transitions were rejected; final public contour
+max RGB differences are 9–25 across the six sequences. Background sampling can
+change individual pixels more substantially and remains a limited local correction.
+At the same strength 0.25, 540 public frames preserve input depth/history exactly
+and change 0.00135–0.00697% of output pixels on average per clip. Controlled
+layered fixtures reduce background-region RGB MAE by 7.3–15.9% at 0.25 while
+preserving sharp thin objects. This is not natural-video or physical comfort
+acceptance. Final native projection/publication medians increase by about
+0.054ms at 1080p and 0.217ms at 4K on a synthetic many-occlusion fixture;
+capture/inference/VFG and sustained FPS are excluded. See
+[detail validation](evidence/stereo-detail-20261106.md).
+Final detail validation also passes Small preprocessing (27) and host/native
+parity (72), Base/Small original/native VFG checks and generated-edge protection,
+existing motion regression and RowFlow borrowed-layout-only checks. Actual Base A
+and Small VFG GUI sessions confirm strength/reset 0.25, the detail default,
+two-screen/fullscreen behavior, capture guards, start/stop/restart/close and
+zero pool/node cleanup. Static crop inspection is separate from unperformed
+normal-speed binocular/Owl3D viewing acceptance.
+See [native window integration](evidence/vfg-owl3d-root-window-20261106.md). These establish
+launcher operation, not real-game or user visual acceptance; see
+[launcher validation](evidence/vfg-comparison-launcher-20261106.md) and
+[Owl3D compatibility validation](evidence/vfg-owl3d-output-20261106.md). See the
+[standalone evidence](evidence/vfg-experiment-20261105.md),
+[native evidence](evidence/vfg-native-20261106.md) and
+[isolated experiment](../experiments/vfg/README.md).
 
 ## Measured envelope, not general support
 
@@ -34,8 +793,7 @@ source-resolution FP32 depth on the owned CUDA path (2026-11-05). The capture
 optimization preserved then-current FP32 plans; the subsequent authorized FP16
 promotion changes model precision while preserving preprocessing arithmetic,
 model-only padding/unpadding, geometry, stereo policy and file host-depth I/O. Whole-monitor
-and VDA/oVDA capture still use the existing mapped path; Small's later GPU input
-promotion is recorded below. Native delivery is
+and VDA/oVDA capture used the mapped path in that comparison. Native delivery is
 the prepared-local default; host and reference output remain explicit choices.
 The [default validation](evidence/native-default-20261105.md) separates default
 startup/lifecycle, bounded continuous playback and outstanding physical acceptance.
@@ -95,8 +853,10 @@ speedup is established.
 
 RowFlow v3 symmetric, RowFlow v3 and MLBW small were run on the same final Base
 depth/RGB for 180 public-video frames plus a ground-truth synthetic scene. After
-calibrating opposite eye naming, learned warps smooth some diagonals but introduce
+matching eye order to the then-reversed CUDA baseline, learned warps smooth some diagonals but introduce
 thin-structure/edge tradeoffs. That initial cost comparison was eager-only.
+That eye-order matching was not physical stereo calibration; current rendering
+and comparison scripts use standard LR order following the correction above.
 The [torch.compile follow-up](evidence/iw3-torch-compile-20261105.md) measures
 1.39–1.52x renderer speedup at 1080p and 1.82–1.96x at 4K when compiling separately
 for each fixed resolution. Default automatic shape generalization after 1080p→4K
@@ -219,8 +979,8 @@ An initial replay attempt stopped during the next session's warmup with an
 unrecorded underlying reason; the record retains it and the improved failure
 diagnostics. The successful rerun does not establish long-session reliability.
 
-The subsequent [output control change](evidence/output-limit-controls-20261105.md)
-promotes unlimited to the app default and applies 30/60 FPS publication caps to
+The earlier [output control change](evidence/output-limit-controls-20261105.md)
+made unlimited the app default at that time and applied 30/60 FPS publication caps to
 native delivery as well as host output. Sixty-one scoped tests, actual settings
 keyboard interaction with no Qt warnings, and Base/30 plus Small/unlimited native
 lifecycle checks pass. Five-window 1080p medians are 29.53/57.79/135.94fps for
@@ -359,6 +1119,8 @@ It uses a common monocular result and one previous raw depth frame, but has no
 stereo-renderer integration or natural-scene ground truth. Motion playback,
 games/HUD, actual matched iw3 + LSFG and fused headset quality remain unpassed;
 P1 experimental closure is not product quality or VR acceptance.
+This CPU prototype is distinct from the subsequent integrated fresh-frame GPU
+correction described in [motion-history validation](evidence/motion-history-20261106.md).
 
 The [P1 Small 392x700 experiment](evidence/p1-small-aspect.md) is **not selected
 for integration**: bounded native-4K-source depth tests showed no speed win,

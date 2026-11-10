@@ -1,11 +1,17 @@
 # VDA Small local preview
 
+The [desktop installer](desktop-distribution.md) builds both streaming profiles
+from verified ONNX on the current GPU. The v2 pack uses mixed FP16 for the
+encoder patch convolution and 48 linear projections. Temporal layers, external
+cache bindings and depth outputs use FP32. The development artifacts and hardware
+measurements below describe the original prebuilt profiles.
+
 
 Status: Implemented and locally verified through 2026-09-08. Not a public release.
 
 ## What works
 
-The VDA Small **streaming TensorRT FP32** engine runs through the application
+The VDA Small **streaming TensorRT** engine runs through the application
 GUI/worker: video decode, full-rate depth inference, cut reset, CUDA or CPU stereo,
 NVENC encode and audio mux. Video Quality consumes each streaming depth directly.
 Offline Quality pairs the same VDA engine with a dedicated scene-local centered
@@ -17,7 +23,13 @@ trusted motion-vector input. The app does not import upstream VDA source at runt
 The source desktop selects `vda-small` for Offline Quality and defaults Video
 Quality to VDA while still allowing an explicit oVDA choice. Performance is
 rejected because its every-other-frame policy violates VDA's cache contract.
-This is not an oVDA integration. Existing portable packages have not been rebuilt.
+The current portable includes the VDA Small streaming integration.
+
+Live VDA Small window capture uses the WGC/D3D11 CUDA bridge and a pinned
+float32 cubic preprocessing kernel on the TensorRT stream. The same aspect-fit
+rectangle drives CPU and GPU processing. Monitor capture and file conversion use
+CPU preprocessing; `DEPTHSBS_GPU_CAPTURE=0` selects the mapped window path for
+diagnostic comparisons. The installed VDA model serves both paths.
 
 ## Current compatibility limits
 
@@ -25,9 +37,11 @@ This is not an oVDA integration. Existing portable packages have not been rebuil
   driver 616.56; the 2026-09-08 public runs observed driver 616.64.
 - Two validated model profiles: `[1,1,3,518,896]` for the supplied 1056x608
   aspect ratio, and `[1,1,3,518,924]` for standard 16:9 (720p/1080p/4K).
-  Source aspect-preserving lower-bound resize must map to an installed profile.
-  The launcher automatically matches from its trusted profile root; a missing
-  profile, portrait or other unsupported ratio fails with no stretching/fallback.
+  Previously matched source ratios use their original profile. Other ratios
+  use aspect-preserving fit into an installed profile, with replicated borders
+  only for inference. Host and live device paths crop that border from the depth
+  before resizing. The source bounds remain 16–4096 wide by 16–2160 high;
+  narrow portrait content uses fewer horizontal depth samples.
   One job loads only its selected pair of engines. 1080p has a full 124-frame
   conversion gate; 4K has a short 12-frame HEVC compatibility gate, not a sustained
   performance or native-4K quality certification. 720p mapping is unit-tested.
@@ -70,9 +84,10 @@ Capability/engine diagnostic and command-line conversion:
 
 `-EngineDirectory` and `-RuntimeDirectory` explicitly override trusted local
 paths. EngineDirectory accepts either a single artifact (only that shape) or
-a parent with allowlisted `518x896-fp32` / `518x924-fp32` children. It never scans
-arbitrary subdirectories, follows escaping child links or falls back to another
-shape. A corrupt installed profile causes startup to fail. Diagnostics probes
+a parent with allowlisted `518x896` / `518x924` children suffixed `-fp32` for
+development and legacy artifacts, or `-fp16` for the installed v2 pack. It never scans
+arbitrary subdirectories or follows escaping child links. Native ratios require
+their matching profile. A corrupt installed profile causes startup to fail. Diagnostics probes
 each installed profile sequentially and reports its actual input shape.
 4K Full SBS requires explicit `-OutputCodec hevc`; H.264 stays capped at 4096
 output pixels wide. Only use locally built/trusted engines: checksum integrity is not proof
