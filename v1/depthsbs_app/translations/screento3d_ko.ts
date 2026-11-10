@@ -1874,6 +1874,22 @@ Recent preprocessing/inference/SBS {v4:.1f}/{v5:.1f}/{v6:.1f} ms · Includes CPU
       <source>Conversion failed. Check input, output access and selected model. Explicit detailed errors can provide private diagnostics.</source>
       <translation>변환에 실패했습니다. 원본, 저장 위치의 권한과 선택한 모델을 확인하세요. 자세한 진단은 명시적인 상세 오류 설정에서 확인할 수 있습니다.</translation>
     </message>
+    <message>
+      <source>Error ID</source>
+      <translation>오류 ID</translation>
+    </message>
+    <message>
+      <source>Details</source>
+      <translation>상세 정보</translation>
+    </message>
+    <message>
+      <source>Windows error code</source>
+      <translation>Windows 오류 코드</translation>
+    </message>
+    <message>
+      <source>ScreenTo3D launch error</source>
+      <translation>ScreenTo3D 실행 오류</translation>
+    </message>
   </context>
   <context>
     <name>StereoLayoutPicker</name>
@@ -1906,5 +1922,1365 @@ Recent preprocessing/inference/SBS {v4:.1f}/{v5:.1f}/{v6:.1f} ms · Includes CPU
   </context>
   <context>
     <name>VfgNotice</name>
+  </context>
+  <context>
+    <name>Errors</name>
+    <message>
+      <source>E_ENGINE_BUILD_FAILED</source>
+      <extracomment>TensorRT engine build failed. Check the driver and available GPU memory.</extracomment>
+      <translation>TensorRT 엔진 생성 실패. 드라이버와 GPU 여유 메모리를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_VERSION_MISMATCH</source>
+      <extracomment>The TensorRT version does not match this distribution.</extracomment>
+      <translation>TensorRT 버전이 배포 구성과 다릅니다.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_OPEN_FAILED</source>
+      <extracomment>Cannot open the {v0} engine.</extracomment>
+      <translation>{v0} 엔진을 열 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_TEST_FAILED</source>
+      <extracomment>The engine test run failed.</extracomment>
+      <translation>엔진 시험 실행에 실패했습니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_GRAPH_INVALID</source>
+      <extracomment>Model graph verification failed</extracomment>
+      <translation>모델 그래프 검증 실패</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_COLOR_UNAVAILABLE</source>
+      <extracomment>Cannot read display color information. This configuration needs compatibility validation.</extracomment>
+      <translation>화면 색상 정보를 확인할 수 없습니다. 현재 환경은 지원 검증이 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_UNSUPPORTED</source>
+      <extracomment>Unsupported display configuration.</extracomment>
+      <translation>지원하지 않는 디스플레이 구성입니다.</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_CHANGED</source>
+      <extracomment>The display configuration changed. Try again.</extracomment>
+      <translation>디스플레이 구성이 변경되었습니다. 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_MIXED_HDR</source>
+      <extracomment>Window capture requires all connected displays to use SDR. Mixed HDR configurations have not been validated.</extracomment>
+      <translation>창 캡처는 모든 연결 화면이 SDR인 구성만 지원합니다. 혼합 HDR 구성은 아직 검증되지 않았습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_HDR_UNSUPPORTED</source>
+      <extracomment>This preview supports SDR only. Turn off HDR and advanced color, then restart.</extracomment>
+      <translation>현재 미리보기는 SDR 전용입니다. HDR/고급 색상을 끈 화면에서 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_NOT_FOUND</source>
+      <extracomment>Cannot identify the display.</extracomment>
+      <translation>디스플레이 이름을 확인하지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_HDR_UNAVAILABLE</source>
+      <extracomment>Cannot read HDR or advanced color status.</extracomment>
+      <translation>HDR/고급 색상 상태를 확인하지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_WINDOW_DISPLAY_NOT_FOUND</source>
+      <extracomment>Cannot identify the display containing this window.</extracomment>
+      <translation>창이 위치한 디스플레이를 확인하지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SIZE_LIMIT</source>
+      <extracomment>Capture size {v0}×{v1} exceeds the preview limit of {v2}×{v3}.</extracomment>
+      <translation>캡처 크기 {v0}×{v1}는 원본 미리보기 범위(최대 {v2}×{v3}) 밖입니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_DPI_FAILED</source>
+      <extracomment>Cannot set the capture worker's DPI coordinate system.</extracomment>
+      <translation>캡처 작업의 DPI 좌표계를 설정하지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_LOCKED</source>
+      <extracomment>Capture stopped because the screen is locked or access is restricted. Unlock the screen, then restart.</extracomment>
+      <translation>화면 잠금 또는 접근 제한으로 캡처를 중단합니다. 잠금을 해제한 뒤 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_MONITOR_CHANGED</source>
+      <extracomment>The monitor configuration changed. Refresh the list and select it again.</extracomment>
+      <translation>모니터 구성이 바뀌었습니다. 목록을 새로고침하고 다시 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SOURCE_UNSUPPORTED</source>
+      <extracomment>Unsupported capture source.</extracomment>
+      <translation>지원하지 않는 캡처 대상입니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_DESKTOP_UNAVAILABLE</source>
+      <extracomment>Capture is unavailable on a secure or unsupported desktop.</extracomment>
+      <translation>보안 화면 또는 지원하지 않는 데스크톱에서는 캡처할 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_OUTPUT_RECURSION</source>
+      <extracomment>An SBS output window cannot be used as input. Select the original game or video window.</extracomment>
+      <translation>SBS 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SOURCE_CLOSED</source>
+      <extracomment>The selected window closed. Select another window.</extracomment>
+      <translation>선택한 창이 종료되었습니다. 다시 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SOURCE_HIDDEN</source>
+      <extracomment>The selected window is minimized or hidden. Restore it, then restart.</extracomment>
+      <translation>선택한 창이 최소화되거나 숨겨졌습니다. 복원한 뒤 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_FORMAT_UNSUPPORTED</source>
+      <extracomment>Unsupported capture pixel format. Only SDR preview is supported.</extracomment>
+      <translation>지원하지 않는 캡처 픽셀 형식입니다. SDR 원본 미리보기만 지원합니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_MODE_MISMATCH</source>
+      <extracomment>The processing mode and depth model do not match.</extracomment>
+      <translation>선택한 처리 모드와 깊이 모델이 일치하지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_UI_LOAD_FAILED</source>
+      <extracomment>Cannot load the application interface.</extracomment>
+      <translation>GUI 화면을 불러오지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_FILE_INPUT_REQUIRED</source>
+      <extracomment>Add a video first.</extracomment>
+      <translation>먼저 영상을 추가하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_INSTALL_REQUIRED</source>
+      <extracomment>Install the selected model first. Open the model settings in the file workspace.</extracomment>
+      <translation>선택한 모델을 먼저 설치하세요. 파일 변환의 처리 모드 아래에서 설치할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_UTILITY_CAPTURE_PROTECTION</source>
+      <extracomment>The utility window was closed because capture protection failed.</extracomment>
+      <translation>보조 창의 캡처 차단에 실패해 창을 닫았습니다.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_FILE_NOT_FOUND</source>
+      <extracomment>File not found. Check the advanced settings.</extracomment>
+      <translation>파일이 없습니다. 고급 설정을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_NAME_UNAVAILABLE</source>
+      <extracomment>No unused output filename is available. Choose a save location.</extracomment>
+      <translation>사용할 수 있는 출력 이름이 없습니다. 저장 위치를 직접 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_LAYOUT_INVALID</source>
+      <extracomment>Check the stereo output layout.</extracomment>
+      <translation>입체 출력 형식을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_FILE_INPUT_UNSUPPORTED</source>
+      <extracomment>Select a supported local video file.</extracomment>
+      <translation>지원되는 로컬 영상 파일을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_PATH_INVALID</source>
+      <extracomment>Choose an MP4 output path in an existing folder.</extracomment>
+      <translation>존재하는 폴더의 MP4 저장 위치를 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_SOURCE_COLLISION</source>
+      <extracomment>Cannot overwrite the source file.</extracomment>
+      <translation>원본 파일에 덮어쓸 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_FILE_OPTIONS_INVALID</source>
+      <extracomment>Check the mode, codec and model settings.</extracomment>
+      <translation>모드, 코덱 또는 모델 설정을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_RENDERER_INVALID</source>
+      <extracomment>Check the renderer setting.</extracomment>
+      <translation>렌더러 설정을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_FRAME_POLICY</source>
+      <extracomment>This model must process every frame. Select Balanced or higher.</extracomment>
+      <translation>이 모델은 모든 프레임을 처리해야 합니다. Balanced 이상을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OVDA_LICENSE_REQUIRED</source>
+      <extracomment>Read the oVDA license and confirm personal, non-commercial use in settings.</extracomment>
+      <translation>설정에서 oVDA 라이선스를 읽고 개인·비상업적 사용을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_PATH_INVALID</source>
+      <extracomment>Check the selected model's installation folder in settings.</extracomment>
+      <translation>설정에서 선택한 모델의 설치 폴더를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MEDIA_TOOLS_INVALID</source>
+      <extracomment>Check the media tools path in settings.</extracomment>
+      <translation>설정에서 영상 도구 설치 경로를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_TENSORRT_PATH_INVALID</source>
+      <extracomment>Check the TensorRT runtime in settings.</extracomment>
+      <translation>설정에서 TensorRT 실행 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_TASK_BUSY</source>
+      <extracomment>Another task is running. Stop it before starting this task.</extracomment>
+      <translation>다른 작업이 실행 중입니다. 먼저 해당 작업을 종료하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_SELECTION_INVALID</source>
+      <extracomment>Check the processing mode and stereo layout to save.</extracomment>
+      <translation>저장할 처리 모드 또는 입체 출력 형식을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_WRITE_FAILED</source>
+      <extracomment>Cannot save your selections. Check access to the application settings.</extracomment>
+      <translation>선택한 설정을 저장하지 못했습니다. 사용자 설정 저장 권한을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_RECORD_INVALID</source>
+      <extracomment>Cannot verify the local engine build record. Reinstall the model.</extracomment>
+      <translation>로컬 엔진 빌드 기록을 확인할 수 없습니다. 모델을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_GPU_INCOMPATIBLE</source>
+      <extracomment>Install a local model engine compatible with this GPU.</extracomment>
+      <translation>현재 GPU와 호환되는 로컬 모델 엔진을 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_CONFIG_CHANGED</source>
+      <extracomment>The GPU or TensorRT configuration changed. Reinstall the model.</extracomment>
+      <translation>GPU 또는 TensorRT 구성이 변경되었습니다. 모델을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_CUDA_UNAVAILABLE</source>
+      <extracomment>Check that an NVIDIA CUDA GPU and a working driver are available.</extracomment>
+      <translation>사용 가능한 NVIDIA CUDA GPU와 드라이버를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_OFFLINE_MODE</source>
+      <extracomment>Offline Quality is available for files only.</extracomment>
+      <translation>Offline Quality는 파일 전용입니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODE_INVALID</source>
+      <extracomment>Unsupported live processing mode.</extracomment>
+      <translation>지원하지 않는 실시간 모드입니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODEL_MISSING</source>
+      <extracomment>No live model is configured.</extracomment>
+      <translation>실시간 모델 설정이 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODEL_MISMATCH</source>
+      <extracomment>The live mode and depth model do not match.</extracomment>
+      <translation>실시간 모드와 깊이 모델이 일치하지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_LICENSE_INVALID</source>
+      <extracomment>Invalid model license confirmation.</extracomment>
+      <translation>모델 라이선스 확인 값이 올바르지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_OVDA_LICENSE_REQUIRED</source>
+      <extracomment>Confirm the oVDA license terms and personal, non-commercial use.</extracomment>
+      <translation>oVDA의 개인·비상업적 사용 및 라이선스 조건을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODEL_PATH_INVALID</source>
+      <extracomment>Check the selected live model's installation folder.</extracomment>
+      <translation>선택한 실시간 모델의 설치 폴더를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_TENSORRT_PATH_INVALID</source>
+      <extracomment>Check the TensorRT runtime.</extracomment>
+      <translation>TensorRT 실행 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODEL_UNSUPPORTED</source>
+      <extracomment>Unsupported live depth model.</extracomment>
+      <translation>지원하지 않는 실시간 깊이 모델입니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_OFFLINE_POLICY</source>
+      <extracomment>Offline Quality is available for files only. Select a supported live mode.</extracomment>
+      <translation>Offline Quality는 파일 전용입니다. 지원되는 실시간 모드를 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_PATH_UNSUPPORTED</source>
+      <extracomment>Unsupported processing path.</extracomment>
+      <translation>지원하지 않는 처리 경로입니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_CAPTURE_POLICY</source>
+      <extracomment>Cannot set the SBS output capture policy. The output window will remain closed.</extracomment>
+      <translation>SBS 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_CAPTURE_POLICY_STOP</source>
+      <extracomment>Stopped because the output capture policy could not be set.</extracomment>
+      <translation>출력 창 캡처 정책 설정 실패로 중단했습니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_DISPLAY_CHANGED</source>
+      <extracomment>Stopped because the display configuration changed. Restart SBS.</extracomment>
+      <translation>디스플레이 구성이 변경되어 중지했습니다. SBS를 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_ALREADY_RUNNING</source>
+      <extracomment>SBS is already running. Stop it before restarting.</extracomment>
+      <translation>SBS가 이미 실행 중입니다. 중지 후 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_TASK_BUSY</source>
+      <extracomment>Another task is running. Finish or stop it before starting SBS.</extracomment>
+      <translation>다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 SBS를 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_SOURCE_REQUIRED</source>
+      <extracomment>Select a window to view. Reopen the source list to refresh it.</extracomment>
+      <translation>볼 창을 선택하세요. 선택 목록을 열면 다시 확인합니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_DISPLAY_REQUIRED</source>
+      <extracomment>Select an available output display.</extracomment>
+      <translation>사용 가능한 출력 화면을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SOURCE_REQUIRED</source>
+      <extracomment>Select a capture source.</extracomment>
+      <translation>캡처할 대상을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_GPU_UNSUPPORTED</source>
+      <extracomment>The selected live model does not support direct GPU output.</extracomment>
+      <translation>선택한 실시간 모델은 GPU 직접 출력을 지원하지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_RECURSION_UNSAFE</source>
+      <extracomment>Cannot prevent preview recapture in this configuration. Use window capture.</extracomment>
+      <translation>이 환경에서 미리보기 창의 재캡처를 차단하지 못했습니다. 창 캡처를 사용하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_OFFLINE_SELECTION</source>
+      <extracomment>Unsupported live mode. Offline Quality is available for files only.</extracomment>
+      <translation>지원하지 않는 실시간 모드입니다. Offline Quality는 파일 전용입니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_PREPARATION_FAILED</source>
+      <extracomment>SBS stopped because output preparation failed: {v0}</extracomment>
+      <translation>출력 준비 실패로 SBS를 중단했습니다: {v0}</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_NO_FRAMES</source>
+      <extracomment>No capture frames received. Check the window state and capture permissions.</extracomment>
+      <translation>캡처 프레임을 받지 못했습니다. 창 상태와 캡처 권한을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_WINDOW_FAILED</source>
+      <extracomment>SBS stopped because the output window could not be opened.</extracomment>
+      <translation>출력 창을 열지 못해 SBS를 중단했습니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_FRAME_DELIVERY</source>
+      <extracomment>Direct GPU frame delivery failed: {v0}</extracomment>
+      <translation>GPU 직접 프레임 전달 실패: {v0}</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_WAIT_FAILED</source>
+      <extracomment>Direct GPU output wait failed: {v0}</extracomment>
+      <translation>GPU 직접 출력 대기 실패: {v0}</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_GPU_PREPARATION</source>
+      <extracomment>Cannot prepare direct GPU output: {v0}</extracomment>
+      <translation>GPU 직접 출력 준비 실패: {v0}</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_GPU_PREPARATION_HINT</source>
+      <extracomment>Cannot prepare direct GPU output: {v0}
+You can try GPU host output in Settings and diagnostics.</extracomment>
+      <translation>GPU 직접 출력 준비 실패: {v0}
+설정과 진단에서 GPU 호스트 출력을 선택해 다시 시도할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_CUDA_DLL_INVALID</source>
+      <extracomment>Live CUDA DLL verification failed. A validated local build is required.</extracomment>
+      <translation>라이브 CUDA DLL 검증 실패: 검증된 로컬 빌드가 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_DEPTH_STRENGTH_INVALID</source>
+      <extracomment>Depth strength must be between 0.25 and 2.0.</extracomment>
+      <translation>입체감은 0.25–2.0 범위여야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_ROWFLOW_LIVE_SETTINGS</source>
+      <extracomment>The RowFlow trial requires the Balanced/Base GPU path and depth strength at most 1.92.</extracomment>
+      <translation>RowFlow 시험은 균형(Base) GPU 경로와 입체 강도 1.92 이하를 사용하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_WORKER_EXITED</source>
+      <extracomment>The capture worker exited.</extracomment>
+      <translation>캡처 작업자가 종료되었습니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_MODULE_MISSING</source>
+      <extracomment>The VFG output module is missing. Reinstall the ScreenTo3D distribution.</extracomment>
+      <translation>VFG 출력 모듈이 없습니다. ScreenTo3D 배포본을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_UNKNOWN</source>
+      <extracomment>Unknown depth model.</extracomment>
+      <translation>알 수 없는 깊이 모델입니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_QT_VERSION</source>
+      <extracomment>Direct GPU output requires the validated Qt 6.10.2 runtime.</extracomment>
+      <translation>GPU 직접 출력은 검증된 Qt 6.10.2가 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_SERVER_UNCONFIGURED</source>
+      <extracomment>No model server is configured in this distribution. Select a model pack provided by the distributor.</extracomment>
+      <translation>이 배포본에 모델 서버가 지정되지 않았습니다. 배포자가 제공한 모델 팩을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_URL_INVALID</source>
+      <extracomment>Check the model distribution URL. An HTTPS URL is required.</extracomment>
+      <translation>모델 배포 주소를 확인하세요. HTTPS 주소가 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_INSTALL_CANCELLED</source>
+      <extracomment>Installation cancelled.</extracomment>
+      <translation>설치를 취소했습니다.</translation>
+    </message>
+    <message>
+      <source>E_INSTALL_SPACE_REQUIRED</source>
+      <extracomment>Installation needs about {v0:.1f} GB of free space.</extracomment>
+      <translation>설치에 약 {v0:.1f} GB의 여유 공간이 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_CHECKSUM_FAILED</source>
+      <extracomment>File verification failed. Download the model pack again.</extracomment>
+      <translation>파일 검증에 실패했습니다. 모델 팩을 다시 받으세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_TLS_INVALID</source>
+      <extracomment>Check the model server's secure connection.</extracomment>
+      <translation>모델 서버의 보안 연결을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_ARCHIVE_PATH_INVALID</source>
+      <extracomment>Invalid model file path.</extracomment>
+      <translation>잘못된 모델 파일 경로입니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_DOWNLOAD_SIZE</source>
+      <extracomment>The download size does not match the distribution record.</extracomment>
+      <translation>다운로드 용량이 배포 기록과 다릅니다.</translation>
+    </message>
+    <message>
+      <source>E_ROWFLOW_SETTINGS</source>
+      <extracomment>The RowFlow trial requires Base and depth strength at most 5%.</extracomment>
+      <translation>RowFlow 시험은 Base와 입체 강도 5% 이하에서 지원합니다.</translation>
+    </message>
+    <message>
+      <source>E_ROWFLOW_CANCELLED</source>
+      <extracomment>RowFlow preparation cancelled.</extracomment>
+      <translation>RowFlow 준비를 취소했습니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_NOT_READY</source>
+      <extracomment>VFG components are not ready. Turn off VFG or check the installation.</extracomment>
+      <translation>VFG 구성요소가 준비되지 않았습니다. VFG를 끄거나 설치 파일을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_VFG_VERIFY_FAILED</source>
+      <extracomment>VFG component verification failed. Repair the installation, then try again.</extracomment>
+      <translation>VFG 구성요소 검증에 실패했습니다. 설치 파일을 복구한 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_UNKNOWN</source>
+      <extracomment>An unknown processing error occurred.</extracomment>
+      <translation>알 수 없는 처리 오류가 발생했습니다.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_LANGUAGE_WRITE</source>
+      <extracomment>Cannot save the language setting. Check access to the application settings.</extracomment>
+      <translation>언어 설정을 저장하지 못했습니다. 사용자 설정 저장 권한을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_OPTIMIZATION</source>
+      <extracomment>GPU engine optimization failed · {reason}</extracomment>
+      <translation>GPU 엔진 최적화 실패 · {reason}</translation>
+    </message>
+    <message>
+      <source>E_VFG_SETTINGS</source>
+      <extracomment>{reason} Turn off VFG or choose supported settings.</extracomment>
+      <translation>{reason} VFG를 끄거나 지원되는 설정을 선택해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_VFG_MODEL</source>
+      <extracomment>VFG is available with DA2 Small and DA2 Base.</extracomment>
+      <translation>VFG는 DA2 Small과 DA2 Base에서 사용할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_CAPTURE</source>
+      <extracomment>VFG is available with window capture.</extracomment>
+      <translation>VFG는 창 캡처에서 사용할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_OUTPUT</source>
+      <extracomment>VFG requires direct GPU output and GPU capture.</extracomment>
+      <translation>VFG는 GPU 직접 출력과 GPU 캡처가 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_RENDERER</source>
+      <extracomment>VFG requires the default stereo renderer. Close the RowFlow trial and start the normal launcher.</extracomment>
+      <translation>VFG는 기본 입체화 방식에서 사용할 수 있습니다. RowFlow 실행기를 종료하고 일반 실행기로 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_CONNECTION</source>
+      <extracomment>Cannot connect to the model server. Try again or select an installation file.
+{v0}</extracomment>
+      <translation>모델 서버에 연결할 수 없습니다. 다시 시도하거나 설치 파일을 선택하세요.
+{v0}</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_STOPPED</source>
+      <extracomment>Capture stopped ({v0}). Select the source again.</extracomment>
+      <translation>캡처가 중단되었습니다 ({v0}). 대상을 다시 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_VFG_TRANSITION</source>
+      <extracomment>SBS stopped because the VFG transition failed.</extracomment>
+      <translation>VFG 전환을 완료하지 못해 SBS를 중지했습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_TIMEOUT</source>
+      <extracomment>The capture worker was stopped after a response timeout. You can restart capture.</extracomment>
+      <translation>캡처 응답 지연으로 캡처 프로세스를 종료했습니다. 다시 시작할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_FRAME_DELIVERY</source>
+      <extracomment>Frame delivery failed: {v0}</extracomment>
+      <translation>화면 프레임 전달 실패: {v0}</translation>
+    </message>
+    <message>
+      <source>E_WORKER_START</source>
+      <extracomment>Cannot start the processing worker. Check the runtime installation.</extracomment>
+      <translation>처리 프로그램을 시작할 수 없습니다. 실행 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETUP_CHECK</source>
+      <extracomment>Installation check failed. Check the paths and Python environment.</extracomment>
+      <translation>설치 확인에 실패했습니다. 경로와 Python 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_WORKER_EXIT</source>
+      <extracomment>The processing worker exited unexpectedly ({v0}). Check the installation.</extracomment>
+      <translation>처리 프로그램이 비정상 종료되었습니다 ({v0}). 설치 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_CANCEL_WRITE</source>
+      <extracomment>Cannot record the cancellation request. Check access to the temporary folder.</extracomment>
+      <translation>취소 요청을 기록하지 못했습니다. 임시 폴더 접근 권한을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_VIDEO_PLAYER</source>
+      <extracomment>Cannot open the default video player. Open the file from its output folder.</extracomment>
+      <translation>기본 영상 플레이어를 열 수 없습니다. 저장 위치에서 파일을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_FOLDER</source>
+      <extracomment>Cannot open the output folder. Check the save location.</extracomment>
+      <translation>결과 폴더를 열 수 없습니다. 저장 위치를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_CODEC_H264_WIDTH</source>
+      <extracomment>The selected codec cannot preserve this Full SBS width. For 4K input, explicitly select HEVC.</extracomment>
+      <translation>선택한 코덱은 이 Full SBS 너비를 지원하지 않습니다. 4K 원본은 HEVC를 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CODEC_HEVC_WIDTH</source>
+      <extracomment>Full SBS width exceeds the validated HEVC profile. Check source dimensions.</extracomment>
+      <translation>Full SBS 너비가 검증된 HEVC 범위를 넘습니다. 원본 크기를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_VIDEO_DECODE</source>
+      <extracomment>Video decoding failed. Check that the input plays correctly.</extracomment>
+      <translation>영상 디코딩에 실패했습니다. 원본이 정상 재생되는지 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_VIDEO_ENCODE</source>
+      <extracomment>Video encoding failed. Check the selected codec and GPU support.</extracomment>
+      <translation>영상 인코딩에 실패했습니다. 선택한 코덱과 GPU 지원을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_AUDIO_MUX</source>
+      <extracomment>Audio finalization failed. Check the input audio and destination.</extracomment>
+      <translation>오디오 마무리에 실패했습니다. 원본 오디오와 저장 위치를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MEDIA_EMPTY</source>
+      <extracomment>No final media was produced. The previous output was preserved.</extracomment>
+      <translation>최종 영상을 만들지 못했습니다. 기존 출력 파일은 유지됩니다.</translation>
+    </message>
+    <message>
+      <source>E_MEDIA_PATHS</source>
+      <extracomment>Input and output must be different files.</extracomment>
+      <translation>원본과 출력은 서로 다른 파일이어야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_CANCEL_PATH</source>
+      <extracomment>The cancellation marker must be separate from media files.</extracomment>
+      <translation>취소 요청 파일은 영상 파일과 다른 위치여야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_DEPTH_RUNTIME</source>
+      <extracomment>Depth runtime failed. Check the selected model and validated runtime.</extracomment>
+      <translation>깊이 추론에 실패했습니다. 선택한 모델과 실행 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_DEPTH_MISSING</source>
+      <extracomment>The selected depth model is missing. Check the model installation.</extracomment>
+      <translation>선택한 깊이 모델이 없습니다. 모델 설치를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_GPU_PROCESSING</source>
+      <extracomment>GPU processing failed. Stop the job and restart its session.</extracomment>
+      <translation>GPU 처리에 실패했습니다. 작업을 중지하고 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_CONVERSION</source>
+      <extracomment>Conversion failed. Check input, output access and selected model. Explicit detailed errors can provide private diagnostics.</extracomment>
+      <translation>변환에 실패했습니다. 원본, 저장 위치의 권한과 선택한 모델을 확인하세요. 자세한 진단은 명시적인 상세 오류 설정에서 확인할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_LOCATION</source>
+      <extracomment>Cannot locate the executable.</extracomment>
+      <translation>실행 파일 위치를 확인할 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_COMPONENTS</source>
+      <extracomment>Required launch components are missing. Check the complete ScreenTo3D distribution folder.</extracomment>
+      <translation>실행 구성요소가 없습니다. ScreenTo3D 배포 폴더 전체를 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_USER_FOLDER</source>
+      <extracomment>Cannot locate the user log folder.</extracomment>
+      <translation>사용자 로그 폴더를 찾을 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_LOG_FOLDER</source>
+      <extracomment>Cannot create the launch log folder.</extracomment>
+      <translation>실행 로그 폴더를 만들 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_LOG_OPEN</source>
+      <extracomment>Cannot open the launch log.</extracomment>
+      <translation>실행 로그를 열 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_INPUT</source>
+      <extracomment>Cannot prepare the input stream.</extracomment>
+      <translation>입력 스트림을 준비할 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_PROCESS</source>
+      <extracomment>Cannot start ScreenTo3D.</extracomment>
+      <translation>ScreenTo3D를 실행할 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_EXIT</source>
+      <extracomment>ScreenTo3D exited with an error.</extracomment>
+      <translation>ScreenTo3D가 오류로 종료되었습니다.</translation>
+    </message>
+  </context>
+  <context>
+    <name>PublicErrors</name>
+    <message>
+      <source>E_ENGINE_BUILD_FAILED</source>
+      <extracomment>TensorRT engine build failed. Check the driver and available GPU memory.</extracomment>
+      <translation>TensorRT 엔진 생성 실패. 드라이버와 GPU 여유 메모리를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_VERSION_MISMATCH</source>
+      <extracomment>The TensorRT version does not match this distribution.</extracomment>
+      <translation>TensorRT 버전이 배포 구성과 다릅니다.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_OPEN_FAILED</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_TEST_FAILED</source>
+      <extracomment>The engine test run failed.</extracomment>
+      <translation>엔진 시험 실행에 실패했습니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_GRAPH_INVALID</source>
+      <extracomment>Model graph verification failed</extracomment>
+      <translation>모델 그래프 검증 실패</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_COLOR_UNAVAILABLE</source>
+      <extracomment>Cannot read display color information. This configuration needs compatibility validation.</extracomment>
+      <translation>화면 색상 정보를 확인할 수 없습니다. 현재 환경은 지원 검증이 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_UNSUPPORTED</source>
+      <extracomment>Unsupported display configuration.</extracomment>
+      <translation>지원하지 않는 디스플레이 구성입니다.</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_CHANGED</source>
+      <extracomment>The display configuration changed. Try again.</extracomment>
+      <translation>디스플레이 구성이 변경되었습니다. 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_MIXED_HDR</source>
+      <extracomment>Window capture requires all connected displays to use SDR. Mixed HDR configurations have not been validated.</extracomment>
+      <translation>창 캡처는 모든 연결 화면이 SDR인 구성만 지원합니다. 혼합 HDR 구성은 아직 검증되지 않았습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_HDR_UNSUPPORTED</source>
+      <extracomment>This preview supports SDR only. Turn off HDR and advanced color, then restart.</extracomment>
+      <translation>현재 미리보기는 SDR 전용입니다. HDR/고급 색상을 끈 화면에서 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_NOT_FOUND</source>
+      <extracomment>Cannot identify the display.</extracomment>
+      <translation>디스플레이 이름을 확인하지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_DISPLAY_HDR_UNAVAILABLE</source>
+      <extracomment>Cannot read HDR or advanced color status.</extracomment>
+      <translation>HDR/고급 색상 상태를 확인하지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_WINDOW_DISPLAY_NOT_FOUND</source>
+      <extracomment>Cannot identify the display containing this window.</extracomment>
+      <translation>창이 위치한 디스플레이를 확인하지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SIZE_LIMIT</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_DPI_FAILED</source>
+      <extracomment>Cannot set the capture worker's DPI coordinate system.</extracomment>
+      <translation>캡처 작업의 DPI 좌표계를 설정하지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_LOCKED</source>
+      <extracomment>Capture stopped because the screen is locked or access is restricted. Unlock the screen, then restart.</extracomment>
+      <translation>화면 잠금 또는 접근 제한으로 캡처를 중단합니다. 잠금을 해제한 뒤 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_MONITOR_CHANGED</source>
+      <extracomment>The monitor configuration changed. Refresh the list and select it again.</extracomment>
+      <translation>모니터 구성이 바뀌었습니다. 목록을 새로고침하고 다시 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SOURCE_UNSUPPORTED</source>
+      <extracomment>Unsupported capture source.</extracomment>
+      <translation>지원하지 않는 캡처 대상입니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_DESKTOP_UNAVAILABLE</source>
+      <extracomment>Capture is unavailable on a secure or unsupported desktop.</extracomment>
+      <translation>보안 화면 또는 지원하지 않는 데스크톱에서는 캡처할 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_OUTPUT_RECURSION</source>
+      <extracomment>An SBS output window cannot be used as input. Select the original game or video window.</extracomment>
+      <translation>SBS 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SOURCE_CLOSED</source>
+      <extracomment>The selected window closed. Select another window.</extracomment>
+      <translation>선택한 창이 종료되었습니다. 다시 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SOURCE_HIDDEN</source>
+      <extracomment>The selected window is minimized or hidden. Restore it, then restart.</extracomment>
+      <translation>선택한 창이 최소화되거나 숨겨졌습니다. 복원한 뒤 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_FORMAT_UNSUPPORTED</source>
+      <extracomment>Unsupported capture pixel format. Only SDR preview is supported.</extracomment>
+      <translation>지원하지 않는 캡처 픽셀 형식입니다. SDR 원본 미리보기만 지원합니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_MODE_MISMATCH</source>
+      <extracomment>The processing mode and depth model do not match.</extracomment>
+      <translation>선택한 처리 모드와 깊이 모델이 일치하지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_UI_LOAD_FAILED</source>
+      <extracomment>Cannot load the application interface.</extracomment>
+      <translation>GUI 화면을 불러오지 못했습니다.</translation>
+    </message>
+    <message>
+      <source>E_FILE_INPUT_REQUIRED</source>
+      <extracomment>Add a video first.</extracomment>
+      <translation>먼저 영상을 추가하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_INSTALL_REQUIRED</source>
+      <extracomment>Install the selected model first. Open the model settings in the file workspace.</extracomment>
+      <translation>선택한 모델을 먼저 설치하세요. 파일 변환의 처리 모드 아래에서 설치할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_UTILITY_CAPTURE_PROTECTION</source>
+      <extracomment>The utility window was closed because capture protection failed.</extracomment>
+      <translation>보조 창의 캡처 차단에 실패해 창을 닫았습니다.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_FILE_NOT_FOUND</source>
+      <extracomment>File not found. Check the advanced settings.</extracomment>
+      <translation>파일이 없습니다. 고급 설정을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_NAME_UNAVAILABLE</source>
+      <extracomment>No unused output filename is available. Choose a save location.</extracomment>
+      <translation>사용할 수 있는 출력 이름이 없습니다. 저장 위치를 직접 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_LAYOUT_INVALID</source>
+      <extracomment>Check the stereo output layout.</extracomment>
+      <translation>입체 출력 형식을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_FILE_INPUT_UNSUPPORTED</source>
+      <extracomment>Select a supported local video file.</extracomment>
+      <translation>지원되는 로컬 영상 파일을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_PATH_INVALID</source>
+      <extracomment>Choose an MP4 output path in an existing folder.</extracomment>
+      <translation>존재하는 폴더의 MP4 저장 위치를 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_SOURCE_COLLISION</source>
+      <extracomment>Cannot overwrite the source file.</extracomment>
+      <translation>원본 파일에 덮어쓸 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_FILE_OPTIONS_INVALID</source>
+      <extracomment>Check the mode, codec and model settings.</extracomment>
+      <translation>모드, 코덱 또는 모델 설정을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_RENDERER_INVALID</source>
+      <extracomment>Check the renderer setting.</extracomment>
+      <translation>렌더러 설정을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_FRAME_POLICY</source>
+      <extracomment>This model must process every frame. Select Balanced or higher.</extracomment>
+      <translation>이 모델은 모든 프레임을 처리해야 합니다. Balanced 이상을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OVDA_LICENSE_REQUIRED</source>
+      <extracomment>Read the oVDA license and confirm personal, non-commercial use in settings.</extracomment>
+      <translation>설정에서 oVDA 라이선스를 읽고 개인·비상업적 사용을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_PATH_INVALID</source>
+      <extracomment>Check the selected model's installation folder in settings.</extracomment>
+      <translation>설정에서 선택한 모델의 설치 폴더를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MEDIA_TOOLS_INVALID</source>
+      <extracomment>Check the media tools path in settings.</extracomment>
+      <translation>설정에서 영상 도구 설치 경로를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_TENSORRT_PATH_INVALID</source>
+      <extracomment>Check the TensorRT runtime in settings.</extracomment>
+      <translation>설정에서 TensorRT 실행 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_TASK_BUSY</source>
+      <extracomment>Another task is running. Stop it before starting this task.</extracomment>
+      <translation>다른 작업이 실행 중입니다. 먼저 해당 작업을 종료하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_SELECTION_INVALID</source>
+      <extracomment>Check the processing mode and stereo layout to save.</extracomment>
+      <translation>저장할 처리 모드 또는 입체 출력 형식을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_WRITE_FAILED</source>
+      <extracomment>Cannot save your selections. Check access to the application settings.</extracomment>
+      <translation>선택한 설정을 저장하지 못했습니다. 사용자 설정 저장 권한을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_RECORD_INVALID</source>
+      <extracomment>Cannot verify the local engine build record. Reinstall the model.</extracomment>
+      <translation>로컬 엔진 빌드 기록을 확인할 수 없습니다. 모델을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_GPU_INCOMPATIBLE</source>
+      <extracomment>Install a local model engine compatible with this GPU.</extracomment>
+      <translation>현재 GPU와 호환되는 로컬 모델 엔진을 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_CONFIG_CHANGED</source>
+      <extracomment>The GPU or TensorRT configuration changed. Reinstall the model.</extracomment>
+      <translation>GPU 또는 TensorRT 구성이 변경되었습니다. 모델을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_CUDA_UNAVAILABLE</source>
+      <extracomment>Check that an NVIDIA CUDA GPU and a working driver are available.</extracomment>
+      <translation>사용 가능한 NVIDIA CUDA GPU와 드라이버를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_OFFLINE_MODE</source>
+      <extracomment>Offline Quality is available for files only.</extracomment>
+      <translation>Offline Quality는 파일 전용입니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODE_INVALID</source>
+      <extracomment>Unsupported live processing mode.</extracomment>
+      <translation>지원하지 않는 실시간 모드입니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODEL_MISSING</source>
+      <extracomment>No live model is configured.</extracomment>
+      <translation>실시간 모델 설정이 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODEL_MISMATCH</source>
+      <extracomment>The live mode and depth model do not match.</extracomment>
+      <translation>실시간 모드와 깊이 모델이 일치하지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_LICENSE_INVALID</source>
+      <extracomment>Invalid model license confirmation.</extracomment>
+      <translation>모델 라이선스 확인 값이 올바르지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_OVDA_LICENSE_REQUIRED</source>
+      <extracomment>Confirm the oVDA license terms and personal, non-commercial use.</extracomment>
+      <translation>oVDA의 개인·비상업적 사용 및 라이선스 조건을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODEL_PATH_INVALID</source>
+      <extracomment>Check the selected live model's installation folder.</extracomment>
+      <translation>선택한 실시간 모델의 설치 폴더를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_TENSORRT_PATH_INVALID</source>
+      <extracomment>Check the TensorRT runtime.</extracomment>
+      <translation>TensorRT 실행 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_MODEL_UNSUPPORTED</source>
+      <extracomment>Unsupported live depth model.</extracomment>
+      <translation>지원하지 않는 실시간 깊이 모델입니다.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_OFFLINE_POLICY</source>
+      <extracomment>Offline Quality is available for files only. Select a supported live mode.</extracomment>
+      <translation>Offline Quality는 파일 전용입니다. 지원되는 실시간 모드를 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_PATH_UNSUPPORTED</source>
+      <extracomment>Unsupported processing path.</extracomment>
+      <translation>지원하지 않는 처리 경로입니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_CAPTURE_POLICY</source>
+      <extracomment>Cannot set the SBS output capture policy. The output window will remain closed.</extracomment>
+      <translation>SBS 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_CAPTURE_POLICY_STOP</source>
+      <extracomment>Stopped because the output capture policy could not be set.</extracomment>
+      <translation>출력 창 캡처 정책 설정 실패로 중단했습니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_DISPLAY_CHANGED</source>
+      <extracomment>Stopped because the display configuration changed. Restart SBS.</extracomment>
+      <translation>디스플레이 구성이 변경되어 중지했습니다. SBS를 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_ALREADY_RUNNING</source>
+      <extracomment>SBS is already running. Stop it before restarting.</extracomment>
+      <translation>SBS가 이미 실행 중입니다. 중지 후 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_TASK_BUSY</source>
+      <extracomment>Another task is running. Finish or stop it before starting SBS.</extracomment>
+      <translation>다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 SBS를 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_SOURCE_REQUIRED</source>
+      <extracomment>Select a window to view. Reopen the source list to refresh it.</extracomment>
+      <translation>볼 창을 선택하세요. 선택 목록을 열면 다시 확인합니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_DISPLAY_REQUIRED</source>
+      <extracomment>Select an available output display.</extracomment>
+      <translation>사용 가능한 출력 화면을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_SOURCE_REQUIRED</source>
+      <extracomment>Select a capture source.</extracomment>
+      <translation>캡처할 대상을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_GPU_UNSUPPORTED</source>
+      <extracomment>The selected live model does not support direct GPU output.</extracomment>
+      <translation>선택한 실시간 모델은 GPU 직접 출력을 지원하지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_RECURSION_UNSAFE</source>
+      <extracomment>Cannot prevent preview recapture in this configuration. Use window capture.</extracomment>
+      <translation>이 환경에서 미리보기 창의 재캡처를 차단하지 못했습니다. 창 캡처를 사용하세요.</translation>
+    </message>
+    <message>
+      <source>E_LIVE_OFFLINE_SELECTION</source>
+      <extracomment>Unsupported live mode. Offline Quality is available for files only.</extracomment>
+      <translation>지원하지 않는 실시간 모드입니다. Offline Quality는 파일 전용입니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_PREPARATION_FAILED</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_NO_FRAMES</source>
+      <extracomment>No capture frames received. Check the window state and capture permissions.</extracomment>
+      <translation>캡처 프레임을 받지 못했습니다. 창 상태와 캡처 권한을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_WINDOW_FAILED</source>
+      <extracomment>SBS stopped because the output window could not be opened.</extracomment>
+      <translation>출력 창을 열지 못해 SBS를 중단했습니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_FRAME_DELIVERY</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_WAIT_FAILED</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_GPU_PREPARATION</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_GPU_PREPARATION_HINT</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_CUDA_DLL_INVALID</source>
+      <extracomment>Live CUDA DLL verification failed. A validated local build is required.</extracomment>
+      <translation>라이브 CUDA DLL 검증 실패: 검증된 로컬 빌드가 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_DEPTH_STRENGTH_INVALID</source>
+      <extracomment>Depth strength must be between 0.25 and 2.0.</extracomment>
+      <translation>입체감은 0.25–2.0 범위여야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_ROWFLOW_LIVE_SETTINGS</source>
+      <extracomment>The RowFlow trial requires the Balanced/Base GPU path and depth strength at most 1.92.</extracomment>
+      <translation>RowFlow 시험은 균형(Base) GPU 경로와 입체 강도 1.92 이하를 사용하세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_WORKER_EXITED</source>
+      <extracomment>The capture worker exited.</extracomment>
+      <translation>캡처 작업자가 종료되었습니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_MODULE_MISSING</source>
+      <extracomment>The VFG output module is missing. Reinstall the ScreenTo3D distribution.</extracomment>
+      <translation>VFG 출력 모듈이 없습니다. ScreenTo3D 배포본을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_UNKNOWN</source>
+      <extracomment>Unknown depth model.</extracomment>
+      <translation>알 수 없는 깊이 모델입니다.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_QT_VERSION</source>
+      <extracomment>Direct GPU output requires the validated Qt 6.10.2 runtime.</extracomment>
+      <translation>GPU 직접 출력은 검증된 Qt 6.10.2가 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_SERVER_UNCONFIGURED</source>
+      <extracomment>No model server is configured in this distribution. Select a model pack provided by the distributor.</extracomment>
+      <translation>이 배포본에 모델 서버가 지정되지 않았습니다. 배포자가 제공한 모델 팩을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_URL_INVALID</source>
+      <extracomment>Check the model distribution URL. An HTTPS URL is required.</extracomment>
+      <translation>모델 배포 주소를 확인하세요. HTTPS 주소가 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_INSTALL_CANCELLED</source>
+      <extracomment>Installation cancelled.</extracomment>
+      <translation>설치를 취소했습니다.</translation>
+    </message>
+    <message>
+      <source>E_INSTALL_SPACE_REQUIRED</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_CHECKSUM_FAILED</source>
+      <extracomment>File verification failed. Download the model pack again.</extracomment>
+      <translation>파일 검증에 실패했습니다. 모델 팩을 다시 받으세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_TLS_INVALID</source>
+      <extracomment>Check the model server's secure connection.</extracomment>
+      <translation>모델 서버의 보안 연결을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_ARCHIVE_PATH_INVALID</source>
+      <extracomment>Invalid model file path.</extracomment>
+      <translation>잘못된 모델 파일 경로입니다.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_DOWNLOAD_SIZE</source>
+      <extracomment>The download size does not match the distribution record.</extracomment>
+      <translation>다운로드 용량이 배포 기록과 다릅니다.</translation>
+    </message>
+    <message>
+      <source>E_ROWFLOW_SETTINGS</source>
+      <extracomment>The RowFlow trial requires Base and depth strength at most 5%.</extracomment>
+      <translation>RowFlow 시험은 Base와 입체 강도 5% 이하에서 지원합니다.</translation>
+    </message>
+    <message>
+      <source>E_ROWFLOW_CANCELLED</source>
+      <extracomment>RowFlow preparation cancelled.</extracomment>
+      <translation>RowFlow 준비를 취소했습니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_NOT_READY</source>
+      <extracomment>VFG components are not ready. Turn off VFG or check the installation.</extracomment>
+      <translation>VFG 구성요소가 준비되지 않았습니다. VFG를 끄거나 설치 파일을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_VFG_VERIFY_FAILED</source>
+      <extracomment>VFG component verification failed. Repair the installation, then try again.</extracomment>
+      <translation>VFG 구성요소 검증에 실패했습니다. 설치 파일을 복구한 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_UNKNOWN</source>
+      <extracomment>An unknown processing error occurred.</extracomment>
+      <translation>알 수 없는 처리 오류가 발생했습니다.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_LANGUAGE_WRITE</source>
+      <extracomment>Cannot save the language setting. Check access to the application settings.</extracomment>
+      <translation>언어 설정을 저장하지 못했습니다. 사용자 설정 저장 권한을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_OPTIMIZATION</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_VFG_SETTINGS</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_VFG_MODEL</source>
+      <extracomment>VFG is available with DA2 Small and DA2 Base.</extracomment>
+      <translation>VFG는 DA2 Small과 DA2 Base에서 사용할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_CAPTURE</source>
+      <extracomment>VFG is available with window capture.</extracomment>
+      <translation>VFG는 창 캡처에서 사용할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_OUTPUT</source>
+      <extracomment>VFG requires direct GPU output and GPU capture.</extracomment>
+      <translation>VFG는 GPU 직접 출력과 GPU 캡처가 필요합니다.</translation>
+    </message>
+    <message>
+      <source>E_VFG_RENDERER</source>
+      <extracomment>VFG requires the default stereo renderer. Close the RowFlow trial and start the normal launcher.</extracomment>
+      <translation>VFG는 기본 입체화 방식에서 사용할 수 있습니다. RowFlow 실행기를 종료하고 일반 실행기로 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_MODEL_CONNECTION</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_STOPPED</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_VFG_TRANSITION</source>
+      <extracomment>SBS stopped because the VFG transition failed.</extracomment>
+      <translation>VFG 전환을 완료하지 못해 SBS를 중지했습니다.</translation>
+    </message>
+    <message>
+      <source>E_CAPTURE_TIMEOUT</source>
+      <extracomment>The capture worker was stopped after a response timeout. You can restart capture.</extracomment>
+      <translation>캡처 응답 지연으로 캡처 프로세스를 종료했습니다. 다시 시작할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_FRAME_DELIVERY</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_WORKER_START</source>
+      <extracomment>Cannot start the processing worker. Check the runtime installation.</extracomment>
+      <translation>처리 프로그램을 시작할 수 없습니다. 실행 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETUP_CHECK</source>
+      <extracomment>Installation check failed. Check the paths and Python environment.</extracomment>
+      <translation>설치 확인에 실패했습니다. 경로와 Python 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_WORKER_EXIT</source>
+      <extracomment>An operation failed. Check the selected source, model and output settings.</extracomment>
+      <translation>작업을 완료하지 못했습니다. 선택한 입력, 모델과 출력 설정을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_CANCEL_WRITE</source>
+      <extracomment>Cannot record the cancellation request. Check access to the temporary folder.</extracomment>
+      <translation>취소 요청을 기록하지 못했습니다. 임시 폴더 접근 권한을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_VIDEO_PLAYER</source>
+      <extracomment>Cannot open the default video player. Open the file from its output folder.</extracomment>
+      <translation>기본 영상 플레이어를 열 수 없습니다. 저장 위치에서 파일을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_OUTPUT_FOLDER</source>
+      <extracomment>Cannot open the output folder. Check the save location.</extracomment>
+      <translation>결과 폴더를 열 수 없습니다. 저장 위치를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_CODEC_H264_WIDTH</source>
+      <extracomment>The selected codec cannot preserve this Full SBS width. For 4K input, explicitly select HEVC.</extracomment>
+      <translation>선택한 코덱은 이 Full SBS 너비를 지원하지 않습니다. 4K 원본은 HEVC를 선택하세요.</translation>
+    </message>
+    <message>
+      <source>E_CODEC_HEVC_WIDTH</source>
+      <extracomment>Full SBS width exceeds the validated HEVC profile. Check source dimensions.</extracomment>
+      <translation>Full SBS 너비가 검증된 HEVC 범위를 넘습니다. 원본 크기를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_VIDEO_DECODE</source>
+      <extracomment>Video decoding failed. Check that the input plays correctly.</extracomment>
+      <translation>영상 디코딩에 실패했습니다. 원본이 정상 재생되는지 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_VIDEO_ENCODE</source>
+      <extracomment>Video encoding failed. Check the selected codec and GPU support.</extracomment>
+      <translation>영상 인코딩에 실패했습니다. 선택한 코덱과 GPU 지원을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_AUDIO_MUX</source>
+      <extracomment>Audio finalization failed. Check the input audio and destination.</extracomment>
+      <translation>오디오 마무리에 실패했습니다. 원본 오디오와 저장 위치를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_MEDIA_EMPTY</source>
+      <extracomment>No final media was produced. The previous output was preserved.</extracomment>
+      <translation>최종 영상을 만들지 못했습니다. 기존 출력 파일은 유지됩니다.</translation>
+    </message>
+    <message>
+      <source>E_MEDIA_PATHS</source>
+      <extracomment>Input and output must be different files.</extracomment>
+      <translation>원본과 출력은 서로 다른 파일이어야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_CANCEL_PATH</source>
+      <extracomment>The cancellation marker must be separate from media files.</extracomment>
+      <translation>취소 요청 파일은 영상 파일과 다른 위치여야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_DEPTH_RUNTIME</source>
+      <extracomment>Depth runtime failed. Check the selected model and validated runtime.</extracomment>
+      <translation>깊이 추론에 실패했습니다. 선택한 모델과 실행 환경을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_DEPTH_MISSING</source>
+      <extracomment>The selected depth model is missing. Check the model installation.</extracomment>
+      <translation>선택한 깊이 모델이 없습니다. 모델 설치를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>E_GPU_PROCESSING</source>
+      <extracomment>GPU processing failed. Stop the job and restart its session.</extracomment>
+      <translation>GPU 처리에 실패했습니다. 작업을 중지하고 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_CONVERSION</source>
+      <extracomment>Conversion failed. Check input, output access and selected model. Explicit detailed errors can provide private diagnostics.</extracomment>
+      <translation>변환에 실패했습니다. 원본, 저장 위치의 권한과 선택한 모델을 확인하세요. 자세한 진단은 명시적인 상세 오류 설정에서 확인할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_LOCATION</source>
+      <extracomment>Cannot locate the executable.</extracomment>
+      <translation>실행 파일 위치를 확인할 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_COMPONENTS</source>
+      <extracomment>Required launch components are missing. Check the complete ScreenTo3D distribution folder.</extracomment>
+      <translation>실행 구성요소가 없습니다. ScreenTo3D 배포 폴더 전체를 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_USER_FOLDER</source>
+      <extracomment>Cannot locate the user log folder.</extracomment>
+      <translation>사용자 로그 폴더를 찾을 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_LOG_FOLDER</source>
+      <extracomment>Cannot create the launch log folder.</extracomment>
+      <translation>실행 로그 폴더를 만들 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_LOG_OPEN</source>
+      <extracomment>Cannot open the launch log.</extracomment>
+      <translation>실행 로그를 열 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_INPUT</source>
+      <extracomment>Cannot prepare the input stream.</extracomment>
+      <translation>입력 스트림을 준비할 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_PROCESS</source>
+      <extracomment>Cannot start ScreenTo3D.</extracomment>
+      <translation>ScreenTo3D를 실행할 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_LAUNCH_EXIT</source>
+      <extracomment>ScreenTo3D exited with an error.</extracomment>
+      <translation>ScreenTo3D가 오류로 종료되었습니다.</translation>
+    </message>
   </context>
 </TS>
