@@ -1,12 +1,13 @@
 """Local DA2 Base mixed-FP16 engine with FP32 I/O; CC-BY-NC-4.0 weights."""
 import hashlib
-import os
 from pathlib import Path
 import threading
 import time
 
 import cv2
 import numpy as np
+from .engine_cache import device_identity, local_record
+from .resources import prepare_dll_search_path
 
 PRECISION = 'fp16'
 PLAN_HASH = 'a8718fa657e73f7506ab71367e4ec2d4600338bb72a8d2c142c94e7ef0a86eb7'
@@ -58,6 +59,12 @@ def checked_plan(directory, shape=(518,896)):
     directory = Path(directory).resolve(strict=True)
     path = (directory/'model.plan').resolve(strict=True)
     expected_hash, expected_bytes = PROFILES[shape]
+    record = local_record(directory, 'da2-base')
+    if record is not None:
+        if directory.name != f'{shape[0]}x{shape[1]}-fp16':
+            raise ValueError('Incorrect local Base profile')
+        plan = record['engines']['model']
+        expected_hash, expected_bytes = plan['sha256'], plan['bytes']
     if path.parent != directory or path.stat().st_size != expected_bytes:
         raise ValueError('DA2 Base plan path/size mismatch')
     payload = path.read_bytes()
@@ -69,6 +76,10 @@ def checked_plan(directory, shape=(518,896)):
 def profiles(directory):
     directory = Path(directory).resolve(strict=True)
     if (directory/'model.plan').exists():
+        if local_record(directory, 'da2-base') is not None:
+            shape = next(s for s in PROFILES if directory.name == f'{s[0]}x{s[1]}-fp16')
+            checked_plan(directory, shape)
+            return {shape: directory}
         size = (directory/'model.plan').stat().st_size
         for shape, (_, count) in PROFILES.items():
             if size == count:
@@ -131,11 +142,17 @@ class Da2BaseEngine:
         if not torch.cuda.is_available():
             raise RuntimeError('DA2 Base requires CUDA')
         self.device = torch.cuda.current_device()
-        if torch.cuda.get_device_capability() != (12, 0) or torch.cuda.get_device_name() != 'NVIDIA GeForce RTX 5090':
-            raise RuntimeError('This DA2 Base build requires RTX 5090')
+        local = local_record(directory, 'da2-base')
+        if local is not None and device_identity(self.device) != device_identity():
+            raise RuntimeError('DA2 Base engine was built for a different GPU')
+        expected_gpu, expected_cc = ('NVIDIA GeForce RTX 5090', (12, 0)) if local is None else (
+            local['gpu'], tuple(local['compute_capability']))
+        if torch.cuda.get_device_capability() != expected_cc or torch.cuda.get_device_name() != expected_gpu:
+            raise RuntimeError('DA2 Base engine GPU mismatch; install an engine for this device')
         payload = checked_plan(directory, shape)
+        self.plan_hash = hashlib.sha256(payload).hexdigest()
         try:
-            self.dll = os.add_dll_directory(str(Path(runtime_dir).resolve(strict=True)))
+            self.dll = prepare_dll_search_path(runtime_dir)
             import tensorrt as trt
             if trt.__version__ != '11.2.1.2':
                 raise RuntimeError('DA2 Base requires TensorRT 11.2.1.2')
