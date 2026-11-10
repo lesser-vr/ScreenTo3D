@@ -1,5 +1,7 @@
 # ScreenTo3D
 
+**English** | [한국어](README.ko.md)
+
 Desktop 2D-to-SBS conversion for games and videos. Run `ScreenTo3D.exe` in the
 prepared local environment for the Korean/English Live / Files / Settings app. Live and
 file conversion resolve the selected product mode to its permitted installed depth
@@ -56,14 +58,15 @@ CC BY 4.0.
 - [Current paths, measurements and unpassed acceptance](docs/implementation-status.md)
 - [Work areas](docs/ROADMAP.md)
 - [Architecture](ARCHITECTURE.md)
+- [Adding languages and error messages](docs/LOCALIZATION.md)
 - [Security](docs/SECURITY.md), [reliability](docs/RELIABILITY.md), [measurement methods](docs/BENCHMARKS.md)
 - [Historical evidence](docs/evidence/README.md); model setup links are in PRODUCT.
 
 ## Build and test on Windows
 
 Validate the source translation catalog with `python scripts/build-translations.py --check`.
-The portable builder compiles and includes the Korean Qt catalog automatically;
-English is the source-language fallback.
+The portable builder compiles and includes all registered Qt translation catalogs
+automatically; English is the source-language fallback.
 
 Requirements:
 
