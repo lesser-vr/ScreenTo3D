@@ -1,7 +1,6 @@
 """One non-blocking native error window owned by the desktop shell."""
 
-from .messages import Message as M
-from .messages import message_value
+from .messages import Message as M, ErrorMessage, as_error
 from .localization import render
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QFont, QKeySequence
@@ -52,7 +51,7 @@ class LiveErrorDialog(QDialog):
         from .capture_sources import exclude_preview
 
         self.title_source = title
-        self.message_source = message_value(message)
+        self.message_source = as_error(message)
         self.retranslate()
         if not exclude_preview(self.winId()):
             self.hide()
@@ -67,7 +66,19 @@ class LiveErrorDialog(QDialog):
     def retranslate(self):
         self.setWindowTitle(render(self.title_source))
         self.close_button.setText(render(M('Close')))
-        self.text.setPlainText(render(self.message_source))
+        error=self.message_source
+        if not error:
+            self.text.clear()
+            return
+        text=f'{render(M("Error ID"))}: {error.error_id}\n\n{render(error)}'
+        # Keep third-party diagnostics opaque, including filenames and codes.
+        details=[error.details]
+        details.extend(f'[{value.error_id}] {value}\n{value.details}'.rstrip()
+                       for value in error.values.values() if isinstance(value,ErrorMessage))
+        details=[detail for detail in details if detail and detail!=str(error)]
+        if details:
+            text+='\n\n'+render(M('Details'))+':\n'+'\n'.join(details)
+        self.text.setPlainText(text)
 
     def eventFilter(self, watched, event):
         if event.type() in (QEvent.ShortcutOverride, QEvent.KeyPress) and event.matches(QKeySequence.Copy):

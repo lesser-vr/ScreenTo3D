@@ -5,7 +5,8 @@ from string import Formatter
 
 from PySide6.QtCore import QObject, Property, Signal, Slot, QCoreApplication, QLocale, QTranslator, QLibraryInfo, QSettings, Qt
 
-from .messages import Message as M, Message, JoinedMessage, message_value
+from .messages import Message as M, Message, ErrorMessage, JoinedMessage, message_value
+from .catalogs import DEFAULT_LANGUAGE, LANGUAGES, match_language, DIRECTORY
 
 
 class _LocaleFormatter(Formatter):
@@ -19,7 +20,12 @@ def render(value):
     if isinstance(value,BaseException):
         value=message_value(value)
     if isinstance(value,Message):
-        source=QCoreApplication.translate('ScreenTo3D',value.source)
+        if isinstance(value,ErrorMessage):
+            source=QCoreApplication.translate('PublicErrors' if value.public else 'Errors',value.error_id)
+            if source==value.error_id:
+                source=value.source
+        else:
+            source=QCoreApplication.translate('ScreenTo3D',value.source)
         return _LocaleFormatter().vformat(source,(),{k:render(v) for k,v in value.values.items()})
     if isinstance(value,JoinedMessage):
         return ''.join(str(render(part)) for part in value.parts)
@@ -38,10 +44,10 @@ def localized(function):
 
 
 def resolve_language(choice, system=None):
-    if choice in ('ko','en'):
+    if choice in LANGUAGES:
         return choice
     languages=(system or QLocale.system()).uiLanguages()
-    return 'ko' if languages and QLocale(languages[0]).language()==QLocale.Korean else 'en'
+    return match_language(languages[0]) if languages else DEFAULT_LANGUAGE
 
 
 class LanguageManager(QObject):
@@ -52,8 +58,8 @@ class LanguageManager(QObject):
         super().__init__(parent)
         self.preferences=preferences
         choice=preferences.store.value('ui/language','system')
-        self.choice=choice if choice in ('system','ko','en') else 'system'
-        self.effective='en'
+        self.choice=choice if choice=='system' or choice in LANGUAGES else 'system'
+        self.effective=DEFAULT_LANGUAGE
         self.translators=[]
         self.engine=None
         self.refresh=None
@@ -73,24 +79,29 @@ class LanguageManager(QObject):
             system=QLocale.system()
             if system.textDirection()==Qt.LeftToRight:
                 return system.name()
-        return 'ko_KR' if self.effective=='ko' else 'en_US'
+        return LANGUAGES[self.effective]['locale'].replace('-','_')
+
+    @Property(str,notify=changed)
+    def uiLanguage(self):
+        return LANGUAGES[self.effective]['locale']
 
     @Property('QVariantList',notify=changed)
     def choices(self):
         return [dict(key='system',label=render(M('System default'))),
-                dict(key='ko',label='한국어'),dict(key='en',label='English')]
+                *(dict(key=key,label=item['name']) for key,item in LANGUAGES.items())]
 
     def _apply(self):
         app=QCoreApplication.instance()
         self.close()
         self.effective=resolve_language(self.choice)
-        if self.effective=='ko':
+        definition=LANGUAGES[self.effective]
+        if definition['catalog']:
             translator=QTranslator(self)
-            if translator.load(str(Path(__file__).with_name('translations')/'screento3d_ko.qm')):
+            if translator.load(str(DIRECTORY/(definition['catalog']+'.qm'))):
                 app.installTranslator(translator)
                 self.translators.append(translator)
                 base=Path(QLibraryInfo.path(QLibraryInfo.TranslationsPath))
-                for name in ('qtbase_ko','qtdeclarative_ko'):
+                for name in definition.get('qt_catalogs',[]):
                     standard=QTranslator(self)
                     if standard.load(str(base/(name+'.qm'))):
                         app.installTranslator(standard)
@@ -99,7 +110,7 @@ class LanguageManager(QObject):
                         standard.deleteLater()
             else:
                 translator.deleteLater()
-                self.effective='en'
+                self.effective=DEFAULT_LANGUAGE
         QLocale.setDefault(QLocale(self.localeName))
         app.setLayoutDirection(Qt.LeftToRight)
 
@@ -112,19 +123,19 @@ class LanguageManager(QObject):
 
     @Slot(str)
     def setLanguage(self,choice):
-        if choice not in ('system','ko','en') or choice==self.choice:
+        if (choice!='system' and choice not in LANGUAGES) or choice==self.choice:
             return
         old=self.choice
         self.preferences.store.setValue('ui/language',choice)
         self.preferences.store.sync()
         if self.preferences.store.status()!=QSettings.NoError:
             self.preferences.store.setValue('ui/language',old)
-            self.errorOccurred.emit(M('Cannot save the language setting. Check access to the application settings.'))
+            self.errorOccurred.emit(ErrorMessage('E_SETTINGS_LANGUAGE_WRITE'))
             return
         self.choice=choice
         self._apply()
         if self.engine is not None:
-            self.engine.setUiLanguage('ko-KR' if self.effective=='ko' else 'en-US')
+            self.engine.setUiLanguage(self.uiLanguage)
             self.engine.retranslate()
         if self.refresh is not None:
             self.refresh()

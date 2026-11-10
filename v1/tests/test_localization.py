@@ -11,10 +11,69 @@ from depthsbs_app.desktop import DesktopController
 from depthsbs_app.desktop_preferences import DesktopPreferences
 from depthsbs_app.live_preview import LivePreview
 from depthsbs_app.localization import LanguageManager,render,resolve_language
-from depthsbs_app.messages import Message as M
+from depthsbs_app.messages import Message as M, ErrorMessage as E
 
 
 class LocalizationTests(unittest.TestCase):
+    def test_third_language_registration_drives_choices_locale_and_catalog(self):
+        from depthsbs_app.catalogs import LANGUAGES
+        extra=dict(code='de',name='Deutsch',locale='de-DE',catalog='screento3d_de',qt_catalogs=[])
+        with patch.dict(LANGUAGES,{'de':extra}):
+            self.assertIn(dict(key='de',label='Deutsch'),self.language.choices)
+            self.assertEqual(resolve_language('system',QLocale('de_DE')),'de')
+            with patch('depthsbs_app.localization.QTranslator.load',return_value=True) as load:
+                self.language.setLanguage('de')
+            self.assertEqual(self.language.effectiveLanguage,'de')
+            self.assertEqual(self.language.localeName,'de_DE')
+            self.language.engine.setUiLanguage.assert_called_with('de-DE')
+            self.assertTrue(any(str(args.args[0]).endswith('screento3d_de.qm') for args in load.call_args_list))
+            self.language.setLanguage('en')
+
+    def test_error_id_translates_and_unknown_id_falls_back_without_touching_details(self):
+        value=E('E_OUTPUT_FRAME_DELIVERY',v0='driver {opaque}')
+        self.assertIn('GPU 직접 프레임 전달 실패',render(value))
+        self.language.setLanguage('en')
+        self.assertEqual(render(value),'Direct GPU frame delivery failed: driver {opaque}')
+        unknown=E('E_FUTURE_DRIVER',details='native 코드 17 {opaque}')
+        self.assertEqual(render(unknown),'An unknown processing error occurred.')
+        self.assertEqual(unknown.details,'native 코드 17 {opaque}')
+
+    def test_file_event_keeps_id_with_malformed_or_conflicting_translation_metadata(self):
+        from depthsbs_app.messages import payload
+        for localized in ({'bad':'payload'},payload(E('E_CAPTURE_SOURCE_CLOSED'))):
+            self.desktop._event(dict(event='error',error_id='E_OUTPUT_FRAME_DELIVERY',message='native failure 17',localized=localized))
+            self.assertEqual(self.desktop.error_text.error_id,'E_OUTPUT_FRAME_DELIVERY')
+            self.assertEqual(self.desktop.error_text.details,'native failure 17')
+
+    def test_error_dialog_retranslates_id_summary_and_copies_entire_document(self):
+        from depthsbs_app.error_dialog import LiveErrorDialog
+        from PySide6.QtQuick import QQuickWindow
+        from PySide6.QtGui import QKeyEvent
+        from PySide6.QtCore import QEvent,QMimeData
+        owner=QQuickWindow();dialog=LiveErrorDialog(owner)
+        self.addCleanup(dialog.deleteLater);self.addCleanup(owner.deleteLater)
+        self.language.refresh=dialog.retranslate
+        with patch('depthsbs_app.capture_sources.exclude_preview',return_value=True):
+            self.assertTrue(dialog.showError(E('E_OUTPUT_FRAME_DELIVERY',v0='opaque',details='driver code 17 {path}')))
+        self.addCleanup(dialog.close)
+        before=dialog.text.toPlainText()
+        self.assertIn('오류 ID: E_OUTPUT_FRAME_DELIVERY',before)
+        self.assertIn('상세 정보:\ndriver code 17 {path}',before)
+        self.language.setLanguage('en')
+        shown=dialog.text.toPlainText()
+        self.assertIn('Error ID: E_OUTPUT_FRAME_DELIVERY',shown)
+        self.assertIn('Details:\ndriver code 17 {path}',shown)
+        self.assertEqual(dialog.close_button.text(),'Close')
+        clipboard=self.app.clipboard();original=clipboard.mimeData();saved=QMimeData()
+        if original:
+            for format in original.formats():saved.setData(format,original.data(format))
+        try:
+            event=QKeyEvent(QEvent.KeyPress,Qt.Key_C,Qt.ControlModifier)
+            self.assertTrue(dialog.eventFilter(dialog.text,event))
+            self.assertEqual(clipboard.text(),shown)
+        finally:clipboard.setMimeData(saved)
+        dialog.close_button.click();self.assertFalse(dialog.isVisible())
+
     @classmethod
     def setUpClass(cls):
         cls.app=QApplication.instance() or QApplication([])
@@ -145,3 +204,10 @@ class LocalizationTests(unittest.TestCase):
         self.language.setLanguage('en')
         self.assertIn('selected window closed',self.live.status)
         self.assertIn('capture protection failed',self.live.status)
+
+    def test_hidden_unknown_error_preserves_original_diagnostic_in_status(self):
+        self.desktop.error_dialog=SimpleNamespace(showError=lambda message:False)
+        self.live.stop=Mock()
+        self.desktop.showLiveError(E('E_UNKNOWN',details='Original processing failure 17'))
+        self.assertIn('Original processing failure 17',self.live.status)
+        self.assertFalse(self.live.stop_message_pending)

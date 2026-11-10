@@ -1,6 +1,7 @@
 """Qt Quick shell. Workers own media/GPU resources; GUI owns only job state."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M, message_value, decode_message
+from .messages import Message as M, message_value, decode_message, as_error
 from .localization import localized, render
 from .messages import from_payload
 
@@ -353,7 +354,7 @@ class DesktopController(QObject):
 
     def snapshot(self):
         if self.selected < 0:
-            raise ValueError(M('Add a video first.'))
+            raise ValueError(E('E_FILE_INPUT_REQUIRED'))
         return Job(
             source=self.rows[self.selected]["source"],
             output=self.destination,
@@ -365,7 +366,7 @@ class DesktopController(QObject):
         if self.busy:
             return
         if self.downloads.needed(self.values['model']):
-            self.showLiveError(M('Install the selected model first. Open the model settings in the file workspace.'))
+            self.showLiveError(E('E_MODEL_INSTALL_REQUIRED'))
             return
         try:
             job = self.snapshot()
@@ -452,10 +453,16 @@ class DesktopController(QObject):
         if kind == "error":
             raw = message_value(event.get("message", M('Conversion error')))
             self.error_text = raw if len(raw) <= 2000 else str(raw)[:2000]
+            if 'error_id' in event:
+                try:
+                    self.error_text=E(event['error_id'],public=True,details=str(self.error_text))
+                except (ValueError,TypeError):
+                    pass
             if 'localized' in event:
                 try:
                     translated = from_payload(event['localized'])
-                    if len(translated) <= 2000:
+                    matches=('error_id' not in event or getattr(translated,'error_id',None)==event['error_id'])
+                    if len(translated) <= 2000 and matches:
                         self.error_text = translated
                 except (ValueError, TypeError, KeyError, IndexError):
                     pass  # Keep the original bounded diagnostic on malformed metadata.
@@ -485,7 +492,7 @@ class DesktopController(QObject):
     def _process_error(self, error):
         if error == QProcess.FailedToStart:
             self.error_text = (
-                M('Cannot start the processing worker. Check the runtime installation.')
+                E('E_WORKER_START')
             )
             self._finished(1, QProcess.CrashExit)
 
@@ -506,7 +513,7 @@ class DesktopController(QObject):
             except (ValueError, KeyError):
                 self.setup_text = (
                     self.error_text
-                    or M('Installation check failed. Check the paths and Python environment.')
+                    or E('E_SETUP_CHECK')
                 )
         else:
             success = (
@@ -528,7 +535,7 @@ class DesktopController(QObject):
                 state = "failed"
                 self.status_text = M('Conversion failed · ') + (
                     self.error_text
-                    or M('The processing worker exited unexpectedly ({v0}). Check the installation.', v0=code)
+                    or E('E_WORKER_EXIT', v0=code)
                 )
             self.rows[self.selected]["state"] = state
         self._cleanup()
@@ -559,7 +566,7 @@ class DesktopController(QObject):
                 )
             except OSError:
                 self.inform(
-                    M('Cannot record the cancellation request. Check access to the temporary folder.')
+                    E('E_CANCEL_WRITE')
                 )
 
     @Slot()
@@ -599,7 +606,7 @@ class DesktopController(QObject):
             QUrl.fromLocalFile(self.destination)
         ):
             self.inform(
-                M('Cannot open the default video player. Open the file from its output folder.')
+                E('E_VIDEO_PLAYER')
             )
 
     @Slot()
@@ -613,7 +620,7 @@ class DesktopController(QObject):
         if self.canOpen and not QDesktopServices.openUrl(
             QUrl.fromLocalFile(str(Path(self.destination).parent))
         ):
-            self.inform(M('Cannot open the output folder. Check the save location.'))
+            self.inform(E('E_OUTPUT_FOLDER'))
 
     @Slot(result=bool)
     def requestClose(self):
@@ -648,7 +655,7 @@ class DesktopController(QObject):
 
         if not exclude_preview(window.winId()):
             window.hide()
-            self.live.reportError(M('The utility window was closed because capture protection failed.'))
+            self.live.reportError(E('E_UTILITY_CAPTURE_PROTECTION'))
             return False
         return True
 
@@ -657,7 +664,8 @@ class DesktopController(QObject):
         if not self.error_dialog.showError(message):
             self.live.stop()
             self.live.stop_message_pending = False
-            self.live.message = message_value(message) + M(' · The error window was hidden because capture protection failed.')
+            error=as_error(message)
+            self.live.message = error + (' · '+error.details if error.details else '') + M(' · The error window was hidden because capture protection failed.')
             self.live.changed.emit()
 
     def showModelError(self, message):
@@ -699,7 +707,7 @@ def create_app(preferences=None):
 
     controller.live = LivePreview(controller)
     engine = QQmlApplicationEngine()
-    engine.setUiLanguage('ko-KR' if controller.language.effectiveLanguage == 'ko' else 'en-US')
+    engine.setUiLanguage(controller.language.uiLanguage)
     engine.warnings.connect(
         lambda errors: print("\n".join(e.toString() for e in errors), file=sys.stderr)
     )
@@ -712,7 +720,7 @@ def create_app(preferences=None):
     engine.addImageProvider("windowicons", WindowIcons(controller.live))
     engine.load(QUrl.fromLocalFile(str(Path(__file__).with_name("qml") / "Main.qml")))
     if not engine.rootObjects():
-        raise RuntimeError(M('Cannot load the application interface.'))
+        raise RuntimeError(E('E_UI_LOAD_FAILED'))
     window = engine.rootObjects()[0]
     controller.main_window = window
     from .error_dialog import LiveErrorDialog

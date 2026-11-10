@@ -1,6 +1,7 @@
 """Qt adapter for an explicitly requested optional model installation."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M, message_value, decode_message
+from .messages import Message as M, message_value, decode_message, as_error
 from .localization import localized, render
 import threading
 from pathlib import Path
@@ -79,7 +80,7 @@ class ModelDownloads(QObject):
         if self.desktop.busy or not self.needed(key):
             return
         if key == 'vfg' and not BRIDGE.is_file():
-            self.desktop.showModelError(M('The VFG output module is missing. Reinstall the ScreenTo3D distribution.'))
+            self.desktop.showModelError(E('E_VFG_MODULE_MISSING'))
             return
         try:
             if choose_file:
@@ -112,11 +113,11 @@ class ModelDownloads(QObject):
             try:
                 install(key, source, installed_path(key), progress, self.stop_event.is_set)
             except InterruptedError:
-                self.finished.emit(key, M('Installation cancelled.'), False)
+                self.finished.emit(key, E('E_INSTALL_CANCELLED'), False)
             except (HTTPError, URLError, TimeoutError) as exc:
-                self.finished.emit(key, M('Cannot connect to the model server. Try again or select an installation file.\n{v0}', v0=exc), True)
+                self.finished.emit(key, E('E_MODEL_CONNECTION', v0=exc), True)
             except Exception as exc:
-                self.finished.emit(key, message_value(exc), True)
+                self.finished.emit(key, as_error(exc), True)
             else:
                 self.finished.emit(key, '', False)
         threading.Thread(target=work, name='DepthSBS model install', daemon=True).start()

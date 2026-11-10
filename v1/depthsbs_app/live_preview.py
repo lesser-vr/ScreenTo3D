@@ -1,6 +1,7 @@
 """Owned live controller: native SBS delivery with explicit host diagnostics."""
+from .messages import ErrorMessage as E
 
-from .messages import Message as M, message_value, decode_message
+from .messages import Message as M, message_value, decode_message, as_error
 from .localization import localized, render
 
 import multiprocessing as mp
@@ -70,7 +71,7 @@ class LivePreview(QObject):
 
     def reportError(self, message):
         self.stop_message_pending = False
-        self.message = message_value(message) or M('An unknown SBS processing error occurred.')
+        self.message = as_error(message)
         self.changed.emit()
         self.errorOccurred.emit(self.message)
 
@@ -490,9 +491,9 @@ class LivePreview(QObject):
         if self.active:
             return
         if path not in ("gpu", "reference", "gpu-texture"):
-            self.reportError(M('Unsupported processing path.'))
+            self.reportError(E('E_LIVE_PATH_UNSUPPORTED'))
         elif path == "gpu-texture" and self.live_model not in NATIVE_MODELS:
-            self.reportError(M('The selected live model does not support direct GPU output.'))
+            self.reportError(E('E_OUTPUT_GPU_UNSUPPORTED'))
         else:
             try:
                 if path == "gpu-texture" and self.native is None:
@@ -502,7 +503,7 @@ class LivePreview(QObject):
                 self.native_selected = path == "gpu-texture"
                 self.gpu_candidate = path != "reference"
             except Exception as error:
-                self.reportError(M('Cannot prepare direct GPU output: {v0}', v0=error))
+                self.reportError(E('E_OUTPUT_GPU_PREPARATION', v0=error))
         self.changed.emit()
 
     @Slot(int)
@@ -520,7 +521,7 @@ class LivePreview(QObject):
     def setMode(self, mode):
         if not self.active:
             if mode not in LIVE_MODES:
-                self.reportError(M('Unsupported live mode. Offline Quality is available for files only.'))
+                self.reportError(E('E_LIVE_OFFLINE_SELECTION'))
             else:
                 self.mode = mode
                 if self.live_model not in live_model_choices(mode):
@@ -606,13 +607,13 @@ class LivePreview(QObject):
             window.setPosition(screens[index].geometry().topLeft())
         if not self.configureOutputCapture(window):
             self.reportError(
-                M('Cannot set the SBS output capture policy. The output window will remain closed.')
+                E('E_OUTPUT_CAPTURE_POLICY')
             )
             return
         window.showFullScreen() if fullscreen else window.showNormal()
         if not self.configureOutputCapture(window):
             window.hide()
-            self.abort(M('Stopped because the output capture policy could not be set.'))
+            self.abort(E('E_OUTPUT_CAPTURE_POLICY_STOP'))
 
     def configureOutputCapture(self, window):
         from .capture_sources import set_output_affinity
@@ -706,7 +707,7 @@ class LivePreview(QObject):
         if self.output_window is not None and self.output_window.isVisible():
             if not self.configureOutputCapture(self.output_window):
                 self.output_window.hide()
-                self.abort(M('Stopped because the output capture policy could not be set.'))
+                self.abort(E('E_OUTPUT_CAPTURE_POLICY_STOP'))
         else:
             self.output_pending = None
 
@@ -715,7 +716,7 @@ class LivePreview(QObject):
         # Capture/GPU topology still needs a new validated session. Restore a
         # visible control window rather than leaving the user on a lost display.
         if self.output_window is not None and self.output_window.isVisible():
-            self.abort(M('Stopped because the display configuration changed. Restart SBS.'))
+            self.abort(E('E_OUTPUT_DISPLAY_CHANGED'))
             if not self.active:
                 self.output_window.hide()
         main = getattr(self.desktop, "main_window", None)
@@ -796,17 +797,17 @@ class LivePreview(QObject):
         """User-facing start; capture-only remains a diagnostic API, never a mode."""
         if self.active or self.desktop.busy:
             self.reportError(
-                M('SBS is already running. Stop it before restarting.')
-                if self.active else M('Another task is running. Finish or stop it before starting SBS.')
+                E('E_LIVE_ALREADY_RUNNING')
+                if self.active else E('E_LIVE_TASK_BUSY')
             )
             return
         if not 0 <= self.selected < len(self.items):
-            self.reportError(M('Select a window to view. Reopen the source list to refresh it.'))
+            self.reportError(E('E_LIVE_SOURCE_REQUIRED'))
             return
         if output_style not in (0, 1, 2) or (
             output_style != 2 and not 0 <= screen_index < len(QGuiApplication.screens())
         ):
-            self.reportError(M('Select an available output display.'))
+            self.reportError(E('E_OUTPUT_DISPLAY_REQUIRED'))
             return
         self.setSbs(True)
         self.message = M('Preparing SBS… Checking the capture source and output display.')
@@ -818,11 +819,11 @@ class LivePreview(QObject):
                 if not self.stopping and (
                     self.output_window is None or not self.output_window.isVisible()
                 ):
-                    self.abort(M('SBS stopped because the output window could not be opened.'))
+                    self.abort(E('E_OUTPUT_WINDOW_FAILED'))
             elif self.active and self.output_window is not None:
                 self.output_window.hide()
         except Exception as error:
-            self.abort(M('SBS stopped because output preparation failed: {v0}', v0=error))
+            self.abort(E('E_OUTPUT_PREPARATION_FAILED', v0=error))
 
     @Slot()
     def start(self):
@@ -830,7 +831,7 @@ class LivePreview(QObject):
             return
         try:
             if self.selected < 0:
-                raise ValueError(M('Select a capture source.'))
+                raise ValueError(E('E_CAPTURE_SOURCE_REQUIRED'))
             source = dict(self.items[self.selected])
             validate_source(source)
             validate_shape(source["width"], source["height"])
@@ -851,11 +852,11 @@ class LivePreview(QObject):
                                self.nativeEnabled, self.gpu_capture_selected, self.stereo_renderer)
             if self.nativeEnabled and self.live_model not in NATIVE_MODELS:
                 raise ValueError(
-                    M('The selected live model does not support direct GPU output.')
+                    E('E_OUTPUT_GPU_UNSUPPORTED')
                 )
             if source["kind"] == "monitor" and not self.excluded:
                 raise ValueError(
-                    M('Cannot prevent preview recapture in this configuration. Use window capture.')
+                    E('E_CAPTURE_RECURSION_UNSAFE')
                 )
             self.desktop.lease.acquire("live")
             context = mp.get_context("spawn")
@@ -891,7 +892,7 @@ class LivePreview(QObject):
                         self.native = NativeDelivery()
                     except Exception as error:
                         raise RuntimeError(
-                            M('Cannot prepare direct GPU output: {v0}\nYou can try GPU host output in Settings and diagnostics.', v0=error)
+                            E('E_OUTPUT_GPU_PREPARATION_HINT', v0=error)
                         ) from error
                 self.native.begin(self.session + 1)
                 self.texture_mailbox = TextureMailbox.create(context)
@@ -1021,7 +1022,7 @@ class LivePreview(QObject):
             if not self.stopping:
                 error = decode_message(bytes(self.mailbox.error.value))
                 self.message = (
-                    error or M('Capture stopped ({v0}). Select the source again.', v0=code)
+                    error or E('E_CAPTURE_STOPPED', v0=code)
                 )
                 failure = self.message
             elif self.stop_message_pending:
@@ -1050,7 +1051,7 @@ class LivePreview(QObject):
                 self._cancel_vfg_switch()
                 if self.output_window is not None:
                     self.output_window.hide()
-                failure = failure or M('SBS stopped because the VFG transition failed.')
+                failure = failure or E('E_VFG_TRANSITION')
             self.frameChanged.emit()
             self.changed.emit()
             self.desktop.changed.emit()
@@ -1073,7 +1074,7 @@ class LivePreview(QObject):
                     self.stop_message_pending = False
                     self.changed.emit()
                     return
-                message = M('The capture worker was stopped after a response timeout. You can restart capture.')
+                message = E('E_CAPTURE_TIMEOUT')
                 if self.message != message:
                     self.reportError(message)
             return
@@ -1093,7 +1094,7 @@ class LivePreview(QObject):
                 120 if self.sbs else 10
             ):
                 self.abort(
-                    M('No capture frames received. Check the window state and capture permissions.')
+                    E('E_CAPTURE_NO_FRAMES')
                 )
                 return
         notify = False
@@ -1111,7 +1112,7 @@ class LivePreview(QObject):
                         self.changed.emit()
                     self.notifyNativeFrame()
             except Exception as error:
-                self.abort(M('Direct GPU frame delivery failed: {v0}', v0=error))
+                self.abort(E('E_OUTPUT_FRAME_DELIVERY', v0=error))
                 return
         if (self.nativeEnabled or self.cadence.ready(time.perf_counter_ns())) and self.mailbox.lock.acquire(
             False
@@ -1177,7 +1178,7 @@ class LivePreview(QObject):
                         else:
                             self.notifyFrame()
             except Exception as failure:
-                error = M('Frame delivery failed: {v0}', v0=failure)
+                error = E('E_FRAME_DELIVERY', v0=failure)
             finally:
                 self.mailbox.lock.release()
             if error:
@@ -1194,7 +1195,7 @@ class LivePreview(QObject):
                 if delay is not None:
                     self.delivery_timer.start(max(1, (delay + 999_999) // 1_000_000))
             except Exception as error:
-                self.abort(M('Direct GPU output wait failed: {v0}', v0=error))
+                self.abort(E('E_OUTPUT_WAIT_FAILED', v0=error))
 
     def notifyFrame(self):
         began = time.perf_counter_ns()

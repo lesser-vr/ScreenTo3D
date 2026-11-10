@@ -14,7 +14,7 @@ from PySide6.QtTest import QTest
 
 from depthsbs_app.desktop import create_app
 from depthsbs_app.desktop_preferences import DesktopPreferences
-from depthsbs_app.messages import Message as M
+from depthsbs_app.messages import Message as M, ErrorMessage as E
 
 
 def main():
@@ -107,15 +107,18 @@ def main():
 
         error=desktop.error_dialog
         original='opaque diagnostic CODE-17 / 한글'
-        error.showError(M('Direct GPU frame delivery failed: {v0}',v0=original))
+        error.showError(E('E_OUTPUT_FRAME_DELIVERY',v0=original,details='driver result CODE-17'))
         language.setLanguage('en');pump()
         assert 'Direct GPU frame delivery failed:' in error.text.toPlainText()
+        assert 'Error ID: E_OUTPUT_FRAME_DELIVERY' in error.text.toPlainText()
+        assert 'Details:\ndriver result CODE-17' in error.text.toPlainText()
         assert original in error.text.toPlainText(),error.text.toPlainText()
         assert 'Close' in error.close_button.text().replace('&',''),error.close_button.text()
         QTest.keyClick(error.text,Qt.Key_C,Qt.ControlModifier);pump()
         assert clipboard.text()==error.text.toPlainText()
         language.setLanguage('ko');pump()
         assert 'GPU 직접 프레임 전달 실패:' in error.text.toPlainText()
+        assert '오류 ID: E_OUTPUT_FRAME_DELIVERY' in error.text.toPlainText()
         assert original in error.text.toPlainText(),error.text.toPlainText()
         assert '닫기' in error.close_button.text(),error.close_button.text()
         assert error.grab().save(str(args.output/'ko-error.png'))
