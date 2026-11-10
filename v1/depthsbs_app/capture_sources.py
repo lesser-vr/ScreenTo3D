@@ -13,6 +13,21 @@ user32.GetWindowThreadProcessId.argtypes = [W.HWND, C.POINTER(W.DWORD)]
 user32.GetWindowTextLengthW.argtypes = [W.HWND]
 user32.GetWindowTextW.argtypes = [W.HWND, W.LPWSTR, C.c_int]
 user32.GetWindowRect.argtypes = [W.HWND, C.POINTER(W.RECT)]
+user32.SetPropW.argtypes = [W.HWND, W.LPCWSTR, W.HANDLE]
+user32.GetPropW.argtypes = [W.HWND, W.LPCWSTR]
+user32.GetPropW.restype = W.HANDLE
+SBS_OUTPUT_PROPERTY = "DepthSBS.OutputWindow.v1"
+
+
+def is_sbs_output(hwnd):
+    """Cross-process output marker; independent of mutable window titles."""
+    return bool(user32.GetPropW(int(hwnd), SBS_OUTPUT_PROPERTY))
+
+
+def mark_sbs_output(hwnd):
+    pid = W.DWORD()
+    user32.GetWindowThreadProcessId(int(hwnd), C.byref(pid))
+    return pid.value == os.getpid() and bool(user32.SetPropW(int(hwnd), SBS_OUTPUT_PROPERTY, 1))
 dwmapi.DwmGetWindowAttribute.argtypes = [W.HWND, W.DWORD, C.c_void_p, W.DWORD]
 
 
@@ -80,7 +95,7 @@ def windows():
             return True
         pid = W.DWORD()
         user32.GetWindowThreadProcessId(hwnd, C.byref(pid))
-        if pid.value == os.getpid():
+        if pid.value == os.getpid() or is_sbs_output(hwnd):
             return True
         cloaked = W.DWORD()
         dwmapi.DwmGetWindowAttribute(hwnd, 14, C.byref(cloaked), C.sizeof(cloaked))
@@ -128,6 +143,8 @@ def validate_source(source):
             )
     elif source["kind"] == "window":
         hwnd = source["id"]
+        if is_sbs_output(hwnd):
+            raise ValueError("SBS 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.")
         pid = W.DWORD()
         user32.GetWindowThreadProcessId(hwnd, C.byref(pid))
         if not user32.IsWindow(hwnd) or pid.value != source["pid"]:
@@ -177,3 +194,15 @@ def exclude_preview(hwnd):
     # WDA_EXCLUDEFROMCAPTURE prevents desktop feedback, only our own window.
     user32.SetWindowDisplayAffinity.argtypes = [W.HWND, W.DWORD]
     return bool(user32.SetWindowDisplayAffinity(int(hwnd), 0x11))
+
+
+def set_output_affinity(hwnd, excluded):
+    if not mark_sbs_output(hwnd):
+        return False
+    expected = 0x11 if excluded else 0
+    actual = W.DWORD()
+    user32.SetWindowDisplayAffinity.argtypes = [W.HWND, W.DWORD]
+    user32.GetWindowDisplayAffinity.argtypes = [W.HWND, C.POINTER(W.DWORD)]
+    return (bool(user32.SetWindowDisplayAffinity(int(hwnd), expected))
+            and bool(user32.GetWindowDisplayAffinity(int(hwnd), C.byref(actual)))
+            and actual.value == expected)

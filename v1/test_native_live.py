@@ -154,7 +154,7 @@ def main():
         live.showOutput(0, True)
         pump(0.3)
         assert (
-            live.output_excluded
+            not live.output_excluded
             and live.output_window.visibility() == QWindow.FullScreen
         )
         QTest.keyClick(live.output_window, Qt.Key_Escape)

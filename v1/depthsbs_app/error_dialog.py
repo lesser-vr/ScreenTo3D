@@ -42,9 +42,10 @@ class LiveErrorDialog(QDialog):
         for target in (self, self.text, self.text.viewport(), self.close_button):
             target.installEventFilter(self)
 
-    def showError(self, message):
+    def showError(self, message, title="SBS 오류"):
         from .capture_sources import exclude_preview
 
+        self.setWindowTitle(title)
         self.text.setPlainText(message)
         if not exclude_preview(self.winId()):
             self.hide()

@@ -5,6 +5,7 @@ import ctypes
 import os
 import time
 from collections import deque
+from statistics import median
 from PySide6.QtCore import QObject, Property, QTimer, Signal, Slot, Qt
 from PySide6.QtGui import QImage, QGuiApplication
 from PySide6.QtQuick import QQuickImageProvider
@@ -29,16 +30,19 @@ from .capture_mailbox import (
 )
 from .capture_sources import monitors, windows, validate_source
 from .capture_worker import capture_worker
-from .live_sbs import STAT_COUNT
+from .live_sbs import SBS_REUSED, STAT_COUNT, GPU_USAGE, GPU_USAGE_NS, BACKGROUND_NS
 from .live_policy import LIVE_MODES
 from .live_backend import (
     choices as live_model_choices,
     default_model as default_live_model,
 )
-from .presentation_policy import PresentationCadence
+from .presentation_policy import PresentationCadence, delivery_cadence
+from .frame_wakeup import FrameWakeup
 from .owned_preview_image import PreviewCopyPool
+from .stereo_layout import LAYOUTS
 
 NATIVE_MODELS = ("da2-small", "da2-base", "vda-small", "ovda-small-c16")
+DEFAULT_LIVE_STRENGTH = 0.5
 
 
 class PreviewImages(QQuickImageProvider):
@@ -55,9 +59,11 @@ class PreviewImages(QQuickImageProvider):
 
 
 class LivePreview(QObject):
+    vfg_configurable = True
     changed = Signal()
     frameChanged = Signal()
     errorOccurred = Signal(str)
+    vfgNotification = Signal(str, bool)  # Message and whether preparation is pending.
 
     def reportError(self, message):
         self.message = str(message) or "SBS 처리 중 알 수 없는 오류가 발생했습니다."
@@ -96,15 +102,21 @@ class LivePreview(QObject):
         self.excluded = False
         self.preview_visible = True
         self.sbs = True
-        self.mode = "balanced"
-        self.live_model = default_live_model(self.mode)
+        selection = desktop.preferences.selection('live', LIVE_MODES)
+        self.stereo_layout = selection['stereo_layout']
+        self.mode = selection['mode']
+        self.live_model = selection['model']
         self.ovda_noncommercial = False
         # Prepared local desktop default; explicit reference selection remains available.
         self.gpu_candidate = os.environ.get("DEPTHSBS_LIVE_GPU_CANDIDATE", "1") == "1"
         self.native_selected = self.gpu_candidate
         self.native = self.texture_mailbox = None
-        self.cadence = PresentationCadence()
-        self.strength = 1.0
+        self.cadence = PresentationCadence(60)
+        self.strength = DEFAULT_LIVE_STRENGTH
+        self.vfg_enabled = False
+        self.vfg_switch = None
+        self.transition_provider = PreviewImages()
+        self.vfg_shortcut = ""
         self.processing_stats = None
         self.final_processing_stats = [0] * STAT_COUNT
         self.output_window = None
@@ -116,12 +128,20 @@ class LivePreview(QObject):
         self.output_presented = 0
         self.output_pending = None
         self.output_latencies = deque(maxlen=512)
+        self.output_source_ns = 0
+        self.output_samples = deque(maxlen=4096)
         self.gui_copy_ms = self.gui_notify_ms = 0.0
         self.notify_unlocked = os.environ.get("DEPTHSBS_QT_NOTIFY_UNLOCKED", "0") == "1"
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.PreciseTimer)
         self.timer.setInterval(self.cadence.poll_ms)
         self.timer.timeout.connect(self.poll)
+        self.native_wakeup = None
+        self.delivery_timer = QTimer(self)
+        self.delivery_timer.setTimerType(Qt.PreciseTimer)
+        self.delivery_timer.setSingleShot(True)
+        self.delivery_timer.timeout.connect(self.poll)
+        self.poll_count = 0
         self.refresh()
 
     @Property("QVariantList", notify=changed)
@@ -182,7 +202,7 @@ class LivePreview(QObject):
         return (
             f"수신 {self.meta[RECEIVED] / elapsed:.1f} fps  ·  미리보기 제출 {main_count / elapsed:.1f} fps\n"
             f"세션 평균: 처리 {self._stats()[0] / elapsed:.1f} fps · 출력 창 제출 {output_count / elapsed:.1f} fps · 최신 프레임 교체 {self.meta[REPLACED]}\n"
-            f"{'Full SBS' if self.sbs else '원본'} {self.meta[WIDTH]} × {self.meta[HEIGHT]}  ·  최근 수신→화면 교환 P95 {p95}\n"
+            f"{LAYOUTS[self.stereo_layout] if self.sbs else '원본'} {self.meta[WIDTH]} × {self.meta[HEIGHT]}  ·  최근 수신→화면 교환 P95 {p95}\n"
             + (
                 f"{self.liveModelLabel} + CUDA · 처리 {self._stats()[0]} · 입력 교체 {self._stats()[1]} · 재초기화 {self._stats()[2]}\n"
                 f"최근 전처리/추론/SBS {self._stats()[3] / 1e6:.1f}/{self._stats()[4] / 1e6:.1f}/{self._stats()[5] / 1e6:.1f} ms · CPU 전달 경계 있음"
@@ -208,20 +228,37 @@ class LivePreview(QObject):
 
     @Property("QVariantList", notify=changed)
     def liveModes(self):
-        labels = {
-            "performance": "빠른 처리",
-            "balanced": "균형",
-            "video-quality": "영상 품질",
-        }
-        return [
-            dict(key=key, label=labels[key]) for key in LIVE_MODES
-        ]
+        from .model_presentation import selection_info
+        return [dict(key=mode, label=selection_info(mode, default_live_model(mode), self.desktop.engine_paths)['label'])
+                for mode in LIVE_MODES]
+
+    @Property('QVariantList', notify=changed)
+    def depthChoices(self):
+        from .desktop_jobs import PORTABLE_DESKTOP
+        from .model_presentation import selection_choices
+        return selection_choices(LIVE_MODES, self.desktop.engine_paths, portable=PORTABLE_DESKTOP)
+
+    @Property(str, notify=changed)
+    def depthModelHelp(self):
+        from .model_presentation import selection_info
+        return selection_info(self.mode, self.live_model, self.desktop.engine_paths)['help']
+
+    @Slot(str)
+    def selectDepthModel(self, key):
+        if self.active or self.desktop.busy:
+            return
+        selected = next((entry for entry in self.depthChoices if entry['key'] == key), None)
+        if selected is not None:
+            self.setMode(selected['mode'])
+            self.setLiveModel(selected['model'])
 
     @Property("QVariantList", notify=changed)
     def liveModels(self):
+        from .desktop_jobs import PORTABLE_DESKTOP
         return [
             dict(key=model, label=self.desktop.models_label(model))
             for model in live_model_choices(self.mode)
+            if not (PORTABLE_DESKTOP and model == "ovda-small-c16")
         ]
 
     @Property(str, notify=changed)
@@ -307,6 +344,114 @@ class LivePreview(QObject):
     def presentationHz(self):
         return self.cadence.hz
 
+    @Property(bool, notify=changed)
+    def vfgEnabled(self):
+        return self.vfg_enabled
+
+    @Property(bool, constant=True)
+    def vfgConfigurable(self):
+        return self.vfg_configurable
+
+    @Property(str, notify=changed)
+    def vfgUnavailableReason(self):
+        from .vfg_runtime import unavailable_reason
+        return unavailable_reason(self.live_model, self.kind,
+                                  self.nativeEnabled, self.gpu_candidate and
+                                  os.environ.get('DEPTHSBS_GPU_CAPTURE', '1') != '0',
+                                  os.environ.get('DEPTHSBS_STEREO_RENDERER', 'cuda'))
+
+    @Slot(bool)
+    def setVfg(self, enabled):
+        if not self.vfg_configurable or self.vfg_switch is not None or enabled == self.vfg_enabled:
+            return
+        if self.stopping or self.desktop.closing or (self.desktop.busy and not self.active):
+            return
+        if enabled and self.vfgUnavailableReason:
+            self.reportError(self.vfgUnavailableReason)
+            return
+        if self.active:
+            try:
+                if enabled:
+                    from .vfg_runtime import validate_runtime
+                    validate_runtime()
+                self.vfgNotification.emit("", False)
+                image = (self.output_window.grabWindow()
+                         if self.output_window is not None and self.output_window.isVisible()
+                         and self.hasFrame else QImage())
+                self.vfg_switch = dict(enabled=bool(enabled), source=dict(self.source),
+                                       phase="stopping", aspect=self.outputAspect)
+                self.transition_provider.image = image
+                self.version += 1
+                self.stop(switching=True)
+                self.message = "VFG 켜는 중…" if enabled else "VFG 끄는 중…"
+                self.vfgNotification.emit("VFG 준비 중…" if enabled else "VFG 끄는 중…", True)
+                self.frameChanged.emit()
+                self.changed.emit()
+            except Exception as error:
+                self._cancel_vfg_switch()
+                self.frameChanged.emit()
+                self.reportError(error)
+            return
+        self.vfg_enabled = bool(enabled)
+        self.changed.emit()
+
+    @Slot()
+    def toggleVfg(self):
+        self.setVfg(not self.vfg_enabled)
+
+    @Property(bool, notify=changed)
+    def vfgSwitching(self):
+        return self.vfg_switch is not None
+
+    @Property(str, notify=changed)
+    def vfgShortcut(self):
+        return self.vfg_shortcut
+
+    @Property(str, notify=frameChanged)
+    def transitionImageUrl(self):
+        return f"image://transition/{self.session}/{self.version}" if not self.transition_provider.image.isNull() else ""
+
+    def _cancel_vfg_switch(self, *, completed=False):
+        pending = self.vfg_switch
+        self.vfg_switch = None
+        self.transition_provider.image = QImage()
+        self.vfgNotification.emit(
+            ("VFG ON" if pending["enabled"] else "VFG OFF") if completed and pending else "",
+            False,
+        )
+
+    def _restart_vfg(self):
+        pending = self.vfg_switch
+        self.vfg_enabled = pending["enabled"]
+        source = pending["source"]
+        self.selected = next((i for i, item in enumerate(self.items)
+                              if item.get("id") == source.get("id") and item.get("pid") == source.get("pid")), -1)
+        if self.selected < 0:
+            self.items.append(source)
+            self.selected = len(self.items) - 1
+        pending["phase"] = "starting"
+        self.start()
+        if not self.active:
+            self._cancel_vfg_switch()
+            self.frameChanged.emit()
+            self.changed.emit()
+
+    def notifyNativeFrame(self):
+        self.version += 1
+        self.notifyFrame()
+
+    def closeNativeWakeup(self):
+        self.delivery_timer.stop()
+        if self.native_wakeup is not None:
+            self.native_wakeup.close()
+            self.native_wakeup.deleteLater()
+            self.native_wakeup = None
+
+    @Slot()
+    def nativeFrameReady(self):
+        if self.active and not self.stopping:
+            self.poll()
+
     @Slot(str)
     def setProcessingPath(self, path):
         if self.active:
@@ -367,6 +512,16 @@ class LivePreview(QObject):
             self.ovda_noncommercial = bool(confirmed)
             self.changed.emit()
 
+    @Slot()
+    def rememberSelection(self):
+        # Only user activation calls this; diagnostic setters and comparison
+        # launchers cannot overwrite ordinary app preferences.
+        if not self.active and not self.desktop.busy and self.vfg_configurable:
+            try:
+                self.desktop.preferences.remember('live', self.mode, self.live_model, self.stereo_layout)
+            except (ValueError, OSError) as error:
+                self.reportError(error)
+
     @Property("QStringList", notify=changed)
     def outputScreens(self):
         return [
@@ -391,6 +546,10 @@ class LivePreview(QObject):
             self.strength = validate_strength(value)
             self.changed.emit()
 
+    @Slot()
+    def resetStrength(self):
+        self.setStrength(DEFAULT_LIVE_STRENGTH)
+
     @Slot(int, bool)
     def requestOutput(self, index, fullscreen):
         try:
@@ -402,7 +561,6 @@ class LivePreview(QObject):
 
     @Slot(int, bool)
     def showOutput(self, index, fullscreen):
-        from .capture_sources import exclude_preview
         from .output_placement import fit_rect
 
         screens = QGuiApplication.screens()
@@ -414,17 +572,23 @@ class LivePreview(QObject):
             window.setGeometry(fit_rect(self.output_placement.rect, screens[index].availableGeometry()))
         else:
             window.setPosition(screens[index].geometry().topLeft())
-        self.output_excluded = exclude_preview(window.winId())
-        if not self.output_excluded:
+        if not self.configureOutputCapture(window):
             self.reportError(
-                "SBS 출력 창의 재캡처 차단에 실패했습니다. 출력 창을 열지 않습니다."
+                "SBS 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다."
             )
             return
         window.showFullScreen() if fullscreen else window.showNormal()
-        self.output_excluded = exclude_preview(window.winId())
-        if not self.output_excluded:
+        if not self.configureOutputCapture(window):
             window.hide()
-            self.abort("출력 창 캡처 제외 실패로 중단했습니다.")
+            self.abort("출력 창 캡처 정책 설정 실패로 중단했습니다.")
+
+    def configureOutputCapture(self, window):
+        from .capture_sources import set_output_affinity
+
+        exclude = self.kind != 'window'
+        applied = set_output_affinity(window.winId(), exclude)
+        self.output_excluded = applied and exclude
+        return applied
 
     @Slot()
     def rememberOutput(self):
@@ -447,6 +611,47 @@ class LivePreview(QObject):
         finally:
             self._restore_output = False
 
+    @Slot(result=str)
+    def outputSummary(self):
+        now = time.perf_counter_ns()
+        seconds = min(2.0, (now / 1e9 - self.started)) if self.started else 0
+        since = now - 2_000_000_000
+        if self.nativeEnabled and self.native is not None:
+            samples = self.native.recent_output(since)
+        else:
+            samples = [s for s in self.output_samples if s[0] >= since]
+        originals = [s for s in samples if s[2] == 0]
+        def rate(count):
+            return f"{count / seconds:.0f}" if seconds > 0 and self.active else "—"
+        ages = [(end - source) / 1e6 for end, source, _ in originals if source > 0]
+        delay = f"{median(ages):.0f} ms" if ages else "—"
+        from .gpu_usage import usage_text
+        stats = self._stats()
+        gpu = usage_text(stats[GPU_USAGE], stats[GPU_USAGE_NS], now, active=self.active)
+        return (f"원본 {rate(len(originals))} · 출력 {rate(len(samples))} · "
+                f"보간 {rate(len(samples) - len(originals))} fps · 지연 {delay} · {gpu}")
+
+    @Property(float, notify=changed)
+    def outputAspect(self):
+        if self.meta[HEIGHT]:
+            return self.meta[WIDTH] / self.meta[HEIGHT]
+        return self.vfg_switch.get("aspect", 0) if self.vfg_switch is not None else 0
+
+    @Property(str, notify=changed)
+    def stereoLayout(self):
+        return self.stereo_layout
+
+    @Property(str, notify=changed)
+    def stereoLayoutLabel(self):
+        return LAYOUTS[self.stereo_layout]
+
+    @Slot(str)
+    def setStereoLayout(self, layout):
+        from .stereo_layout import LAYOUTS
+        if not self.active and layout in LAYOUTS:
+            self.stereo_layout = layout
+            self.changed.emit()
+
     @Slot()
     def outputFrameSwapped(self):
         if (
@@ -456,6 +661,7 @@ class LivePreview(QObject):
             and self.output_window.isVisible()
         ):
             self.output_presented += 1
+            self.output_samples.append((time.perf_counter_ns(), self.output_source_ns, 0))
             self.output_latencies.append(
                 (time.perf_counter_ns() - self.output_pending) / 1e6
             )
@@ -463,12 +669,10 @@ class LivePreview(QObject):
 
     @Slot()
     def outputVisibilityChanged(self):
-        from .capture_sources import exclude_preview
         if self.output_window is not None and self.output_window.isVisible():
-            self.output_excluded = exclude_preview(self.output_window.winId())
-            if not self.output_excluded:
+            if not self.configureOutputCapture(self.output_window):
                 self.output_window.hide()
-                self.abort("출력 창 캡처 제외 실패로 중단했습니다.")
+                self.abort("출력 창 캡처 정책 설정 실패로 중단했습니다.")
         else:
             self.output_pending = None
 
@@ -605,6 +809,12 @@ class LivePreview(QObject):
             from .live_backend import validate_snapshot
 
             validate_snapshot(backend_snapshot, self.mode)
+            from .live_sbs import resolve_gpu_capture, resolve_renderer
+            from .vfg_runtime import validate_selection
+            self.gpu_capture_selected = self.sbs and resolve_gpu_capture(source, self.live_model, self.gpu_candidate)
+            self.stereo_renderer = resolve_renderer(self.live_model, self.gpu_candidate, self.strength) if self.sbs else 'cuda'
+            validate_selection(self.vfg_enabled, self.live_model, source['kind'],
+                               self.nativeEnabled, self.gpu_capture_selected, self.stereo_renderer)
             if self.nativeEnabled and self.live_model not in NATIVE_MODELS:
                 raise ValueError(
                     "선택한 실시간 모델은 GPU 직접 출력을 지원하지 않습니다."
@@ -624,8 +834,22 @@ class LivePreview(QObject):
 
                 self.capture_telemetry = CaptureTelemetry.create(context)
             self.texture_mailbox = None
+            self.closeNativeWakeup()
+            self.cadence = delivery_cadence(self.cadence.hz, native=self.nativeEnabled, vfg=self.vfg_enabled)
             if self.nativeEnabled:
                 from .texture_mailbox import TextureMailbox
+
+                if self.vfg_enabled:
+                    from .vfg_delivery import TimedMailbox, TimedDelivery
+                    if not isinstance(self.native, TimedDelivery):
+                        if self.native is not None:
+                            self.native.end()
+                        self.native = TimedDelivery()
+                    self.native.visible = lambda: self.output_window is not None and self.output_window.isVisible()
+                    TextureMailbox = TimedMailbox
+                elif getattr(self.native, 'vfg_delivery', False):
+                    self.native.end()
+                    self.native = None
 
                 if self.native is None:
                     from .native_delivery import NativeDelivery
@@ -637,6 +861,10 @@ class LivePreview(QObject):
                         ) from error
                 self.native.begin(self.session + 1)
                 self.texture_mailbox = TextureMailbox.create(context)
+                self.native_wakeup = FrameWakeup(self)
+                self.native_wakeup.ready.connect(self.nativeFrameReady)
+                self.native_wakeup.failed.connect(self.abort)
+                self.texture_mailbox.wake_writer = self.native_wakeup.writer
             self.mailbox = Mailbox.create(
                 context, sbs=self.sbs, metadata_only=self.nativeEnabled
             )
@@ -656,15 +884,7 @@ class LivePreview(QObject):
                     self.processing_stats,
                     self.strength,
                     self.mode,
-                    self.gpu_candidate
-                    if self.live_model
-                    in (
-                        "da2-small",
-                        "da2-base",
-                        "vda-small",
-                        "ovda-small-c16",
-                    )
-                    else False,
+                    self.gpu_candidate,
                     *(
                         [self.texture_mailbox, self.session + 1]
                         if self.nativeEnabled
@@ -676,7 +896,9 @@ class LivePreview(QObject):
                 kwargs={
                     "capture_telemetry": self.capture_telemetry,
                     **({"backend_snapshot": backend_snapshot, "gpu_capture_snapshot": self.gpu_capture_selected,
-                        "renderer_snapshot": self.stereo_renderer,"preparation": self.preparation} if self.sbs else {}),
+                        "renderer_snapshot": self.stereo_renderer,"preparation": self.preparation,
+                        "vfg_enabled": self.vfg_enabled,"output_hz": self.cadence.hz,
+                        "stereo_layout": self.stereo_layout} if self.sbs else {}),
                 },
                 daemon=True,
             )
@@ -687,6 +909,7 @@ class LivePreview(QObject):
             self.output_presented = 0
             self.output_pending = None
             self.output_latencies.clear()
+            self.output_samples.clear()
             self.meta = [0] * 12
             self.latencies.clear()
             self.callback_latencies.clear()
@@ -696,9 +919,12 @@ class LivePreview(QObject):
             self.ended = None
             self.last_health = self.last_stats = self.started
             self.stopping = False
+            self.poll_count = 0
             self.message = "캡처 시작 중… 화면은 저장되지 않습니다."
+            self.timer.setInterval(self.native_wakeup.health_interval_ms if self.native_wakeup else self.cadence.poll_ms)
             self.timer.start()
         except Exception as error:
+            self.closeNativeWakeup()
             if self.nativeEnabled and self.native is not None:
                 self.native.end()
             if self.desktop.lease.owner == "live":
@@ -711,11 +937,20 @@ class LivePreview(QObject):
         self.changed.emit()
 
     @Slot()
-    def stop(self):
+    def stop(self, *, switching=False):
+        if not switching:
+            was_switching = self.vfgSwitching
+            self._cancel_vfg_switch()
+            if self.output_window is not None and (not self.active or self.stopping):
+                self.output_window.hide()
+            if was_switching:
+                self.frameChanged.emit()
+                self.changed.emit()
         if self.active and not self.stopping:
+            self.delivery_timer.stop()
             self.rememberOutput()
             self.output_placement.save()
-            if self.output_window is not None:
+            if self.output_window is not None and not switching:
                 self.output_window.hide()
             self.stopping = True
             self.stop_started = time.perf_counter()
@@ -737,6 +972,8 @@ class LivePreview(QObject):
     def poll(self):
         if not self.active:
             return
+        self.poll_count += 1
+        self.delivery_timer.stop()
         now = time.perf_counter()
         if not self.process.is_alive():
             if self.nativeEnabled:
@@ -745,6 +982,7 @@ class LivePreview(QObject):
             self.meta = list(self.mailbox.meta)
             code = self.process.exitcode
             failure = None
+            restart = self.vfg_switch is not None and self.vfg_switch["phase"] == "stopping" and code == 0 and not self.desktop.closing
             if not self.stopping:
                 error = bytes(self.mailbox.error.value).decode("utf-8", "replace")
                 self.message = (
@@ -755,6 +993,7 @@ class LivePreview(QObject):
                 self.message = "SBS를 중지했습니다."
             self.process.join(timeout=0)
             self.process.close()
+            self.closeNativeWakeup()
             self.final_processing_stats = self._stats()
             self.processing_stats = None
             self.process = self.mailbox = None
@@ -768,6 +1007,14 @@ class LivePreview(QObject):
             self.timer.stop()
             self.desktop.lease.release("live")
             self.stopping = False
+            if restart:
+                self._restart_vfg()
+                return
+            if self.vfg_switch is not None:
+                self._cancel_vfg_switch()
+                if self.output_window is not None:
+                    self.output_window.hide()
+                failure = failure or "VFG 전환을 완료하지 못해 SBS를 중지했습니다."
             self.frameChanged.emit()
             self.changed.emit()
             self.desktop.changed.emit()
@@ -778,6 +1025,10 @@ class LivePreview(QObject):
             return
         if self.stopping:
             if now - self.stop_started > 5:
+                if self.vfg_switch is not None:
+                    self._cancel_vfg_switch()
+                    if self.output_window is not None:
+                        self.output_window.hide()
                 # Only this session's isolated worker. No output files to lose.
                 self.process.terminate()
                 if self.preparation is not None and self.preparation.value:
@@ -814,8 +1065,14 @@ class LivePreview(QObject):
                 native_changed = self.native.consume(
                     self.texture_mailbox, self.process.pid, cadence=self.cadence
                 )
-                if native_changed and not self.native.has_frame:
-                    self.frameChanged.emit()
+                if native_changed:
+                    # Publication can happen after the worker's statistics were
+                    # acknowledged. Wake the surface for the actual broker frame,
+                    # including timed VFG and retirement, not for that metadata.
+                    if self.vfg_switch is not None and self.vfg_switch["phase"] == "starting" and self.native.has_frame:
+                        self._cancel_vfg_switch(completed=True)
+                        self.changed.emit()
+                    self.notifyNativeFrame()
             except Exception as error:
                 self.abort(f"GPU 직접 프레임 전달 실패: {error}")
                 return
@@ -855,7 +1112,8 @@ class LivePreview(QObject):
                     )
                     m[ACK] = m[SEQ]
                     self.meta[ACK] = m[ACK]
-                    self.version += 1
+                    if not self.nativeEnabled:
+                        self.version += 1
                     self.submitted += 1
                     self.pending_present = (
                         None if self.nativeEnabled else (m[CALLBACK_NS], m[SOURCE_NS])
@@ -867,17 +1125,20 @@ class LivePreview(QObject):
                         and self.output_window.isVisible()
                         else None
                     )
+                    self.output_source_ns = m[SOURCE_NS]
                     self.message = (
-                        "● GPU 직접 출력 · 실험 / 녹화 안 함"
+                        ("● GPU 직접 출력 · VFG 2× / 녹화 안 함" if self.vfg_enabled
+                         else "● GPU 직접 출력 · 실험 / 녹화 안 함")
                         if self.nativeEnabled
-                        else f"● {self.liveModelLabel} 실시간 Full SBS / 녹화 안 함"
+                        else f"● {self.liveModelLabel} 실시간 {LAYOUTS[self.stereo_layout]} / 녹화 안 함"
                         if self.sbs
                         else "● 캡처 중 · 원본 미리보기 / 녹화 안 함"
                     )
-                    if self.notify_unlocked:
-                        notify = True
-                    else:
-                        self.notifyFrame()
+                    if not self.nativeEnabled:
+                        if self.notify_unlocked:
+                            notify = True
+                        else:
+                            self.notifyFrame()
             except Exception as failure:
                 error = f"화면 프레임 전달 실패: {failure}"
             finally:
@@ -890,6 +1151,13 @@ class LivePreview(QObject):
         if now - self.last_stats > 0.5:
             self.last_stats = now
             self.changed.emit()
+        if self.nativeEnabled and self.native_wakeup is not None and self.native_wakeup.event_driven and not self.stopping:
+            try:
+                delay = self.native.next_poll_delay_ns(self.texture_mailbox, self.cadence, time.perf_counter_ns())
+                if delay is not None:
+                    self.delivery_timer.start(max(1, (delay + 999_999) // 1_000_000))
+            except Exception as error:
+                self.abort(f"GPU 직접 출력 대기 실패: {error}")
 
     def notifyFrame(self):
         began = time.perf_counter_ns()
@@ -917,12 +1185,7 @@ class LivePreview(QObject):
     def report(self):
         fused_live = self.live_model == "da2-small" and self.gpu_candidate
         source_device_live = (
-            self.live_model
-            in (
-                "da2-base",
-                "vda-small",
-                "ovda-small-c16",
-            )
+            self.live_model in NATIVE_MODELS and self.live_model != "da2-small"
             and self.gpu_candidate
         )
         gpu_live = fused_live or source_device_live
@@ -938,7 +1201,7 @@ class LivePreview(QObject):
             learned_renderer_contract=(
                 'RowFlow v3 symmetric; fixed-shape fullgraph compile; FP16 autocast; '
                 'divergence=100*policy.divergence; convergence=policy.convergence; '
-                'steps=1; calibrated eye swap; CUDA conservative coverage flag not used; '
+                'steps=1; standard left/right eye order; CUDA conservative coverage flag not used; '
                 'owned RGB/depth GPU copies and finite scalar readbacks'
                 if self.stereo_renderer=='rowflow-sym' else None
             ),
@@ -963,8 +1226,10 @@ class LivePreview(QObject):
             output_frame_swaps=self.output_presented,
             output_callback_to_swap_ms=list(self.output_latencies),
             processed_frames=self._stats()[0],
+            stereo_layout=self.stereo_layout,
             inference_frames=self._stats()[10],
             reused_depth_frames=self._stats()[11],
+            reused_sbs_frames=self._stats()[SBS_REUSED],
             plan=plan,
             processing_path="gpu-texture"
             if self.nativeEnabled
@@ -977,6 +1242,9 @@ class LivePreview(QObject):
             else "reference-host-bridge",
             presentation_target_hz=self.cadence.hz,
             presentation_poll_ms=self.timer.interval(),
+            delivery_polls=self.poll_count,
+            delivery_event_driven=self.native_wakeup is not None and self.native_wakeup.event_driven,
+            delivery_poll_scope="Native timer is health fallback; frame-ready and deadline wakeups are separate" if self.native_wakeup and self.native_wakeup.event_driven else "Periodic delivery poll",
             stage_timing_scope=(
                 "candidate depth is submission; stereo includes pending GPU work"
                 if fused_live
@@ -1008,6 +1276,12 @@ class LivePreview(QObject):
                     ("input_copy", "input_color", "output_color", "output_copy"), 20
                 )
             },
+            gpu_stage_timing_available=fused_live,
+            gpu_stage_timing_scope=(
+                "Measured stream intervals including enqueue gaps; not GPU utilization"
+                if fused_live else "Unavailable for the source-depth adapter; not zero cost"
+            ),
+            background_ms=self._stats()[BACKGROUND_NS] / 1e6 if gpu_live else None,
             gpu_stage_ms={
                 name: self._stats()[index] / 1e6
                 for index, name in enumerate(
@@ -1026,7 +1300,7 @@ class LivePreview(QObject):
                     12,
                 )
             }
-            if gpu_live
+            if fused_live
             else None,
             explicit_cuda_h2d_bytes=self._stats()[7],
             explicit_cuda_d2h_bytes=self._stats()[8],
