@@ -1,4 +1,5 @@
 """Read-only installation inventory in an isolated process, never engine load."""
+from .messages import ErrorMessage as E
 
 from .messages import Message as M
 from .messages import joined, message_value, payload
@@ -28,7 +29,7 @@ def check(model, engine, runtime, media, renderer):
 
     def exists(path):
         if not path.is_file():
-            raise ValueError(M('File not found. Check the advanced settings.'))
+            raise ValueError(E('E_SETTINGS_FILE_NOT_FOUND'))
 
     run("TensorRT", lambda: exists(Path(runtime) / "nvinfer_11.dll"))
     for tool in ("ffmpeg", "ffprobe"):

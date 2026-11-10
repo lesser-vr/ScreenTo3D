@@ -5,9 +5,23 @@ import unittest
 from unittest.mock import patch
 
 from depthsbs_app.main import build_parser, run_worker
+from depthsbs_app.messages import ErrorMessage as E,from_payload
+from depthsbs_app.error_reporting import error_event
 
 
 class WorkerErrorPrivacyTests(unittest.TestCase):
+    def test_typed_errors_keep_id_and_redact_parameters_and_notes_by_default(self):
+        error=ValueError(E('E_OUTPUT_FRAME_DELIVERY',v0='C:/private/SECRET',details='SECRET native code'))
+        error.add_note('SECRET note')
+        event=error_event(error)
+        self.assertEqual(event['error_id'],'E_OUTPUT_FRAME_DELIVERY')
+        self.assertEqual(from_payload(event['localized']).error_id,'E_OUTPUT_FRAME_DELIVERY')
+        self.assertNotIn('SECRET',json.dumps(event))
+        detailed=error_event(error,detailed=True)
+        self.assertEqual(detailed['error_id'],event['error_id'])
+        self.assertIn('SECRET',from_payload(detailed['localized']).details)
+        self.assertEqual(detailed['notes'],['SECRET note'])
+
     def invoke(self, detailed=False, cancellation=False):
         values = ['--mode', 'performance']
         if detailed:

@@ -1,31 +1,25 @@
-"""Default worker errors omit arbitrary exception text; private detail is opt-in."""
-from .messages import Message, payload
+"""Stable worker error IDs; private exception detail remains explicitly opt-in."""
+from .catalogs import ERRORS
+from .messages import ErrorMessage, as_error, message_value, payload
+
 
 def error_event(error, *, detailed=False):
-    text = str(error)
-    categories = (
-        ('H.264 Full SBS output width', 'output_geometry', Message('The selected codec cannot preserve this Full SBS width. For 4K input, explicitly select HEVC.')),
-        ('HEVC Full SBS output width', 'output_geometry', Message('Full SBS width exceeds the validated HEVC profile. Check source dimensions.')),
-        ('Decode', 'decode', Message('Video decoding failed. Check that the input plays correctly.')),
-        ('Decoder', 'decode', Message('Video decoding failed. Check that the input plays correctly.')),
-        ('NVENC', 'encode', Message('Video encoding failed. Check the selected codec and GPU support.')),
-        ('Audio mux', 'mux', Message('Audio finalization failed. Check the input audio and destination.')),
-        ('Mux produced', 'mux', Message('No final media was produced. The previous output was preserved.')),
-        ('Input and output', 'paths', Message('Input and output must be different files.')),
-        ('Cancel marker', 'paths', Message('The cancellation marker must be separate from media files.')),
-        ('TensorRT', 'backend', Message('Depth runtime failed. Check the selected model and validated runtime.')),
-        ('Depth model', 'backend', Message('The selected depth model is missing. Check the model installation.')),
-        ('CUDA', 'gpu', Message('GPU processing failed. Stop the job and restart its session.')),
-    )
-    code, message = 'conversion', Message('Conversion failed. Check input, output access and selected model. Explicit detailed errors can provide private diagnostics.')
-    for prefix, candidate, guidance in categories:
-        if text.startswith(prefix):
-            code, message = candidate, guidance
-            break
-    event = dict(event='error', type=type(error).__name__, code=code, message=message,
-                 cleanup_failed=bool(getattr(error, '__notes__', None)))
+    value=message_value(error)
+    typed=as_error(value)
+    if typed.error_id=='E_UNKNOWN' and not isinstance(value,ErrorMessage):
+        # Compatibility adapter for unconverted media tools and third-party errors.
+        # Typed application errors never depend on English/translated wording.
+        text=str(error)
+        error_id=next((key for key,item in ERRORS.items()
+                       if any(text.startswith(prefix) for prefix in item.get('legacy_prefixes',[]))), 'E_CONVERSION')
+        typed=ErrorMessage(error_id)
+    definition=ERRORS.get(typed.error_id,ERRORS['E_UNKNOWN'])
+    public=ErrorMessage(typed.error_id,public=True)
+    diagnostics='\n'.join(dict.fromkeys(filter(None,[str(error),typed.details,*getattr(error,'__notes__',[])]))) if detailed else ''
+    shown=ErrorMessage(typed.error_id,details=diagnostics[:16000],**typed.values) if detailed else public
+    event=dict(event='error',type=type(error).__name__,code=definition['category'],
+               error_id=typed.error_id,message=str(error) if detailed else str(public),
+               localized=payload(shown),cleanup_failed=bool(getattr(error,'__notes__',None)))
     if detailed:
-        event.update(message=text, notes=getattr(error, '__notes__', []))
-    else:
-        event['localized'] = payload(message)
+        event['notes']=getattr(error,'__notes__',[])
     return event

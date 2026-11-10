@@ -1,5 +1,5 @@
+from .messages import ErrorMessage as E
 
-from .messages import Message as M
 from dataclasses import dataclass
 
 
@@ -87,5 +87,5 @@ DEFAULT_MODE_MODELS = {
 
 def validate_mode_model(mode, model):
     if mode not in MODES or model not in MODE_MODEL_CHOICES.get(mode, ()):
-        raise ValueError(M('The processing mode and depth model do not match.'))
+        raise ValueError(E('E_MODEL_MODE_MISMATCH'))
     return model
