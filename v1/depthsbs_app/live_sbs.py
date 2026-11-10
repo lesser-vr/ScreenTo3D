@@ -5,6 +5,9 @@ Native delivery exports owned D3D resources through bounded descriptors only.
 No frame is recorded and no CPU renderer fallback occurs.
 """
 
+from .messages import Message as M
+from .messages import decode_message, encode_message
+
 import multiprocessing as mp
 import os
 import threading
@@ -136,7 +139,7 @@ def record_ovda_inference(stats, cached):
 
 def validate_strength(value):
     if not 0.25 <= value <= 2.0:
-        raise ValueError("입체감은 0.25–2.0 범위여야 합니다.")
+        raise ValueError(M('Depth strength must be between 0.25 and 2.0.'))
     return float(value)
 
 
@@ -145,7 +148,7 @@ def resolve_renderer(model, gpu, strength=1.0, setting=None):
     if setting not in ('cuda','rowflow-sym'):
         raise ValueError('DEPTHSBS_STEREO_RENDERER must be cuda or rowflow-sym')
     if setting=='rowflow-sym' and (not model_adapter(model).rowflow or not gpu or not 0.25 <= strength <= 5/2.6):
-        raise ValueError('RowFlow 시험은 균형(Base) GPU 경로와 입체 강도 1.92 이하를 사용하세요.')
+        raise ValueError(M('The RowFlow trial requires the Balanced/Base GPU path and depth strength at most 1.92.'))
     return setting
 
 
@@ -371,10 +374,10 @@ def sbs_worker(
                     with incoming.lock:
                         m = list(incoming.meta)
                         if m[STATE] == FAILED:
-                            raise RuntimeError(incoming.error.value.decode('utf-8', 'replace'))
+                            raise RuntimeError(decode_message(bytes(incoming.error.value)))
                         if m[SEQ] <= m[ACK]:
                             if not capture.is_alive():
-                                raise RuntimeError('캡처 작업자가 종료되었습니다.')
+                                raise RuntimeError(M('The capture worker exited.'))
                             wait_seconds = .001
                             continue
                         wait_seconds = 0.0 if fused else .001
@@ -443,7 +446,7 @@ def sbs_worker(
                         if renderer=='rowflow-sym':
                             from .rowflow import RowFlowRenderer
                             if preparation is not None:
-                                preparation.value = '입체화 준비 중… 처음 사용하는 화면 크기는 최적화에 시간이 걸릴 수 있습니다.'.encode('utf-8')
+                                preparation.value = encode_message(M('Preparing stereo… Optimization may take time for a new screen size.'), limit=500)
                             projection = projection_scope.enter_context(RowFlowRenderer(
                                 width,height,policy,engine,native=native,stop=output.stop))
                             if preparation is not None:preparation.value = b''

@@ -1,4 +1,7 @@
 """Isolated builder for the verified Base and VDA ONNX distribution graphs."""
+
+from .messages import Message as M
+from .messages import encode_message
 import hashlib
 import sys
 from pathlib import Path
@@ -22,7 +25,7 @@ def sample_outputs(folder, key, width):
     for stage in (('model',) if base else ('warmup', 'cached')):
         engine = runtime.deserialize_cuda_engine((folder/f'{stage}.plan').read_bytes())
         if engine is None:
-            raise RuntimeError(f'{stage} 엔진을 열 수 없습니다.')
+            raise RuntimeError(M('Cannot open the {v0} engine.', v0=stage))
         ctx = engine.create_execution_context()
         image_shape = (1, 3, 518, width) if base else (1, 1, 3, 518, width)
         inputs = {'image': torch.from_numpy(rng.uniform(-1, 1, image_shape).astype('float32')).cuda()}
@@ -42,7 +45,7 @@ def sample_outputs(folder, key, width):
                     or not ctx.set_tensor_address(name, tensor.data_ptr())):
                 raise ValueError(f'Invalid engine tensor: {name}')
         if not ctx.execute_async_v3(torch.cuda.current_stream().cuda_stream):
-            raise RuntimeError('엔진 시험 실행에 실패했습니다.')
+            raise RuntimeError(M('The engine test run failed.'))
         torch.cuda.synchronize()
         for name, tensor in outputs.items():
             if not bool(tensor.isfinite().all()):
@@ -64,7 +67,7 @@ def compile_graph(graph_bytes, destination, trt, logger):
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 2 * 1024**3)
     plan = builder.build_serialized_network(network, config)
     if plan is None:
-        raise RuntimeError('TensorRT 엔진 생성 실패. 드라이버와 GPU 여유 메모리를 확인하세요.')
+        raise RuntimeError(M('TensorRT engine build failed. Check the driver and available GPU memory.'))
     data = bytes(plan)
     destination.write_bytes(data)
     return dict(file=destination.name, sha256=hashlib.sha256(data).hexdigest(), bytes=len(data))
@@ -80,7 +83,7 @@ def build(key, folder):
     runtime_directory = prepare_dll_search_path()
     import tensorrt as trt
     if trt.__version__ != TRT_VERSION:
-        raise ValueError('TensorRT 버전이 배포 구성과 다릅니다.')
+        raise ValueError(M('The TensorRT version does not match this distribution.'))
     device = device_identity()
     logger = trt.Logger(trt.Logger.ERROR)
     profiles = {}
@@ -93,7 +96,7 @@ def build(key, folder):
             graph = profile/f'{stage}.onnx'
             graph_bytes = graph.read_bytes()
             if hashlib.sha256(graph_bytes).hexdigest() != GRAPH_HASHES[key][width][stage]:
-                raise ValueError('모델 그래프 검증 실패')
+                raise ValueError(M('Model graph verification failed'))
             engines[stage] = compile_graph(graph_bytes, profile/f'{stage}.plan', trt, logger)
             del graph_bytes
             graph.unlink()
@@ -116,5 +119,5 @@ if __name__ == '__main__':
     try:
         build(sys.argv[1], Path(sys.argv[2]))
     except Exception as exc:
-        Path(sys.argv[3]).write_text(str(exc)[:2000], encoding='utf-8')
+        Path(sys.argv[3]).write_bytes(encode_message(exc, limit=2000))
         raise

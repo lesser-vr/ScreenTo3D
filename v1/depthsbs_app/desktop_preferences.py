@@ -1,4 +1,6 @@
 """Validated user selections; never persist sources, artifacts or license consent."""
+
+from .messages import Message as M
 from PySide6.QtCore import QSettings
 
 from .config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES
@@ -25,9 +27,9 @@ class DesktopPreferences:
 
     def remember(self, scope, mode, model, layout):
         if scope not in ('live', 'file') or model not in MODE_MODEL_CHOICES.get(mode, ()) or layout not in LAYOUTS:
-            raise ValueError('저장할 처리 모드 또는 입체 출력 형식을 확인하세요.')
+            raise ValueError(M('Check the processing mode and stereo layout to save.'))
         for key, value in (('mode', mode), ('model', model), ('stereoLayout', layout)):
             self.store.setValue(f'{scope}/{key}', value)
         self.store.sync()
         if self.store.status() != QSettings.NoError:
-            raise OSError('선택한 설정을 저장하지 못했습니다. 사용자 설정 저장 권한을 확인하세요.')
+            raise OSError(M('Cannot save your selections. Check access to the application settings.'))

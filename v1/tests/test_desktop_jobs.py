@@ -37,7 +37,7 @@ class DesktopJobTests(unittest.TestCase):
             {"vda-small", "ovda-small-c16"},
         )
         self.assertEqual(MODE_MODEL_CHOICES["offline-quality"], ("vda-small",))
-        with self.assertRaisesRegex(ValueError, "일치하지 않습니다"):
+        with self.assertRaisesRegex(ValueError, "do not match"):
             replace(self.job, model="da2-small").validate()
 
     def test_no_input_overwrite(self):

@@ -83,7 +83,7 @@ class OvdaTests(unittest.TestCase):
         self.assertEqual(set(ovda.PROFILES),{(518,924)})
         self.assertEqual(ovda.PROFILE_SUFFIX,'fp16')
         self.assertEqual(ovda.RUNTIME,'tensorrt-mixed-fp16')
-        self.assertEqual(model_info('ovda-small-c16')[1],'FP16 혼합')
+        self.assertEqual(model_info('ovda-small-c16')[1],'Mixed FP16')
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);(root/'518x924-fp32').mkdir()
             (root/'518x924-fp32/model.plan').write_bytes(b'old engine')

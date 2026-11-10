@@ -1,5 +1,7 @@
 """Isolated Windows Graphics Capture process; single bounded CPU readback slot."""
 
+from .messages import Message as M
+
 import time
 import multiprocessing as mp
 import os
@@ -105,7 +107,7 @@ def capture_worker(
                     4,
                 ):
                     raise ValueError(
-                        "지원하지 않는 캡처 픽셀 형식입니다. SDR 원본 미리보기만 지원합니다."
+                        M('Unsupported capture pixel format. Only SDR preview is supported.')
                     )
                 sequence += 1
                 source_ns = int(frame.timespan) * 100
@@ -151,7 +153,7 @@ def capture_worker(
         def on_closed():
             if not mailbox.stop.is_set():
                 mailbox.fail(
-                    "캡처 대상이 닫혔거나 접근이 중단되었습니다. 대상을 다시 선택하세요."
+                    M('The capture source closed or became inaccessible. Select the source again.')
                 )
 
         control = capture.start_free_threaded()

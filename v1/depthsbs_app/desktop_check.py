@@ -1,5 +1,8 @@
 """Read-only installation inventory in an isolated process, never engine load."""
 
+from .messages import Message as M
+from .messages import joined, message_value, payload
+
 import importlib.metadata
 import json
 import sys
@@ -19,13 +22,13 @@ def check(model, engine, runtime, media, renderer):
     def run(label, action):
         try:
             action()
-            checks.append((True, label + " · 확인됨"))
+            checks.append((True, label + M(' · Verified')))
         except Exception as error:
-            checks.append((False, label + " · " + str(error)))
+            checks.append((False, label + " · " + message_value(error)))
 
     def exists(path):
         if not path.is_file():
-            raise ValueError("파일이 없습니다. 고급 설정을 확인하세요.")
+            raise ValueError(M('File not found. Check the advanced settings.'))
 
     run("TensorRT", lambda: exists(Path(runtime) / "nvinfer_11.dll"))
     for tool in ("ffmpeg", "ffprobe"):
@@ -37,23 +40,23 @@ def check(model, engine, runtime, media, renderer):
     elif model == "da2-base":
         from .da2_base import profiles
 
-        run("DA2 Base 프로필", lambda: profiles(Path(engine)))
+        run(M('DA2 Base profiles'), lambda: profiles(Path(engine)))
     elif model == "vda-small":
         from .vda_artifacts import artifact_profiles
 
-        run("VDA 프로필", lambda: artifact_profiles(Path(engine)))
+        run(M('VDA profiles'), lambda: artifact_profiles(Path(engine)))
     else:
         raise ValueError("Unknown model")
     if renderer == "cuda":
         from .local_projection import checked_dll
 
-        run("CUDA 스테레오", checked_dll)
-    return all(ok for ok, _ in checks), "\n".join(text for _, text in checks)
+        run(M('CUDA stereo'), checked_dll)
+    return all(ok for ok, _ in checks), joined("\n", (text for _, text in checks))
 
 
 if __name__ == "__main__":
     try:
         ready, message = check(*sys.argv[1:])
-        print(json.dumps({"ready": ready, "message": message}, ensure_ascii=False))
+        print(json.dumps({"ready": ready, "message": message, "localized": payload(message)}, ensure_ascii=False))
     except Exception as error:
-        print(json.dumps({"ready": False, "message": str(error)}, ensure_ascii=False))
+        print(json.dumps({"ready": False, "message": str(error), "localized": payload(error)}, ensure_ascii=False))

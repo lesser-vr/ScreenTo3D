@@ -1,5 +1,7 @@
 """Application-owned Windows global hotkey; never intercept another app's key."""
 
+from .messages import Message as M
+
 import ctypes
 import sys
 from ctypes import wintypes
@@ -31,9 +33,9 @@ class VfgHotkey(QAbstractNativeEventFilter):
         if self.registered:
             app.installNativeEventFilter(self)
             app.aboutToQuit.connect(self.close)
-            live.vfg_shortcut = f"VFG 켜기/끄기 · {self.shortcut}"
+            live.vfg_shortcut = M('Toggle VFG · {v0}', v0=self.shortcut)
         else:
-            live.vfg_shortcut = f"{self.shortcut} 등록 실패 · 다른 앱의 단축키 사용을 확인하세요."
+            live.vfg_shortcut = M('Cannot register {v0} · Check whether another app uses this shortcut.', v0=self.shortcut)
         live.changed.emit()
 
     def nativeEventFilter(self, event_type, message):

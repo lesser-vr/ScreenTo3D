@@ -1,5 +1,7 @@
 """Explicit live-only refinements; file policies are not mutated."""
 
+from .messages import Message as M
+
 from dataclasses import asdict, dataclass, replace
 from .config import MODES
 
@@ -43,16 +45,16 @@ LIVE_MODES = {
         "performance",
         DA2_LIVE_GUIDE_RADIUS,
         True,
-        "낮은 처리 비용 · 정적인 장면에서 깊이 재사용",
+        M('Lower processing cost · Reuse depth in static scenes'),
     ),
     "balanced": LivePolicy(
-        "balanced", DA2_LIVE_GUIDE_RADIUS, True, "기본 균형 · 매 처리 프레임 추론 · 배경/경계 보정"
+        "balanced", DA2_LIVE_GUIDE_RADIUS, True, M('Balanced default · Infer each processed frame · Background and edge refinement')
     ),
     "video-quality": LivePolicy(
         "video-quality",
         12,
         True,
-        "강한 시간 안정화 · 매 처리 프레임 추론 · 넓은 경계 가이드",
+        M('Stronger temporal stabilization · Infer each processed frame · Wider edge guide'),
     ),
 }
 
@@ -60,7 +62,7 @@ LIVE_MODES = {
 def resolve_live(mode, strength=1.0):
     if mode not in LIVE_MODES:
         raise ValueError(
-            "Offline Quality는 파일 전용입니다. 지원되는 실시간 모드를 선택하세요."
+            M('Offline Quality is available for files only. Select a supported live mode.')
         )
     return LIVE_MODES[mode].resolve(strength)
 

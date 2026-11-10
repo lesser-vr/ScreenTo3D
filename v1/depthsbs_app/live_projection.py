@@ -1,5 +1,7 @@
 """Pinned local paired-eye CUDA handoff; no native capture/Qt texture sharing."""
 
+from .messages import Message as M
+
 import ctypes
 import hashlib
 import numpy as np
@@ -22,7 +24,7 @@ class LiveProjection(CudaProjection):
             or hashlib.sha256(path.read_bytes()).hexdigest() != expected
         ):
             raise ValueError(
-                "라이브 CUDA DLL 검증 실패: 검증된 로컬 빌드가 필요합니다."
+                M('Live CUDA DLL verification failed. A validated local build is required.')
             )
         super().__init__(width, height, dll_path=path)
         self.dll.projection_run_pair.argtypes = [ctypes.c_void_p] * 6 + [ctypes.c_int]

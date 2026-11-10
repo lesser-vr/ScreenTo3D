@@ -1,4 +1,7 @@
 """Pinned optional downloads. Only a fully verified installation becomes visible."""
+
+from .messages import Message as M
+from .messages import decode_message
 import hashlib
 import os
 import shutil
@@ -26,13 +29,13 @@ class Pack:
 PACKS = {
     'da2-base': Pack('DA2 Base', 'da2-base-onnx-v1.zip', 392348171,
                      '61bf0969e59e0b098ad4f968522b990d844ff7e4a0654dd82bbadfcd6b054731',
-                     '이 PC의 NVIDIA GPU에 맞춰 최적화 · CC BY-NC 4.0 비상업용'),
+                     M("Optimized for this PC's NVIDIA GPU · CC BY-NC 4.0 non-commercial use")),
     'vda-small': Pack('VDA Small', 'vda-small-onnx-v3.zip', 363291834,
                       'b4e68c45328e37b601c95f1d06a024c41c510c6c980ba2fcdec5b1030603778f',
-                      '이 PC의 NVIDIA GPU에 맞춰 최적화 · Apache 2.0'),
+                      M("Optimized for this PC's NVIDIA GPU · Apache 2.0")),
     'vfg': Pack('NVIDIA VFG', 'nvidia_vfx-0.2.0.0-cp311-cp311-win_amd64.whl', 435809365,
                 '5aaf6a42bc6b6dbbf52fcb714194c994a6893cbbf7ada38bc2165a1f83e4a6fc',
-                'NVIDIA VFX · NVIDIA 소프트웨어 및 모델 약관 적용'),
+                M('NVIDIA VFX · NVIDIA software and model terms apply')),
 }
 
 
@@ -94,12 +97,12 @@ def source_for(key):
     if origin.is_file():
         base = origin.read_text(encoding='utf-8').strip().rstrip('/')
         if urlsplit(base).scheme != 'https' or not urlsplit(base).hostname:
-            raise ValueError('모델 배포 주소를 확인하세요. HTTPS 주소가 필요합니다.')
+            raise ValueError(M('Check the model distribution URL. An HTTPS URL is required.'))
         return base + '/' + pack.filename
     for folder in (ROOT.parent / 'packs', ROOT / 'out/desktop-distribution/packs'):
         if (folder / pack.filename).is_file():
             return folder / pack.filename
-    raise FileNotFoundError('이 배포본에 모델 서버가 지정되지 않았습니다. 배포자가 제공한 모델 팩을 선택하세요.')
+    raise FileNotFoundError(M('No model server is configured in this distribution. Select a model pack provided by the distributor.'))
 
 
 def optimize(key, payload, cancelled):
@@ -110,14 +113,14 @@ def optimize(key, payload, cancelled):
         try:
             while child.poll() is None:
                 if cancelled():
-                    raise InterruptedError('설치를 취소했습니다.')
+                    raise InterruptedError(M('Installation cancelled.'))
                 try:
                     child.wait(timeout=0.2)
                 except subprocess.TimeoutExpired:
                     continue
             if child.returncode:
-                reason = error.read_text(encoding='utf-8') if error.is_file() else f'종료 코드 {child.returncode}'
-                raise RuntimeError('GPU 엔진 최적화 실패 · ' + reason)
+                reason = decode_message(error.read_text(encoding='utf-8')) if error.is_file() else M('Exit code {v0}', v0=child.returncode)
+                raise RuntimeError(M('GPU engine optimization failed · ') + reason)
         finally:
             if child.poll() is None:
                 child.kill()
@@ -131,7 +134,7 @@ def install(key, source, target, progress, cancelled):
 
     def check():
         if cancelled():
-            raise InterruptedError('설치를 취소했습니다.')
+            raise InterruptedError(M('Installation cancelled.'))
 
     with tempfile.TemporaryDirectory(prefix='.install-', dir=target.parent) as scratch:
         archive = Path(scratch) / pack.filename
@@ -141,23 +144,23 @@ def install(key, source, target, progress, cancelled):
         read = 0
         required = pack.size * (4 if key in GRAPH_HASHES else 2)
         if shutil.disk_usage(scratch).free < required:
-            raise OSError(f'설치에 약 {required / 1e9:.1f} GB의 여유 공간이 필요합니다.')
+            raise OSError(M('Installation needs about {v0:.1f} GB of free space.', v0=required / 1e9))
         check()
         with (source.open('rb') if isinstance(source, Path) else urlopen(source, timeout=12)) as stream:
             if not isinstance(source, Path) and urlsplit(stream.geturl()).scheme != 'https':
-                raise ValueError('모델 서버의 보안 연결을 확인하세요.')
+                raise ValueError(M("Check the model server's secure connection."))
             with archive.open('wb') as output:
                 while chunk := stream.read(1024 * 1024):
                     check()
                     read += len(chunk)
                     if read > pack.size:
-                        raise ValueError('다운로드 용량이 배포 기록과 다릅니다.')
+                        raise ValueError(M('The download size does not match the distribution record.'))
                     digest.update(chunk)
                     output.write(chunk)
-                    progress('파일 받는 중', read * 100 // pack.size)
+                    progress(M('Downloading files'), read * 100 // pack.size)
         if read != pack.size or digest.hexdigest() != pack.sha:
-            raise ValueError('파일 검증에 실패했습니다. 모델 팩을 다시 받으세요.')
-        progress('검증된 파일 설치 중', -1)
+            raise ValueError(M('File verification failed. Download the model pack again.'))
+        progress(M('Installing verified files'), -1)
         with ZipFile(archive) as z:
             if key == 'vfg':
                 from .vfg_runtime import PINS
@@ -169,7 +172,7 @@ def install(key, source, target, progress, cancelled):
             for member, relative in members.items():
                 dest = payload / relative
                 if not dest.resolve().is_relative_to(payload.resolve()):
-                    raise ValueError('잘못된 모델 파일 경로입니다.')
+                    raise ValueError(M('Invalid model file path.'))
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 with z.open(member) as src, dest.open('xb') as dst:
                     while chunk := src.read(1024 * 1024):
@@ -180,7 +183,7 @@ def install(key, source, target, progress, cancelled):
                 'Licensed by NVIDIA Corporation under the NVIDIA Open Model License\n', encoding='utf-8')
         else:
             check()
-            progress('이 GPU에 맞게 엔진 최적화 및 검증 중…', -1)
+            progress(M('Optimizing and validating the engine for this GPU…'), -1)
             optimize(key, payload, cancelled)
         check()
         try:

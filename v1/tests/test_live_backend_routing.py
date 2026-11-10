@@ -24,17 +24,17 @@ class LiveBackendRoutingTests(unittest.TestCase):
         )
 
     def test_offline_is_not_a_live_mode(self):
-        with self.assertRaisesRegex(ValueError, "파일 전용"):
+        with self.assertRaisesRegex(ValueError, "files only"):
             choices("offline-quality")
 
     def test_cross_mode_model_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, "일치하지 않습니다"):
+        with self.assertRaisesRegex(ValueError, "do not match"):
             validate_snapshot(self.snapshot("da2-small"), "balanced")
-        with self.assertRaisesRegex(ValueError, "일치하지 않습니다"):
+        with self.assertRaisesRegex(ValueError, "do not match"):
             validate_snapshot(self.snapshot("da2-base"), "video-quality")
 
     def test_ovda_requires_explicit_license_confirmation(self):
-        with self.assertRaisesRegex(ValueError, "라이선스"):
+        with self.assertRaisesRegex(ValueError, "license"):
             validate_snapshot(self.snapshot("ovda-small-c16"), "video-quality")
         selected = validate_snapshot(
             self.snapshot("ovda-small-c16", noncommercial=True), "video-quality"

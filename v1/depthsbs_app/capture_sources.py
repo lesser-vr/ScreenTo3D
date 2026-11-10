@@ -1,5 +1,7 @@
 """Win32 source identities. Titles are UI-only; never diagnostics identifiers."""
 
+from .messages import Message as M
+
 import ctypes as C
 from ctypes import wintypes as W
 import os
@@ -61,7 +63,7 @@ def monitors():
                     id=index,
                     handle=int(handle),
                     device=info.device,
-                    label=f"모니터 {index} · {r.right - r.left} × {r.bottom - r.top}",
+                    label=M('Monitor {v0} · {v1} × {v2}', v0=index, v1=r.right - r.left, v2=r.bottom - r.top),
                     width=r.right - r.left,
                     height=r.bottom - r.top,
                     x=r.left,
@@ -82,7 +84,7 @@ def enable_capture_dpi():
     user32.SetThreadDpiAwarenessContext.restype = C.c_void_p
     user32.SetProcessDpiAwarenessContext(C.c_void_p(-4))
     if not user32.SetThreadDpiAwarenessContext(C.c_void_p(-4)):
-        raise ValueError("캡처 작업의 DPI 좌표계를 설정하지 못했습니다.")
+        raise ValueError(M("Cannot set the capture worker's DPI coordinate system."))
 
 
 def windows():
@@ -139,22 +141,22 @@ def validate_source(source):
             for r in current
         ):
             raise ValueError(
-                "모니터 구성이 바뀌었습니다. 목록을 새로고침하고 다시 선택하세요."
+                M('The monitor configuration changed. Refresh the list and select it again.')
             )
     elif source["kind"] == "window":
         hwnd = source["id"]
         if is_sbs_output(hwnd):
-            raise ValueError("SBS 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.")
+            raise ValueError(M('An SBS output window cannot be used as input. Select the original game or video window.'))
         pid = W.DWORD()
         user32.GetWindowThreadProcessId(hwnd, C.byref(pid))
         if not user32.IsWindow(hwnd) or pid.value != source["pid"]:
-            raise ValueError("선택한 창이 종료되었습니다. 다시 선택하세요.")
+            raise ValueError(M('The selected window closed. Select another window.'))
         if user32.IsIconic(hwnd) or not user32.IsWindowVisible(hwnd):
             raise ValueError(
-                "선택한 창이 최소화되거나 숨겨졌습니다. 복원한 뒤 다시 시작하세요."
+                M('The selected window is minimized or hidden. Restore it, then restart.')
             )
     else:
-        raise ValueError("지원하지 않는 캡처 대상입니다.")
+        raise ValueError(M('Unsupported capture source.'))
     require_sdr(source)
 
 
@@ -172,7 +174,7 @@ def require_input_desktop():
     handle = user32.OpenInputDesktop(0, False, 1)
     if not handle:
         raise ValueError(
-            "화면 잠금 또는 접근 제한으로 캡처를 중단합니다. 잠금을 해제한 뒤 다시 시작하세요."
+            M('Capture stopped because the screen is locked or access is restricted. Unlock the screen, then restart.')
         )
     try:
         name = C.create_unicode_buffer(256)
@@ -184,7 +186,7 @@ def require_input_desktop():
             or name.value.casefold() != "default"
         ):
             raise ValueError(
-                "보안 화면 또는 지원하지 않는 데스크톱에서는 캡처할 수 없습니다."
+                M('Capture is unavailable on a secure or unsupported desktop.')
             )
     finally:
         user32.CloseDesktop(handle)

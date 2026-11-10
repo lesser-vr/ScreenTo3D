@@ -1,4 +1,6 @@
 """VFG opt-in policy and trusted runtime identity; no GPU/Qt imports."""
+
+from .messages import Message as M
 import hashlib
 from pathlib import Path
 
@@ -22,13 +24,13 @@ PINS = {
 
 def unavailable_reason(model, source_kind, native, gpu, renderer='cuda'):
     if model not in SUPPORTED_MODELS:
-        return 'VFG는 DA2 Small과 DA2 Base에서 사용할 수 있습니다.'
+        return M('VFG is available with DA2 Small and DA2 Base.')
     if source_kind != 'window':
-        return 'VFG는 창 캡처에서 사용할 수 있습니다.'
+        return M('VFG is available with window capture.')
     if not native or not gpu:
-        return 'VFG는 GPU 직접 출력과 GPU 캡처가 필요합니다.'
+        return M('VFG requires direct GPU output and GPU capture.')
     if renderer != 'cuda':
-        return 'VFG는 기본 입체화 방식에서 사용할 수 있습니다. RowFlow 실행기를 종료하고 일반 실행기로 시작하세요.'
+        return M('VFG requires the default stereo renderer. Close the RowFlow trial and start the normal launcher.')
     return ''
 
 
@@ -38,7 +40,7 @@ def validate_selection(enabled, model, source_kind, native, gpu, renderer='cuda'
     if enabled:
         reason = unavailable_reason(model, source_kind, native, gpu, renderer)
         if reason:
-            raise ValueError(reason + ' VFG를 끄거나 지원되는 설정을 선택하세요.')
+            raise ValueError(reason + M(' Turn off VFG or choose supported settings.'))
 
 
 def validate_runtime(sdk=None, bridge=None):
@@ -46,11 +48,11 @@ def validate_runtime(sdk=None, bridge=None):
     bridge = BRIDGE if bridge is None else Path(bridge)
     for path, expected in [(sdk / name, sha) for name, sha in PINS.items()] + [(bridge, BRIDGE_HASH)]:
         if not path.is_file():
-            raise RuntimeError('VFG 구성요소가 준비되지 않았습니다. VFG를 끄거나 설치 파일을 확인하세요.')
+            raise RuntimeError(M('VFG components are not ready. Turn off VFG or check the installation.'))
         with path.open('rb') as stream:
             actual = hashlib.file_digest(stream, 'sha256').hexdigest()
         if actual != expected:
-            raise RuntimeError('VFG 구성요소 검증에 실패했습니다. 설치 파일을 복구한 뒤 다시 시도하세요.')
+            raise RuntimeError(M('VFG component verification failed. Repair the installation, then try again.'))
     return sdk, bridge
 
 

@@ -124,20 +124,20 @@ class PreferenceTests(unittest.TestCase):
             'depthsbs_app.vda_artifacts.uses_mixed_fp16', return_value=True
         ):
             name, precision, help_text = model_info('vda-small', 'managed')
-            self.assertEqual(precision, 'FP16 혼합')
-            self.assertIn('시간축 처리·이력과 입출력은 FP32', help_text)
+            self.assertEqual(precision, 'Mixed FP16')
+            self.assertIn('history, input and output remain FP32', help_text)
         with patch('depthsbs_app.model_presentation.available', return_value=False):
-            self.assertIn('미설치', model_info('vda-small', '')[2])
+            self.assertIn('not installed', model_info('vda-small', '')[2])
 
     def test_portable_model_choices_and_order(self):
         from depthsbs_app.model_presentation import selection_choices
         choices = selection_choices(LIVE_MODES, {}, portable=True)
         self.assertEqual([c['model'] for c in choices], ['da2-small', 'da2-base', 'vda-small'])
         self.assertEqual(len({c['key'] for c in choices}), len(choices))
-        self.assertTrue(choices[0]['label'].endswith('기본'))
+        self.assertTrue(choices[0]['label'].endswith('Default'))
         offline = selection_choices(MODES, {}, portable=True)[-1]
         self.assertEqual(offline['mode'], 'offline-quality')
-        self.assertIn('5프레임', offline['label'])
+        self.assertIn('5-frame', offline['label'])
         self.assertNotIn('VFG', offline['help'])
 
 

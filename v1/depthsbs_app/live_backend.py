@@ -1,5 +1,7 @@
 """Model-defined live backend selection with no implicit fallback."""
 
+from .messages import Message as M
+
 from pathlib import Path
 
 from .config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES, MODES, validate_mode_model
@@ -7,9 +9,9 @@ from .config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES, MODES, validate_mod
 
 def choices(mode):
     if mode == "offline-quality":
-        raise ValueError("Offline Quality는 파일 전용입니다.")
+        raise ValueError(M('Offline Quality is available for files only.'))
     if mode not in MODE_MODEL_CHOICES:
-        raise ValueError("지원하지 않는 실시간 모드입니다.")
+        raise ValueError(M('Unsupported live processing mode.'))
     return MODE_MODEL_CHOICES[mode]
 
 
@@ -20,23 +22,23 @@ def default_model(mode):
 
 def validate_snapshot(snapshot, mode):
     if not isinstance(snapshot, dict):
-        raise ValueError("실시간 모델 설정이 없습니다.")
+        raise ValueError(M('No live model is configured.'))
     model = snapshot.get("model")
     validate_mode_model(mode, model)
     if model not in choices(mode):
-        raise ValueError("실시간 모드와 깊이 모델이 일치하지 않습니다.")
+        raise ValueError(M('The live mode and depth model do not match.'))
     runtime = snapshot.get("runtime")
     engine = snapshot.get("engine")
     noncommercial = snapshot.get("noncommercial", False)
     if type(noncommercial) is not bool:
-        raise ValueError("모델 라이선스 확인 값이 올바르지 않습니다.")
+        raise ValueError(M('Invalid model license confirmation.'))
     if model != "da2-small":
         if not isinstance(engine, str) or not engine:
-            raise ValueError("선택한 실시간 모델의 설치 폴더를 확인하세요.")
+            raise ValueError(M("Check the selected live model's installation folder."))
         if not isinstance(runtime, str) or not runtime:
-            raise ValueError("TensorRT 실행 환경을 확인하세요.")
+            raise ValueError(M('Check the TensorRT runtime.'))
     if model == "ovda-small-c16" and not noncommercial:
-        raise ValueError("oVDA의 개인·비상업적 사용 및 라이선스 조건을 확인하세요.")
+        raise ValueError(M('Confirm the oVDA license terms and personal, non-commercial use.'))
     return {
         "model": model,
         "engine": engine or "",
@@ -74,7 +76,7 @@ def binding(snapshot, mode, metadata, da2_engine_factory, da2_prepare):
             device_depth=True,
         )
     else:  # validate_snapshot owns the public model set.
-        raise ValueError("지원하지 않는 실시간 깊이 모델입니다.")
+        raise ValueError(M('Unsupported live depth model.'))
     if result.input_validator is not None:
         result.input_validator(metadata)
     result.validate_policy(MODES[mode])

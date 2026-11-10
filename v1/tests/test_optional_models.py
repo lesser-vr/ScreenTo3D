@@ -38,7 +38,7 @@ class OptionalInstallTests(unittest.TestCase):
     def test_corrupt_download_never_publishes(self):
         data = self.archive.read_bytes()
         self.archive.write_bytes(data[:-1] + bytes([data[-1] ^ 1]))
-        with self.assertRaisesRegex(ValueError, '검증'):
+        with self.assertRaisesRegex(ValueError, 'verification'):
             self.install()
         self.assertEqual(list(self.target.parent.iterdir()), [])
 

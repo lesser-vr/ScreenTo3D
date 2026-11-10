@@ -1,4 +1,6 @@
 """Identity and user-bound build records for locally generated TensorRT plans."""
+
+from .messages import Message as M
 import ctypes as ct
 import hashlib
 import json
@@ -26,7 +28,7 @@ def device_identity(index=0):
         ('cuDeviceGetAttribute', (ct.byref(minor), 76, ordinal)),
     ]:
         if getattr(drv, func)(*args):
-            raise RuntimeError('사용 가능한 NVIDIA CUDA GPU와 드라이버를 확인하세요.')
+            raise RuntimeError(M('Check that an NVIDIA CUDA GPU and a working driver are available.'))
     return dict(uuid=bytes(uuid).hex(), gpu=name.value.decode(), compute_capability=[major.value, minor.value],
                 cuda_driver=driver.value, tensorrt=TRT_VERSION)
 
@@ -45,7 +47,7 @@ def _dpapi(data, *, protect):
     crypto = ct.WinDLL('crypt32', use_last_error=True)
     call = crypto.CryptProtectData if protect else crypto.CryptUnprotectData
     if not call(ct.byref(source), None, None, None, None, 1, ct.byref(dest)):
-        raise ValueError('로컬 엔진 빌드 기록을 확인할 수 없습니다. 모델을 다시 설치하세요.')
+        raise ValueError(M('Cannot verify the local engine build record. Reinstall the model.'))
     try:
         return ct.string_at(dest.data, dest.size)
     finally:
@@ -75,11 +77,11 @@ def local_record(folder, key):
     device = device_identity()
     root = revision / device_key(device)
     if folder.parent != root or folder.name not in {f'518x{w}-{suffix}' for w in (896, 924)}:
-        raise ValueError('현재 GPU와 호환되는 로컬 모델 엔진을 설치하세요.')
+        raise ValueError(M('Install a local model engine compatible with this GPU.'))
     receipt = root/'build.receipt'
     if receipt.resolve().parent != root or receipt.stat().st_size > 65536:
         raise ValueError('Invalid local build record')
     record = json.loads(_dpapi(receipt.read_bytes(), protect=False))
     if record['source'] != source or record['device'] != device:
-        raise ValueError('GPU 또는 TensorRT 구성이 변경되었습니다. 모델을 다시 설치하세요.')
+        raise ValueError(M('The GPU or TensorRT configuration changed. Reinstall the model.'))
     return record['profiles'][folder.name]
