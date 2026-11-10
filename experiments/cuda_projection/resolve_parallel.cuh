@@ -53,13 +53,61 @@ __global__ void resolve_parallel(const unsigned char* rgb,
     }
 }
 
+// Occupancy words allow coalesced owner loads and exact nearest-neighbor lookup.
+// Prefix/suffix searches happen once per 32 pixels, rather than a scan of pixels.
+template<int Items>
+__global__ void resolve_bitmap(const unsigned char* rgb,const unsigned long long* owners,
+    unsigned char* output,int width) {
+    __shared__ unsigned int masks[128];
+    __shared__ int left_word[128],right_word[128];
+    unsigned long long own[Items];
+    int tid=threadIdx.x,row=blockIdx.x*width,words=(width+31)/32;
+    #pragma unroll
+    for(int k=0;k<Items;k++) {
+        int x=tid+k*256;
+        own[k]=x<width?owners[row+x]:0;
+        unsigned int bits=__ballot_sync(0xffffffffu,own[k]!=0);
+        if((tid&31)==0 && (x>>5)<words)masks[x>>5]=bits;
+    }
+    __syncthreads();
+    if(tid<words) {
+        int l=tid-1,r=tid+1;
+        while(l>=0 && !masks[l])--l;
+        while(r<words && !masks[r])++r;
+        left_word[tid]=l;right_word[tid]=r;
+    }
+    __syncthreads();
+    #pragma unroll
+    for(int k=0;k<Items;k++) {
+        int x=tid+k*256;if(x>=width)continue;
+        unsigned long long selected=own[k];
+        if(!selected) {
+            int word=x>>5,lane=x&31;
+            unsigned int lbits=masks[word]&(0xffffffffu>>(31-lane));
+            unsigned int rbits=masks[word]&(0xffffffffu<<lane);
+            int lw=left_word[word],rw=right_word[word];
+            int left=lbits?(word*32+31-__clz(lbits)):(lw<0?-1:lw*32+31-__clz(masks[lw]));
+            int right=rbits?(word*32+__ffs(rbits)-1):(rw>=words?width:rw*32+__ffs(masks[rw])-1);
+            unsigned long long a=left<0?0:owners[row+left],b=right>=width?0:owners[row+right];
+            selected=left<0?b:(right<width && (b>>32)<(a>>32)?b:a);
+        }
+        copy_pixel(rgb,output,row+x,selected?int(selected&0xffffffffULL):row+x);
+    }
+}
+
 static void launch_resolve_parallel(const unsigned char* rgb,
     const unsigned long long* owners, unsigned char* output,
     int width, int height, cudaStream_t stream) {
+#ifdef DEPTHSBS_BITMAP_RESOLVE
+    if(width<=1024)resolve_bitmap<4><<<height,256,0,stream>>>(rgb,owners,output,width);
+    else if(width<=2048)resolve_bitmap<8><<<height,256,0,stream>>>(rgb,owners,output,width);
+    else resolve_bitmap<16><<<height,256,0,stream>>>(rgb,owners,output,width);
+#else
     if (width <= 1024)
         resolve_parallel<4><<<height, 256, 0, stream>>>(rgb, owners, output, width);
     else if (width <= 2048)
         resolve_parallel<8><<<height, 256, 0, stream>>>(rgb, owners, output, width);
     else
         resolve_parallel<16><<<height, 256, 0, stream>>>(rgb, owners, output, width);
+#endif
 }
