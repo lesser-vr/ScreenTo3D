@@ -17,6 +17,11 @@ def source_main(connection, source, interval_ms=16):
         oracle.timer.setTimerType(Qt.PreciseTimer)
         oracle.timer.setInterval(interval_ms)
     oracle.show()
+    redraw = QTimer()
+    redraw.setTimerType(Qt.PreciseTimer)
+    redraw.setInterval(max(1,interval_ms))
+    redraw.timeout.connect(oracle.update)
+    saved_repeat = None
 
     def snapshot():
         return dict(
@@ -35,6 +40,7 @@ def source_main(connection, source, interval_ms=16):
         )
 
     def service():
+        nonlocal saved_repeat
         parent = mp.parent_process()
         if parent is not None and not parent.is_alive():
             app.quit()
@@ -45,8 +51,32 @@ def source_main(connection, source, interval_ms=16):
             operation, payload = connection.recv()
             if operation == "resize":
                 oracle.resize(*payload)
+            elif operation == "activate":
+                oracle.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+                oracle.showNormal()
+                oracle.raise_()
+                oracle.activateWindow()
             elif operation == "pause":
+                redraw.stop()
                 oracle.timer.stop()
+            elif operation in ("repeat","restore_repeat"):
+                oracle.timer.stop()
+                if operation == "restore_repeat" and saved_repeat is not None:
+                    oracle.frozen_image = saved_repeat.copy()
+                elif oracle.frozen_image is None:
+                    oracle.frozen_image = oracle.grab().toImage()
+                if saved_repeat is None:
+                    saved_repeat = oracle.frozen_image.copy()
+                redraw.start()
+            elif operation == "change_pixel":
+                image = oracle.frozen_image
+                x, y = image.width()//3, image.height()//3
+                image.setPixel(x,y,image.pixel(x,y)^0xffffff)
+                oracle.repaint()
+            elif operation == "resume":
+                redraw.stop()
+                oracle.frozen_image = None
+                oracle.timer.start()
             elif operation == "stop":
                 connection.send({"stopped": True})
                 app.quit()

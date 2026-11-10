@@ -1,4 +1,7 @@
 /out/
+/tests/media/local/
+/DepthSBS.exe
+/ScreenTo3D.exe
 /.vs/
 /.vscode/
 *.user

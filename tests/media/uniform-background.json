@@ -1,0 +1,31 @@
+{
+  "id": "TC-UBG-01",
+  "name": "Moving flower on uniform black background",
+  "path": "tests/media/local/uniform-background/flower.mp4",
+  "sha256": "7dd8e5d27a576ca37b94ca61710234532d3031fd29bfc4af1069309d0843575e",
+  "bytes": 7797055,
+  "width": 3840,
+  "height": 2160,
+  "fps": 60,
+  "frames": 90,
+  "duration_seconds": 1.5,
+  "source": {
+    "video_id": "8mnz0d14Mac",
+    "start_seconds": 65.2,
+    "description": "Flower after the 01:04 transition; local user-supplied excerpt, HDR-to-SDR Hable/BT.709 derivative",
+    "distribution": "Local test asset; not included in Git or public CI artifacts"
+  },
+  "pattern": {
+    "minimum_uniform_border": 0.98,
+    "minimum_matching_coverage": 0.35,
+    "maximum_matching_coverage": 0.98,
+    "minimum_qualifying_samples": 0.75
+  },
+  "performance": {
+    "sizes": [[1920, 1080], [3840, 2160]],
+    "minimum_windows_per_condition": 4,
+    "minimum_control_fps": 20,
+    "minimum_normal_to_control_fps": 0.9,
+    "maximum_background_stage_ms": 8
+  }
+}

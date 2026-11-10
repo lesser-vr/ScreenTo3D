@@ -58,6 +58,9 @@ def main():
     report = dict(status='failed', encoder=args.encoder, cases=[],
                   scope='Real media and owned child processes; synthetic depth, no depth-quality claim')
     try:
+        from uniform_background_tc import generated_media
+        uniform=generated_media(ffmpeg,args.output/'source-uniform-background.mp4')
+        report['cases'].append(dict(case_id='TC-UBG-CI',passed=True,**uniform))
         for codec, rate, frames, audio in [('h264', '24', 24, True), ('hevc', '30000/1001', 30, False)]:
             source = args.output / f'source-{codec}.mp4'
             command = [str(ffmpeg), '-v', 'error', '-nostdin', '-f', 'lavfi', '-i',
