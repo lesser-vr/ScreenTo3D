@@ -42,11 +42,18 @@
 //M*/
 // Cubic coefficients and uint8 linear arithmetic adapted from OpenCV
 // modules/imgproc/src/resize.cpp (4.x). Retain the above notice with binaries.
-// Source-sized RGB/BGRA -> DA2 Base's unchanged float64 cubic preprocessing.
-// Half-pixel coordinates, A=-0.75 cubic weights rounded to float32, then
-// separable float64 accumulation match the OpenCV resize contract. No FMA.
+// Source-sized RGB/BGRA -> normalized CHW. VDA resizes float32 pixels;
+// DA2 Base resizes float64 pixels. Both normalize the resized value in double.
 #include <cuda_runtime.h>
 #include <cstdint>
+
+#ifdef DEPTHSBS_VDA_INPUT
+using ResizePixel = float;
+#define PREPARE_ENTRY vda_prepare
+#else
+using ResizePixel = double;
+#define PREPARE_ENTRY base_prepare
+#endif
 
 __device__ void weights(float x, float* c) {
     const float a = -.75f;
@@ -62,16 +69,21 @@ __global__ void prepare(const unsigned char* src, size_t pitch, int w, int h,
     if(i>=oh*ow*3)return;
     int c=i/(oh*ow), y=(i/ow)%oh, x=i%ow;
     x=min(max(x-left,0),rw-1); y=min(max(y-top,0),rh-1);
-    float fx=float((x+.5)*(double(w)/rw)-.5);
-    float fy=float((y+.5)*(double(h)/rh)-.5);
+    double px=(x+.5)*(double(w)/rw)-.5, py=(y+.5)*(double(h)/rh)-.5;
+#ifdef DEPTHSBS_VDA_INPUT
+    int sx=int(floor(px)), sy=int(floor(py));
+    float fx=float(px-sx), fy=float(py-sy);
+#else
+    float fx=float(px), fy=float(py);
     int sx=int(floorf(fx)), sy=int(floorf(fy)); fx-=sx; fy-=sy;
+#endif
     float wx[4],wy[4]; weights(fx,wx); weights(fy,wy);
-    double rows[4];
+    ResizePixel rows[4];
     for(int j=0;j<4;++j) {
         const unsigned char* row=src+size_t(min(max(sy+j-1,0),h-1))*pitch;
-        double v[4];
+        ResizePixel v[4];
         for(int k=0;k<4;++k)
-            v[k]=(double(row[min(max(sx+k-1,0),w-1)*channels+(channels==4?2-c:c)])/255.0)*wx[k];
+            v[k]=(ResizePixel(row[min(max(sx+k-1,0),w-1)*channels+(channels==4?2-c:c)])/ResizePixel(255))*wx[k];
         rows[j]=((v[0]+v[1])+v[2])+v[3];
     }
     double value=((rows[0]*wy[0]+rows[1]*wy[1])+rows[2]*wy[2])+rows[3]*wy[3];
@@ -79,7 +91,7 @@ __global__ void prepare(const unsigned char* src, size_t pitch, int w, int h,
     out[i]=float((value-mean[c])/sd[c]);
 }
 
-extern "C" __declspec(dllexport) int base_prepare(const unsigned char* src,
+extern "C" __declspec(dllexport) int PREPARE_ENTRY(const unsigned char* src,
     size_t pitch,int w,int h,int channels,int oh,int ow,int top,int left,int rh,int rw,
     float* out,void* stream) {
     if(!src||!out||!stream||w<16||w>4096||h<16||h>2160||

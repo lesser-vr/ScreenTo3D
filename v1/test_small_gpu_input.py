@@ -30,16 +30,18 @@ def read_device(pointer, shape, stream):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--quality', choices=('reference','subpixel','coverage','range','motion','window','budget','detail'), default='reference')
+    parser.add_argument('--strength', type=float, default=.25)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     configure_resource_root(BUNDLE)
     cv2.setNumThreads(1)
     torch.set_num_threads(1)
-    report = dict(passed=False, preprocessing=[], product=[], limits=dict(
+    report = dict(passed=False, quality=args.quality, strength=args.strength, preprocessing=[], product=[], limits=dict(
         resize_max=0, normalized_depth_mae=0,
         normalized_depth_max=0, sbs_rgb_mae=0, sbs_pixel_over1_fraction=0))
     rng = np.random.default_rng(721)
-    policy = resolve_live('performance')
+    policy = resolve_live('performance',strength=args.strength)
     try:
         with SmallGpuCaptureEngine() as engine:
             lib = engine.gpu_input.dll
@@ -80,8 +82,12 @@ def main():
                      LiveSmallGpuInput(w,h,policy,engine) as gpu, \
                      LiveSmallGpuInput(w,h,policy,engine) as same_input, \
                      LiveSmallGpuInputTexture(w,h,policy,engine,diagnostic=True) as native:
+                    for renderer in (old,gpu,same_input,native):
+                        renderer.configure_live_quality(args.quality)
                     readback = np.empty((h,w*2,4),np.uint8)
                     for source, index, image in frames:
+                        for renderer in (old,gpu,same_input,native):
+                            renderer.source_ns = 1_000_000_000 + len(report['product']) * 33_333_333
                         frame = cv2.resize(image,(w,h))
                         if index==3: frame = 255-frame
                         if index==5:

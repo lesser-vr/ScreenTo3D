@@ -6,8 +6,8 @@ from .desktop_jobs import ROOT
 from .trt_backend import DepthEngine, _cuda, cudart
 from .gpu_runtime import GpuInputSupport
 
-DLL_PATH = ROOT / 'out/small-input/small_input.dll'
-DLL_SHA256 = '71fedc045926c1a59b129fb1cb7550e408b811bf6779f4a7a3da121000fe070a'
+DLL_PATH = ROOT / 'out/static-sbs/small_input.dll'
+DLL_SHA256 = 'd8cbabe89c36a7c3b224f8eb07cb3f458c92fb4e04280c55530f4b8d2db12849'
 
 
 def cubic_coefficients(width, height):

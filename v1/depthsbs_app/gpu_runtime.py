@@ -1,6 +1,7 @@
 """Borrowed GPU execution and image utilities; engines retain resource ownership."""
 import ctypes as ct
 import hashlib
+from .portable_cuda import binary
 
 
 class GpuExecution:
@@ -49,6 +50,7 @@ class GpuInputSupport:
     """Pinned native loading and shared frame observations, independent of resize."""
     def __init__(self, engine, path, digest, *, stream):
         engine._check()
+        path, digest = binary(path, digest)
         if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
             raise ValueError('GPU input DLL checksum mismatch')
         self.engine = engine
@@ -66,3 +68,31 @@ class GpuInputSupport:
             if code:
                 raise RuntimeError(f'GPU scene thumbnail failed: CUDA {code}')
             return output.cpu().numpy()
+
+
+class FixedCanvasGpuInput(GpuInputSupport):
+    """Shared launch contract for the Base and VDA cubic-resize kernels."""
+    def __init__(self, engine, path, digest, entry, content_rect):
+        super().__init__(engine, path, digest, stream=engine.stream)
+        self.content_rect = content_rect
+        self.launch = getattr(self.dll, entry)
+        self.launch.argtypes = [ct.c_void_p, ct.c_size_t] + [ct.c_int]*9 + [ct.c_void_p]*2
+        self.launch.restype = ct.c_int
+
+    def prepare(self, rgb, shape, output=None):
+        gpu = self.execution
+        gpu.require_current()
+        gpu.validate_image(rgb, channels=(3, 4), pitched=True)
+        h, w, channels = rgb.shape
+        rect = self.content_rect(w, h, shape)
+        dims = (1, 3, *shape)
+        if output is None:
+            output = gpu.torch.empty(dims, dtype=gpu.torch.float32, device=rgb.device)
+        if (output.device != rgb.device or output.dtype != gpu.torch.float32 or
+                tuple(output.shape) != dims or not output.is_contiguous()):
+            raise ValueError('Invalid persistent model input buffer')
+        code = self.launch(rgb.data_ptr(), rgb.stride(0), w, h, channels,
+                           *shape, *rect, output.data_ptr(), gpu.handle)
+        if code:
+            raise RuntimeError(f'GPU preprocessing failed: CUDA {code}')
+        return output

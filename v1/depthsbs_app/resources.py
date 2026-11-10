@@ -54,8 +54,13 @@ def cache_root() -> Path:
     return path
 
 
-def prepare_dll_search_path() -> None:
-    runtime = resource_path("runtime")
+def prepare_dll_search_path(directory=None):
+    runtime = resource_path("runtime") if directory is None else Path(directory).resolve(strict=True)
+    if directory is not None and not runtime.is_dir():
+        raise NotADirectoryError(runtime)
     if runtime.is_dir():
-        os.add_dll_directory(str(runtime))
-        os.environ["PATH"] = str(runtime) + os.pathsep + os.environ.get("PATH", "")
+        # TensorRT's Windows Python loader explicitly enumerates PATH.
+        path = os.environ.get("PATH", "")
+        if path.split(os.pathsep, 1)[0] != str(runtime):
+            os.environ["PATH"] = str(runtime) + os.pathsep + path
+        return os.add_dll_directory(str(runtime))

@@ -4,7 +4,7 @@ $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer
 $vsPath = & $vswhere -latest -version '[17.0,18.0)' -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
 if (-not $vsPath) { throw 'C++ build tools missing' }
 & (Join-Path $vsPath 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
-$buildDir = Join-Path $repoRoot 'out/small-input'
+$buildDir = Join-Path $repoRoot 'out/small-input-detail'
 New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
 Push-Location $buildDir
 try {
@@ -14,7 +14,7 @@ try {
 [ordered]@{
     architecture = 'sm_120'
     nvcc_version = (& nvcc --version | Out-String).Trim()
-    sources = @( 'small_input.cu','live_depth.cu','base_input.cu','projection.cu','resolve_parallel.cuh' ) | ForEach-Object {
+    sources = @( 'small_input.cu','stereo_detail.cuh','live_depth.cu','base_input.cu','projection.cu','resolve_parallel.cuh' ) | ForEach-Object {
         [ordered]@{ name = $_; sha256 = (Get-FileHash (Join-Path $repoRoot "experiments/cuda_projection/$_")).Hash }
     }
     dll_sha256 = (Get-FileHash (Join-Path $buildDir 'small_input.dll')).Hash
