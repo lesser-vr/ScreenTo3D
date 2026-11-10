@@ -1,12 +1,14 @@
 import hashlib
+import tempfile
 from pathlib import Path
 
 import numpy as np
 
 from .resources import cache_root, prepare_dll_search_path, resource_path
 from .resource_telemetry import ResourceMetrics
+from .engine_cache import device_identity, device_key
 
-prepare_dll_search_path()
+_runtime_directory = prepare_dll_search_path()
 import tensorrt as trt  # noqa: E402
 from cuda.bindings import runtime as cudart  # noqa: E402
 
@@ -36,7 +38,8 @@ def _model_path() -> Path:
 def _engine_path() -> Path:
     model = _model_path()
     digest = hashlib.sha256(model.read_bytes()).hexdigest()[:16]
-    return cache_root() / f"da2-small-{digest}-trt{trt.__version__}-518.plan"
+    device = device_identity(_cuda(cudart.cudaGetDevice()))
+    return cache_root() / f"da2-small-{digest}-trt{trt.__version__}-{device_key(device)}-518.plan"
 
 
 def build_engine(model_path: Path, engine_path: Path) -> None:
@@ -54,9 +57,10 @@ def build_engine(model_path: Path, engine_path: Path) -> None:
     serialized = builder.build_serialized_network(network, config)
     if serialized is None:
         raise RuntimeError("TensorRT engine build failed")
-    temporary = engine_path.with_suffix(engine_path.suffix + ".partial")
-    temporary.write_bytes(bytes(serialized))
-    temporary.replace(engine_path)
+    with tempfile.TemporaryDirectory(dir=engine_path.parent) as staging:
+        temporary = Path(staging) / engine_path.name
+        temporary.write_bytes(bytes(serialized))
+        temporary.replace(engine_path)
 
 
 class DepthEngine:
@@ -88,7 +92,6 @@ class DepthEngine:
         self.runtime = trt.Runtime(LOGGER)
         self.engine = self.runtime.deserialize_cuda_engine(engine_path.read_bytes())
         if self.engine is None:
-            engine_path.unlink(missing_ok=True)
             build_engine(model_path, engine_path)
             self.engine = self.runtime.deserialize_cuda_engine(engine_path.read_bytes())
         if self.engine is None:

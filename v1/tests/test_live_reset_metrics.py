@@ -3,10 +3,30 @@ import unittest
 from depthsbs_app.live_sbs import (
     RESETS, RESET_START, RESET_RESIZE, RESET_GAP, RESET_CUT, STAT_COUNT,
     record_reset, reset_reason,
+    record_ovda_inference, OVDA_CACHE_USED, OVDA_CACHE_SUM, OVDA_FULL_CONTEXT,
+    OVDA_STREAK, OVDA_STREAK_MAX,
 )
 
 
 class ResetMetricsTests(unittest.TestCase):
+    def test_ovda_occupancy_counts_pre_inference_context(self):
+        stats=[0]*STAT_COUNT
+        for used in range(16):record_ovda_inference(stats,used)
+        record_ovda_inference(stats,15)
+        self.assertEqual(stats[OVDA_CACHE_USED],15)
+        self.assertEqual(stats[OVDA_FULL_CONTEXT],2)
+        self.assertEqual(stats[OVDA_CACHE_SUM],sum(range(16))+15)
+        self.assertEqual(stats[OVDA_STREAK_MAX],17)
+        record_reset(stats,'cut')
+        self.assertEqual(stats[OVDA_STREAK],0)
+        record_ovda_inference(stats,0)
+        self.assertEqual(stats[OVDA_STREAK],1)
+        self.assertEqual(stats[OVDA_STREAK_MAX],17)
+        for invalid in (-1,16,True,None):
+            snapshot=stats.copy()
+            with self.assertRaises(ValueError):record_ovda_inference(stats,invalid)
+            self.assertEqual(stats,snapshot)
+
     def test_completed_resets_count_exactly_once(self):
         stats = [0] * STAT_COUNT
         for reason in ("start", "gap", "gap", "resize", "cut"):

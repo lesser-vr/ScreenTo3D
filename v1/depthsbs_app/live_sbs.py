@@ -33,15 +33,24 @@ from .capture_mailbox import (
 )
 
 # Shared latest metrics, not an unbounded event/frame queue.
+DEFAULT_STEREO_QUALITY = "detail"
+
 PROCESSED, INPUT_REPLACED, RESETS, PREPROCESS_NS, DEPTH_NS, STEREO_NS, TOTAL_NS = range(
     7
 )
 H2D_BYTES, D2H_BYTES, SYNCS = range(7, 10)
+BACKGROUND_NS = 19
 INFERRED, REUSED = range(10, 12)
 INPUT_COPY_NS, INPUT_COLOR_NS, OUTPUT_COLOR_NS, OUTPUT_COPY_NS = range(20, 24)
 RESET_START, RESET_RESIZE, RESET_GAP, RESET_CUT = range(30, 34)
-STAT_COUNT = 34
+SBS_REUSED = 34
+OVDA_RETAINED_GAPS, OVDA_CACHE_USED, OVDA_FULL_CONTEXT, OVDA_CACHE_SUM, OVDA_STREAK, OVDA_STREAK_MAX = range(35,41)
+GPU_USAGE, GPU_USAGE_NS = range(41,43)
+STAT_COUNT = 43
 DEFAULT_CAPTURE_INTERVAL_MS = 0
+MAX_HISTORY_GAP_NS = 100_000_000
+VDA_SINGLE_SKIP_NS = 50_000_000
+OVDA_SHORT_SKIP_NS = 50_000_000
 
 
 def resolve_gpu_capture(source, model, gpu_path):
@@ -52,11 +61,50 @@ def resolve_gpu_capture(source, model, gpu_path):
     return value == '1'
 
 
-def reset_reason(previous_sequence, sequence, previous_shape, shape, cut):
+def resolve_history_policy(model, setting=None):
+    """Live-only capabilities; file cadence and backend statefulness stay separate."""
+    setting = os.environ.get('DEPTHSBS_DEPTH_HISTORY', 'continuous') if setting is None else setting
+    if setting not in ('continuous', 'legacy', 'vda-single-skip'):
+        raise ValueError('Invalid depth history diagnostic setting')
+    adapter = model_adapter(model)
+    return dict(
+        allow_coalescing=setting != 'legacy' and adapter.coalesced_history,
+        vda_single_skip=adapter.single_skip_history and setting in ('continuous', 'vda-single-skip'),
+        ovda_short_skip=setting == 'continuous' and adapter.short_skip_history,
+    )
+
+
+def reset_reason(previous_sequence, sequence, previous_shape, shape, cut, *,
+                 previous_source_ns=None, source_ns=None, allow_coalescing=False, vda_single_skip=False,
+                 ovda_short_skip=False):
     if previous_sequence is None:
         return "start"
     if previous_shape != shape:
         return "resize"
+    if ovda_short_skip:
+        if cut:
+            return 'cut'
+        # One missing capture update at most. Cache positions count accepted
+        # model updates, not absolute capture IDs; never insert fake frames.
+        if (type(previous_sequence) is not int or type(sequence) is not int
+                or not 1 <= sequence-previous_sequence <= 2
+                or type(previous_source_ns) is not int or type(source_ns) is not int
+                or previous_source_ns <= 0
+                or not 0 < source_ns-previous_source_ns <= OVDA_SHORT_SKIP_NS):
+            return 'gap'
+        return None
+    if allow_coalescing or vda_single_skip:
+        # Latest-frame capture normally replaces frames while inference is busy.
+        # Both history policies require a forward source clock and sequence.
+        if (type(previous_sequence) is not int or type(sequence) is not int
+                or sequence <= previous_sequence or type(previous_source_ns) is not int
+                or type(source_ns) is not int or previous_source_ns <= 0
+                or not 0 < source_ns - previous_source_ns <= MAX_HISTORY_GAP_NS):
+            return "gap"
+        if vda_single_skip and sequence != previous_sequence + 1:
+            if sequence != previous_sequence + 2 or source_ns - previous_source_ns > VDA_SINGLE_SKIP_NS:
+                return "gap"
+        return "cut" if cut else None
     if sequence != previous_sequence + 1:
         return "gap"
     return "cut" if cut else None
@@ -72,6 +120,18 @@ def record_reset(stats, reason):
              "gap": RESET_GAP, "cut": RESET_CUT}[reason]
     stats[index] += 1
     stats[RESETS] += 1
+    stats[OVDA_STREAK] = 0
+
+
+def record_ovda_inference(stats, cached):
+    """Bounded metadata only: slots actually available BEFORE this inference."""
+    if type(cached) is not int or not 0 <= cached <= 15:
+        raise ValueError('Invalid oVDA cache occupancy')
+    stats[OVDA_CACHE_USED] = cached
+    stats[OVDA_CACHE_SUM] += cached
+    stats[OVDA_FULL_CONTEXT] += int(cached == 15)
+    stats[OVDA_STREAK] += 1
+    stats[OVDA_STREAK_MAX] = max(stats[OVDA_STREAK_MAX], stats[OVDA_STREAK])
 
 
 def validate_strength(value):
@@ -105,6 +165,9 @@ def sbs_worker(
     gpu_capture_snapshot=None,
     renderer_snapshot=None,
     preparation=None,
+    vfg_enabled=False,
+    output_hz=0,
+    stereo_layout="full-sbs",
 ):
     from .capture_worker import capture_worker
 
@@ -126,10 +189,13 @@ def sbs_worker(
         from .trt_backend import DepthEngine
         from .pipeline import StereoSynthesizer, preprocess
         from .live_projection import LiveProjection as factory
-        from .live_policy import resolve_live, refresh_live
+        from .live_policy import StaticSbsReuse, resolve_live, refresh_live, same_rgb
         from .live_host_bridge import capture_rgb, publish_rgb
 
-        policy = resolve_live(mode, validate_strength(strength))
+        from dataclasses import replace
+        from .stereo_layout import dimensions, pack
+        dimensions(source["width"], source["height"], stereo_layout)
+        policy = replace(resolve_live(mode, validate_strength(strength)), stereo_layout=stereo_layout)
         selected_model = "da2-small"
         if backend_snapshot is None:
             # Direct diagnostic callers retain their explicit legacy DA2 Small
@@ -150,6 +216,15 @@ def sbs_worker(
             selected_model = backend.spec.model_id
         policy = replace(policy, depth_backend=selected_model)
         model = model_adapter(selected_model)
+        policy = model.apply_live_policy(policy)
+        history = resolve_history_policy(selected_model)
+        vda_single_skip = history['vda_single_skip']
+        ovda_short_skip = history['ovda_short_skip']
+        coalesced_history = (history['allow_coalescing']
+                             and not backend.spec.stateful and not backend.spec.requires_every_frame)
+        stereo_quality = os.environ.get("DEPTHSBS_STEREO_QUALITY", DEFAULT_STEREO_QUALITY)
+        if stereo_quality not in ("reference", "anchor", "subpixel", "stable", "coverage", "range", "motion", "window", "budget", "detail"):
+            raise ValueError("Invalid stereo quality diagnostic setting")
         # Explicit diagnostic A/B switch, never an automatic fallback.
         bridge = os.environ.get("DEPTHSBS_LIVE_HOST_BRIDGE", "fused")
         if bridge not in ("legacy", "fused"):
@@ -174,7 +249,13 @@ def sbs_worker(
         if type(gpu_candidate) is not bool:
             raise ValueError("Invalid GPU path snapshot")
         native = texture_mailbox is not None
+        from .presentation_policy import PresentationCadence, WorkCadence
+        requested_cadence = PresentationCadence(output_hz)
+        work_cadence = WorkCadence(requested_cadence.hz) if native and not vfg_enabled else WorkCadence()
         renderer = resolve_renderer(selected_model,gpu_candidate,strength,renderer_snapshot)
+        reuse = (StaticSbsReuse() if native and gpu_candidate and not vfg_enabled
+                 and coalesced_history and selected_model in ('da2-small','da2-base')
+                 and renderer == 'cuda' and stereo_quality == 'detail' else None)
         if renderer=='rowflow-sym':
             from .rowflow import bridge as rowflow_bridge, check
             compiler_bridge = rowflow_bridge()
@@ -182,8 +263,20 @@ def sbs_worker(
         use_gpu_capture = resolve_gpu_capture(source, selected_model, gpu_candidate) if gpu_capture_snapshot is None else gpu_capture_snapshot
         if type(use_gpu_capture) is not bool:
             raise ValueError('Invalid GPU capture snapshot')
+        from .vfg_runtime import validate_selection
+        validate_selection(vfg_enabled, selected_model, source['kind'], native,
+                           use_gpu_capture and gpu_candidate, renderer)
+        vfg_producer = None
+        if vfg_enabled:
+            from .vfg_delivery import TimedMailbox
+            from .vfg_runtime import validate_runtime
+            from .vfg_renderer import Producer, vfg_renderer
+            if not isinstance(texture_mailbox, TimedMailbox):
+                raise ValueError('VFG requires timed native delivery')
+            validate_runtime()
+            vfg_producer = Producer(texture_mailbox, output)
         if use_gpu_capture and (not model.gpu_capture or not gpu_candidate or not fused or capture_interval != '0'):
-            raise ValueError('GPU capture requires DA2 Small/Base GPU output and the default capture interval/bridge')
+            raise ValueError('GPU capture requires a supported GPU output path and the default capture interval/bridge')
         if use_gpu_capture and capture_telemetry is not None:
             raise ValueError('Callback event recording is unavailable with GPU capture')
         backend = model.bind_capture(backend, use_gpu_capture)
@@ -195,11 +288,12 @@ def sbs_worker(
         ):
             raise ValueError("Invalid explicit native delivery snapshot")
 
-        def wait_texture(predicate):
+        def wait_texture(predicate, cadence=None):
             deadline = time.monotonic() + 5
             while not predicate():
                 parent = mp.parent_process()
-                if output.stop.wait(0.001) or (
+                delay = cadence.wait_seconds(time.perf_counter_ns()) if cadence is not None else .001
+                if output.stop.wait(delay) or (
                     parent is not None and not parent.is_alive()
                 ):
                     raise InterruptedError("Native delivery stopped")
@@ -211,6 +305,9 @@ def sbs_worker(
             engine_scope = ExitStack()
             scope.callback(engine_scope.close)
             engine = engine_scope.enter_context(backend.engine_factory(None))
+            from .gpu_usage import UsageSampler
+            gpu_usage = UsageSampler.current_cuda()
+            scope.callback(gpu_usage.close)
             parent = mp.parent_process()
             if output.stop.is_set() or (parent is not None and not parent.is_alive()):
                 return
@@ -234,13 +331,24 @@ def sbs_worker(
                 capture.start()
             projection = synthesizer = None
             previous_sequence = previous_shape = None
+            previous_source_ns = None
             inferred_frame = depth = None
             projection_scope = scope.enter_context(ExitStack())
             wait_seconds = 0.0 if fused else 0.001
             while not output.stop.wait(wait_seconds):
+                sample = gpu_usage.poll(time.perf_counter_ns())
+                if sample is not None:
+                    stats[GPU_USAGE], stats[GPU_USAGE_NS] = sample
                 parent = mp.parent_process()
                 if parent is not None and not parent.is_alive():
                     break
+                if work_cadence.period_ns:
+                    # Wait BEFORE acquiring the latest input or running inference.
+                    # Keep capacity for the new result; the other slot can still
+                    # be displayed. Never wait for that displayed lease to vanish.
+                    wait_texture(lambda: work_cadence.ready(time.perf_counter_ns()) and
+                        (projection is None or bool(texture_mailbox.writable_slots(session,generation))),
+                        cadence=work_cadence)
                 if use_gpu_capture:
                     copy_start = time.perf_counter_ns()
                     captured = gpu_capture.read(engine.gpu_input.execution.stream)
@@ -282,6 +390,7 @@ def sbs_worker(
                         if fused:
                             stats[INPUT_COLOR_NS] = time.perf_counter_ns() - copy_start
                 started = time.perf_counter_ns()
+                work_cadence.emitted(started)
                 if not fused:
                     frame = cv2.cvtColor(bgra, cv2.COLOR_BGRA2RGB)
                     stats[INPUT_COLOR_NS] = time.perf_counter_ns() - started
@@ -304,8 +413,13 @@ def sbs_worker(
                     )
                 )
                 reason = reset_reason(
-                    previous_sequence, m[SEQ], previous_shape, shape, cut
+                    previous_sequence, m[SEQ], previous_shape, shape, cut,
+                    previous_source_ns=previous_source_ns, source_ns=m[SOURCE_NS],
+                    allow_coalescing=coalesced_history, vda_single_skip=vda_single_skip,
+                    ovda_short_skip=ovda_short_skip,
                 )
+                if (ovda_short_skip and reason is None and m[SEQ] == previous_sequence+2):
+                    stats[OVDA_RETAINED_GAPS] += 1
                 if shape != previous_shape:
                     if (
                         previous_shape is not None
@@ -337,10 +451,15 @@ def sbs_worker(
                             if output.stop.is_set() or (parent is not None and not parent.is_alive()):
                                 raise InterruptedError('RowFlow preparation stopped')
                         else:
-                            gpu_factory = model.renderer_factory(native=native, gpu_capture=use_gpu_capture)
+                            gpu_factory = (vfg_renderer(selected_model) if vfg_enabled else
+                                           model.renderer_factory(native=native, gpu_capture=use_gpu_capture))
                             projection = projection_scope.enter_context(
                                 gpu_factory(width, height, policy, engine)
                             )
+                            if model.coalesced_history:
+                                projection.configure_live_quality(stereo_quality)
+                            if vfg_producer is not None:
+                                vfg_producer.renderer = projection
                         if native:
                             from .texture_mailbox import INSTALLED
 
@@ -379,6 +498,29 @@ def sbs_worker(
                             paired_projection=projection.project_pair,
                         )
                     record_reset(stats, reason)
+                if gpu_candidate:
+                    projection.source_ns = m[SOURCE_NS]
+                else:
+                    synthesizer.source_ns = m[SOURCE_NS]
+                same = None
+                if reuse is not None and projection.static_capable:
+                    # The existing thumbnail can reject a change cheaply. Only
+                    # full RGB equality can authorize holding the displayed SBS.
+                    same = (reason is None and scene is not None
+                            and np.array_equal(scene.thumbnail, projection.scene_history.previous)
+                            and same_rgb(frame, inferred_frame))
+                    if reuse.hold(same, m[SOURCE_NS]):
+                        projection.hold_static(scene)
+                        previous_sequence, previous_source_ns = m[SEQ], m[SOURCE_NS]
+                        stats[SBS_REUSED] += 1
+                        stats[INPUT_REPLACED] = m[REPLACED]
+                        if use_gpu_capture:
+                            stats[D2H_BYTES] += frame.readback_bytes
+                            stats[SYNCS] += frame.readback_syncs
+                        with output.lock:
+                            output.meta[RECEIVED] = m[RECEIVED]
+                        continue
+                    projection.set_same_input(reuse.stationary)
                 before = (
                     (projection.h2d, projection.d2h, projection.syncs)
                     if gpu_candidate
@@ -386,9 +528,10 @@ def sbs_worker(
                 )
                 prep_start = time.perf_counter_ns()
                 refresh = refresh_live(
-                    frame, inferred_frame, stats[PROCESSED], policy, cut
+                    frame, inferred_frame, stats[PROCESSED], policy, cut, same
                 )
                 if refresh != "reuse":
+                    cached = engine.used if selected_model == 'ovda-small-c16' else None
                     if gpu_candidate:
                         depth_start = time.perf_counter_ns()
                         depth = projection.infer(frame)
@@ -398,6 +541,8 @@ def sbs_worker(
                         depth = backend.infer(engine, tensor)
                     inferred_frame = frame
                     stats[INFERRED] += 1
+                    if cached is not None:
+                        record_ovda_inference(stats,cached)
                     if not gpu_candidate:
                         uploaded, downloaded = model.host_io_bytes(engine, frame, depth)
                         stats[H2D_BYTES] += uploaded
@@ -407,7 +552,10 @@ def sbs_worker(
                     depth_start = time.perf_counter_ns()
                     stats[REUSED] += 1
                 stereo_start = time.perf_counter_ns()
-                if native:
+                if native and getattr(projection, "requires_texture_slot", True):
+                    # Most renderers write directly into a leased native slot.
+                    # A deferred publisher may render into its own GPU buffer,
+                    # but must acquire the real slot immediately before publishing.
                     wait_texture(
                         lambda: bool(
                             texture_mailbox.writable_slots(session, generation)
@@ -421,11 +569,16 @@ def sbs_worker(
                     if gpu_candidate
                     else synthesizer.render(frame, depth)
                 )
+                if reuse is not None and projection.static_capable:
+                    reuse.after_render(projection, m[SOURCE_NS])
+                if not native:
+                    rgb_sbs = pack(rgb_sbs, stereo_layout)
                 color_start = time.perf_counter_ns()
                 if not fused and not native:
                     rendered = cv2.cvtColor(rgb_sbs, cv2.COLOR_RGB2BGRA)
                     stats[OUTPUT_COLOR_NS] = time.perf_counter_ns() - color_start
                 previous_sequence, previous_shape = m[SEQ], shape
+                previous_source_ns = m[SOURCE_NS]
                 stats[PROCESSED] += 1
                 stats[INPUT_REPLACED] = m[REPLACED]
                 stats[PREPROCESS_NS] = depth_start - prep_start
@@ -444,7 +597,7 @@ def sbs_worker(
                         range(12, 19), projection.gpu_ms[[0, 1, 2, 3, 4, 5, 7]]
                     ):
                         stats[key] = int(float(value) * 1e6)
-                    stats[19] = int(projection.last["background_ms"] * 1e6)
+                    stats[BACKGROUND_NS] = int(projection.last["background_ms"] * 1e6)
                     stats[INPUT_COLOR_NS] += int(
                         projection.last.get("input_stage_ms", 0) * 1e6
                     )
@@ -459,7 +612,8 @@ def sbs_worker(
                 if native:
                     from .texture_mailbox import TextureFrame
 
-                    texture_mailbox.publish(
+                    publish_texture = vfg_producer.publish if vfg_producer is not None else texture_mailbox.publish
+                    publish_texture(
                         TextureFrame(
                             session,
                             generation,
@@ -484,7 +638,7 @@ def sbs_worker(
                             output.pixels, dtype=np.uint8, count=rendered.size
                         ).reshape(rendered.shape)
                         np.copyto(target, rendered)
-                    o[WIDTH], o[HEIGHT] = width * 2, height
+                    o[WIDTH], o[HEIGHT] = dimensions(width, height, stereo_layout)
                     o[SEQ] = stats[PROCESSED]
                     for key in (
                         RECEIVED,

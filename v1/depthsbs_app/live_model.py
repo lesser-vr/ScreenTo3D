@@ -48,6 +48,15 @@ class LiveModelAdapter:
     gpu_capture: bool = False
     gpu_capture_engine: Callable | None = None
     rowflow: bool = False
+    coalesced_history: bool = False
+    short_skip_history: bool = False
+    single_skip_history: bool = False
+    temporal_depth_alpha: float | None = None
+    stabilize_depth_range: bool = False
+
+    def apply_live_policy(self, policy):
+        return replace(policy, temporal_depth_alpha=self.temporal_depth_alpha,
+                       stabilize_depth_range=self.stabilize_depth_range)
 
     def bind_capture(self, backend, enabled):
         if enabled and not self.gpu_capture:
@@ -63,10 +72,11 @@ class LiveModelAdapter:
 
 
 _MODELS = {
-    'da2-small': LiveModelAdapter(_small_renderer, _small_host_io, True, _small_gpu_engine),
-    'da2-base': LiveModelAdapter(_source_renderer, _source_host_io, gpu_capture=True, rowflow=True),
-    'vda-small': LiveModelAdapter(_source_renderer, _source_host_io),
-    'ovda-small-c16': LiveModelAdapter(_source_renderer, _source_host_io),
+    'da2-small': LiveModelAdapter(_small_renderer, _small_host_io, True, _small_gpu_engine, coalesced_history=True),
+    'da2-base': LiveModelAdapter(_source_renderer, _source_host_io, gpu_capture=True, rowflow=True, coalesced_history=True),
+    'vda-small': LiveModelAdapter(_source_renderer, _source_host_io, gpu_capture=True, single_skip_history=True),
+    'ovda-small-c16': LiveModelAdapter(_source_renderer, _source_host_io, gpu_capture=True, short_skip_history=True,
+                                    temporal_depth_alpha=.5, stabilize_depth_range=True),
 }
 
 

@@ -90,7 +90,7 @@ def synthetic():
     depth = np.full((h, w), .45, np.float32)
     depth[mask != 0] = .45 + 8 / (w * .026 * .5)
     eyes, holes = [], []
-    for shift in (-8, 8):
+    for shift in (8, -8):
         matrix = np.float32([[1, 0, shift], [0, 1, 0]])
         moved_mask = cv2.warpAffine(mask, matrix, (w, h), flags=cv2.INTER_NEAREST)
         moved_fg = cv2.warpAffine(fg, matrix, (w, h), flags=cv2.INTER_NEAREST)
@@ -113,7 +113,7 @@ def main():
     policy = resolve_live('balanced')
     report = dict(revision=REVISION, weights=WEIGHTS, attribution=ATTRIBUTION,
                   precision='iw3 upstream autocast FP16; RGB/depth FP32; TF32 disabled',
-                  mapping='iw3 divergence = 100 * DepthSBS divergence = 2.6; convergence=.45; reverse returned eye order to match DepthSBS; both eyes; no mapper; no border forcing',
+                  mapping='iw3 divergence = 100 * DepthSBS divergence = 2.6; convergence=.45; standard left/right eye order; both eyes; no mapper; no border forcing',
                   scope='Renderer comparison only. Same final depth; no new depth model, GUI integration or headset acceptance.',
                   timings=[], quality=[], calibration=[])
     torch.backends.cuda.matmul.allow_tf32 = False
@@ -126,16 +126,14 @@ def main():
     def render(name, color, depth):
         left, right = apply_divergence_nn_LR(loaded[name], color, depth, 100 * policy.divergence,
                                            policy.convergence, steps=1, enable_amp=True)
-        # Independent constant-depth calibration verifies the opposite naming
-        # convention; preserve the existing product eye order in this comparison.
-        return right, left
+        return left, right
 
     def pixels(eyes):
         return torch.cat(eyes, dim=3).clamp(0, 1).mul(255).round().to(torch.uint8)[0].permute(1, 2, 0).cpu().numpy()
 
     def compare(rgb, depth, projection, benchmark=False):
         h, w = depth.shape
-        shift = np.ascontiguousarray(-(depth-policy.convergence) * (w * policy.divergence * .5))
+        shift = np.ascontiguousarray((depth-policy.convergence) * (w * policy.divergence * .5))
         current = np.concatenate(projection.project_pair(rgb, depth, shift, conservative_coverage=True), 1)
         outputs = {'current_cuda': current}
         for name in loaded:
@@ -188,7 +186,7 @@ def main():
         for eye in np.split(value, 2, 1):
             profile = eye[64:-64,:,0].astype(float).sum(0)
             offsets.append(float(np.dot(profile, np.arange(1920))/profile.sum()-960))
-        expected = (-(.85-.45)*1920*.026*.5, (.85-.45)*1920*.026*.5)
+        expected = ((.85-.45)*1920*.026*.5, -(.85-.45)*1920*.026*.5)
         assert max(abs(a-b) for a,b in zip(offsets,expected)) < 1.5, (name,offsets,expected)
         report['calibration'].append(dict(method=name, offsets=offsets, expected=expected))
 

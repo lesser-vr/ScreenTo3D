@@ -37,10 +37,12 @@ class ClockOracle(Oracle):
         self.video_frame = None
         self.video_frames = 0
         self.paint_count = 0
+        self.frozen_image = None
         if source != "generated":
             from public_test_media import CORPUS
 
-            self.video = cv2.VideoCapture(str(CORPUS / f"{source}.mp4"))
+            path = source if isinstance(source, Path) else CORPUS / f"{source}.mp4"
+            self.video = cv2.VideoCapture(str(path))
             if not self.video.isOpened():
                 raise ValueError("Prepared public video unavailable")
             self.setWindowTitle(f"DepthSBS public test: {source}")
@@ -66,6 +68,10 @@ class ClockOracle(Oracle):
 
     def paintEvent(self, event):
         self.paint_count += 1
+        if self.frozen_image is not None:
+            painter = QPainter(self)
+            painter.drawImage(self.rect(), self.frozen_image)
+            return
         super().paintEvent(event)
         p = QPainter(self)
         if self.video_frame is not None:
@@ -124,22 +130,27 @@ def memory_bytes(pid):
         kernel.CloseHandle(handle)
 
 
-def decode_output(image, width, height, dpi):
+def decode_output(image, width, height, dpi, layout="full-sbs"):
     image = image.convertToFormat(QImage.Format_RGB888)
     array = (
         np.frombuffer(image.bits(), np.uint8)
         .reshape(image.height(), image.bytesPerLine())[:, : image.width() * 3]
         .reshape(image.height(), image.width(), 3)
     )
-    fit = min(image.width() / (2 * width), image.height() / height)
-    ox, oy = (image.width() - width * 2 * fit) / 2, (image.height() - height * fit) / 2
+    from depthsbs_app.stereo_layout import dimensions
+    packed_width, packed_height = dimensions(width, height, layout)
+    fit = min(image.width() / packed_width, image.height() / packed_height)
+    ox, oy = (image.width() - packed_width * fit) / 2, (image.height() - packed_height * fit) / 2
+    scale_x = 0.5 if layout == "half-sbs" else 1
+    scale_y = 0.5 if layout == "half-tb" else 1
     # Search bounded disparity offsets; CRC rejects warped/misaligned bit rows.
     found = set()
     for shift in range(-int(width * 0.025), int(width * 0.025) + 1):
         xs = np.rint(ox + ((24 + np.arange(64) * 6 + 3) * dpi + shift) * fit).astype(
             int
         )
-        y = round(oy + 18 * dpi * fit)
+        xs = np.rint(ox + (xs - ox) * scale_x).astype(int)
+        y = round(oy + 18 * dpi * fit * scale_y)
         if xs.min() < 0 or xs.max() >= image.width():
             continue
         bits = (array[y, xs] > 200).all(axis=1)
@@ -222,6 +233,8 @@ def main():
     )
     parser.add_argument("--abort-output-below-fps", type=float)
     parser.add_argument("--path", choices=("gpu", "reference", "gpu-texture"))
+    parser.add_argument("--stereo-layout", choices=("full-sbs", "half-sbs", "full-tb", "half-tb"), default="full-sbs")
+    parser.add_argument("--half-render-trial", action="store_true")
     parser.add_argument(
         "--guide-candidate", choices=("rolling", "hybrid", "promoted")
     )
@@ -241,6 +254,13 @@ def main():
         help="Explicit old 33ms scheduling baseline",
     )
     args = parser.parse_args()
+    if args.half_render_trial:
+        if (args.path != "gpu-texture" or args.stereo_layout not in ("half-sbs", "half-tb")
+                or args.gpu_replay or os.environ.get("DEPTHSBS_STEREO_RENDERER", "cuda") != "cuda"):
+            raise ValueError("Half render trial requires native Half output and ordinary capture")
+        from depthsbs_app import live_sbs as live_sbs_module
+        from half_render_trial_worker import sbs_worker_trial
+        live_sbs_module.sbs_worker = sbs_worker_trial
     if args.gpu_replay:
         if (not args.uncapped or args.path != 'gpu-texture' or not args.source_process or
                 args.source == 'generated' or args.capture_telemetry or args.guide_candidate or
@@ -445,6 +465,7 @@ def main():
                 live.selected = 0
                 live.setSbs(True)
                 live.setMode(mode)
+                live.setStereoLayout(args.stereo_layout)
                 if mode == "video-quality":
                     live.setLiveModel(args.video_model)
                     if args.video_model == "ovda-small-c16":
@@ -544,7 +565,8 @@ def main():
                         if args.source_process
                         else elapsed
                     )
-                    assert (after["width"], after["height"]) == (width * 2, height)
+                    from depthsbs_app.stereo_layout import dimensions
+                    assert (after["width"], after["height"]) == dimensions(width, height, args.stereo_layout)
                     if gpu_sampler is not None:
                         assert gpu_sampler.poll() is None, "GPU sampler exited"
                     if args.gpu_replay:
@@ -553,6 +575,8 @@ def main():
                         after['received_scope'] = 'Pulled GPU replay sequence'
                     row = dict(
                         size=size,
+                        stereo_layout=args.stereo_layout,
+                        half_render_trial=args.half_render_trial,
                         mode=mode,
                         repeat=repeat,
                         input_kind='gpu-public-replay' if args.gpu_replay else 'window-capture',
@@ -661,7 +685,7 @@ def main():
                     pump(0.2)
                     rendered = live.output_window.grabWindow()
                     observed = time.perf_counter_ns() / 1e6
-                    stamp = decode_output(rendered, width, height, dpi)
+                    stamp = decode_output(rendered, width, height, dpi, args.stereo_layout)
                     attempts += 1
                     if args.source_process:
                         oracle.refresh()
@@ -690,9 +714,21 @@ def main():
                 rows[-1]["review_frames"] = review_frames
                 # Native slots backpressure production; host output can overwrite.
                 slow_interval = max(200, round(3000 / rows[-1]["processed_fps"]))
+                saved_interval = live.timer.interval()
                 live.timer.setInterval(slow_interval)
                 old = live.report()
-                pump(max(3, slow_interval / 1000 * 4))
+                # Health polling is only one wakeup source in event-driven delivery.
+                # Suppress frame-ready/deadline callbacks during this bounded probe.
+                blocked = []
+                if live.nativeEnabled:
+                    for wakeup in (live.native_wakeup, live.delivery_timer):
+                        if wakeup is not None:
+                            blocked.append((wakeup, wakeup.blockSignals(True)))
+                try:
+                    pump(max(3, slow_interval / 1000 * 4))
+                finally:
+                    for wakeup, previous in blocked:
+                        wakeup.blockSignals(previous)
                 new = live.report()
                 if live.nativeEnabled:
                     replaced = new["processing_stats"][1] - old["processing_stats"][1]
@@ -714,7 +750,7 @@ def main():
                     pending=new["pending_frame"],
                     slots=new["mailbox_slots"],
                 )
-                live.timer.setInterval(live.cadence.poll_ms)
+                live.timer.setInterval(saved_interval)
                 live.stop()
                 # Keep the output scene exposed briefly so its NativeSurface can
                 # observe the stopped session and delete the old render node.
@@ -754,6 +790,15 @@ def main():
         selected_models = sorted(
             {row["report"]["plan"]["model"] for row in rows if row["report"]["plan"]}
         )
+        texture_runtime_hash = None
+        if live.nativeEnabled:
+            from depthsbs_app.live_texture_pool import LiveTexturePool
+            from depthsbs_app.portable_cuda import binary
+            texture_path, _ = binary(LiveTexturePool.library_path, LiveTexturePool.library_sha256)
+            if args.half_render_trial:
+                from half_render_trial_worker import DLL
+                texture_path = DLL
+            texture_runtime_hash = hashlib.sha256(texture_path.read_bytes()).hexdigest()
         environment = dict(
             gpu_preflight=gpu_preflight,
             gpu_processes_preflight=gpu_processes_preflight,
@@ -835,11 +880,7 @@ def main():
             native_dll_sha256=live.native.report()["dll_sha256"]
             if live.nativeEnabled
             else None,
-            texture_runtime_sha256=hashlib.sha256(
-                Path("out/live-texture-runtime/live_texture_runtime.dll").read_bytes()
-            ).hexdigest()
-            if live.nativeEnabled
-            else None,
+            texture_runtime_sha256=texture_runtime_hash,
             resolve_impl=os.environ.get("DEPTHSBS_LIVE_RESOLVE", DEFAULT_RESOLVE),
             base_cuda_graph=os.environ.get('DEPTHSBS_BASE_GRAPH', '0'),
             stereo_renderer=os.environ.get('DEPTHSBS_STEREO_RENDERER','cuda'),

@@ -27,11 +27,12 @@ def run_worker(arguments, gpu_preview=False) -> int:
         validate_mode_model(arguments.mode, arguments.depth_backend)
         from .pipeline import convert_video
         options = {'output_codec': getattr(arguments, 'output_codec', 'h264')}
+        options['stereo_layout'] = getattr(arguments, 'stereo_layout', 'full-sbs')
         if getattr(arguments, 'depth_backend', 'da2-small') == 'ovda-small-c16':
             from .ovda import binding, LICENSE_NOTICE
             options['depth_backend'] = binding(arguments.ovda_engine_dir, arguments.runtime_dir, arguments.ovda_noncommercial)
             options['depth_backend'].validate_policy(MODES[arguments.mode])
-            emit({'event': 'depth_backend', 'model_id': 'ovda-small-c16', 'runtime': 'tensorrt-fp32', 'license_notice': LICENSE_NOTICE, 'fallback': False})
+            emit({'event': 'depth_backend', **options['depth_backend'].describe(), 'license_notice': LICENSE_NOTICE, 'fallback': False})
         if getattr(arguments, 'depth_backend', 'da2-small') == 'da2-base':
             from .da2_base import binding
             options['depth_backend'] = binding(arguments.da2_base_engine_dir, arguments.runtime_dir)
@@ -46,7 +47,7 @@ def run_worker(arguments, gpu_preview=False) -> int:
             create_binding = vda_offline_binding if arguments.mode == 'offline-quality' else vda_binding
             options['depth_backend'] = create_binding(arguments.vda_engine_dir, arguments.runtime_dir)
             options['depth_backend'].validate_policy(MODES[arguments.mode])
-            emit({'event': 'depth_backend', 'model_id': 'vda-small', 'runtime': 'tensorrt-fp32',
+            emit({'event': 'depth_backend', 'model_id': 'vda-small', 'runtime': options['depth_backend'].spec.runtime,
                   'processing': options['depth_backend'].spec.processing,
                   'preview': True, 'fallback': False})
         selected_renderer = getattr(arguments, 'stereo_renderer', None)
@@ -94,7 +95,7 @@ class ProductArgumentParser(argparse.ArgumentParser):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = ProductArgumentParser(prog="DepthSBS")
+    parser = ProductArgumentParser(prog="ScreenTo3D")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--diagnostics", action="store_true")
@@ -107,6 +108,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--mode", choices=tuple(MODES), default="balanced")
     parser.add_argument('--output-codec', choices=tuple(OUTPUTS), default='h264')
+    parser.add_argument('--stereo-layout', choices=('full-sbs', 'half-sbs', 'full-tb', 'half-tb'), default='full-sbs')
     parser.add_argument('--stereo-renderer', choices=('cpu', 'cuda'), help='Explicit source-app stereo renderer; never automatic fallback')
     parser.add_argument('--depth-backend', choices=('da2-small', 'da2-base', 'vda-small', 'ovda-small-c16'))
     parser.add_argument('--ovda-engine-dir', type=Path, help='Trusted local oVDA profile directory')

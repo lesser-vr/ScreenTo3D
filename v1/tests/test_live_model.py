@@ -19,13 +19,14 @@ class LiveModelTests(unittest.TestCase):
             bound.engine_factory(None)
             engine.assert_called_once_with(None)
         factory.assert_not_called()
-        for name in ('vda-small','ovda-small-c16'):
-            adapter = model_adapter(name)
-            with self.assertRaises(ValueError): adapter.bind_capture(original,True)
-            with self.assertRaises(ValueError): adapter.renderer_factory(native=True,gpu_capture=True)
+        adapter = model_adapter('ovda-small-c16')
+        self.assertIs(adapter.bind_capture(original,True),original)
+        self.assertTrue(adapter.gpu_capture)
+        self.assertFalse(adapter.coalesced_history)
         self.assertTrue(model_adapter('da2-base').rowflow)
         self.assertFalse(small.rowflow)
         self.assertIs(model_adapter('da2-base').bind_capture(original,True),original)
+        self.assertIs(model_adapter('vda-small').bind_capture(original,True),original)
 
     def test_renderer_matrix_keeps_existing_consumers(self):
         expected = {
@@ -37,6 +38,7 @@ class LiveModelTests(unittest.TestCase):
         for model in ('da2-base','vda-small','ovda-small-c16'):
             for native in (False,True):
                 expected[model,native,False] = 'LiveSourceGpuTexture' if native else 'LiveSourceGpuCandidate'
+                expected[model,native,True] = 'LiveSourceGpuTexture' if native else 'LiveSourceGpuCandidate'
         for (model,native,capture),name in expected.items():
             self.assertEqual(model_adapter(model).renderer_factory(native=native,gpu_capture=capture).__name__,name)
         for native in (False,True):
@@ -46,6 +48,22 @@ class LiveModelTests(unittest.TestCase):
     def test_unknown_model_does_not_fall_back(self):
         for name in ('unknown',None,[]):
             with self.assertRaises(ValueError): model_adapter(name)
+
+    def test_ovda_pixel_ema_is_independent_of_range_and_other_models(self):
+        from dataclasses import asdict,replace
+        from depthsbs_app.live_policy import resolve_live,LIVE_MODES
+        original=resolve_live('video-quality',.5)
+        updated=model_adapter('ovda-small-c16').apply_live_policy(original)
+        self.assertEqual(updated.temporal_alpha,.18)
+        self.assertEqual(updated.temporal_depth_alpha,.5)
+        self.assertTrue(updated.stabilize_depth_range)
+        self.assertEqual(asdict(replace(updated,temporal_depth_alpha=None,stabilize_depth_range=False)),asdict(original))
+        for name in ('da2-small','da2-base','vda-small'):
+            self.assertEqual(model_adapter(name).apply_live_policy(original),original)
+        described=LIVE_MODES['video-quality'].describe(.5,'ovda-small-c16')['stereo']
+        self.assertEqual(described['temporal_depth_alpha'],.5)
+        self.assertEqual(described['temporal_alpha'],.18)
+        self.assertTrue(described['stabilize_depth_range'])
 
     def test_host_transfer_accounting_keeps_model_contract(self):
         frame,depth=SimpleNamespace(shape=(1080,1920,3)),SimpleNamespace(nbytes=1080*1920*4)

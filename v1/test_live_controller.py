@@ -2,11 +2,14 @@
 
 import multiprocessing as mp
 import time
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QSettings
 from PySide6.QtGui import QImage
 from depthsbs_app.desktop import DesktopController
+from depthsbs_app.desktop_preferences import DesktopPreferences
 from depthsbs_app.live_preview import LivePreview
 from depthsbs_app.capture_mailbox import Mailbox
 
@@ -14,9 +17,28 @@ APP = QApplication.instance() or QApplication([])
 
 
 class LiveControllerTests(unittest.TestCase):
+    def test_output_summary_includes_latest_gpu_usage_and_clears_stale_value(self):
+        from depthsbs_app.live_sbs import GPU_USAGE,GPU_USAGE_NS,STAT_COUNT
+        self.live.processing_stats=[0]*STAT_COUNT
+        self.live.processing_stats[GPU_USAGE]=65
+        self.live.processing_stats[GPU_USAGE_NS]=1_000_000_000
+        self.live.process=Mock()
+        try:
+            with patch('depthsbs_app.live_preview.time.perf_counter_ns',return_value=2_000_000_000):
+                self.assertIn('GPU 65%',self.live.outputSummary())
+            with patch('depthsbs_app.live_preview.time.perf_counter_ns',return_value=5_000_000_000):
+                self.assertIn('GPU —',self.live.outputSummary())
+        finally:self.live.process=None
+
     def setUp(self):
-        self.desktop = DesktopController()
+        self.preference_temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.preference_temp.cleanup)
+        store = QSettings(self.preference_temp.name + '/preferences.ini', QSettings.IniFormat)
+        self.desktop = DesktopController(DesktopPreferences(store))
+        # Existing backend cases explicitly exercise Base, independent of defaults.
+        self.desktop.setOption('mode', 'balanced')
         self.live = LivePreview(self.desktop)
+        self.live.setMode('balanced')
         # Existing controller cases explicitly exercise the host diagnostic path.
         self.live.setProcessingPath("gpu")
         self.desktop.live = self.live
@@ -107,7 +129,7 @@ class LiveControllerTests(unittest.TestCase):
         self.assertFalse(live.nativeReady)
         self.assertFalse(live.hasFrame)
         self.assertIsNone(live.report()['native_delivery'])
-        self.assertEqual(live.presentationHz, 0)
+        self.assertEqual(live.presentationHz, 60)
         from depthsbs_app.live_policy import LIVE_MODES
         self.assertTrue(all(policy.presentation_hz == 0 for policy in LIVE_MODES.values()))
 
@@ -322,6 +344,79 @@ class LiveControllerTests(unittest.TestCase):
         self.live.provider.image = QImage(16, 16, QImage.Format_RGB32)
         self.live.started = time.perf_counter()
 
+    def test_vfg_preflight_failure_preserves_running_session(self):
+        self.fake_active()
+        messages = []
+        self.live.vfgNotification.connect(lambda text, pending: messages.append((text, pending)))
+        with patch('depthsbs_app.vfg_runtime.unavailable_reason', return_value=''), patch(
+            'depthsbs_app.vfg_runtime.validate_runtime', side_effect=RuntimeError('missing VFG runtime')
+        ):
+            self.live.setVfg(True)
+        self.assertTrue(self.live.active)
+        self.assertFalse(self.live.stopping)
+        self.assertFalse(self.live.mailbox.stop.is_set())
+        self.assertFalse(self.live.vfgSwitching)
+        self.assertFalse(self.live.vfgEnabled)
+        self.assertIn('missing VFG runtime', self.live.status)
+        self.assertFalse(any(text in ('VFG ON', 'VFG OFF') for text, _ in messages))
+
+    def test_vfg_transition_can_be_cancelled_without_restart(self):
+        self.fake_active()
+        self.live.meta[2:4] = [2560, 720]
+        messages = []
+        self.live.vfgNotification.connect(lambda text, pending: messages.append((text, pending)))
+        self.live.source = dict(self.live.items[0])
+        self.live.output_window = Mock()
+        self.live.output_window.grabWindow.return_value = QImage(16, 16, QImage.Format_RGB32)
+        with patch('depthsbs_app.vfg_runtime.unavailable_reason', return_value=''), patch(
+            'depthsbs_app.vfg_runtime.validate_runtime'
+        ):
+            self.live.setVfg(True)
+        self.assertTrue(self.live.vfgSwitching)
+        self.live.output_window.hide.assert_not_called()
+        self.assertTrue(self.live.transitionImageUrl)
+        self.assertEqual(messages[-1], ('VFG 준비 중…', True))
+        self.live.meta[2:4] = [0, 0]  # A new worker has not published dimensions yet.
+        self.assertEqual(self.live.outputAspect, 2560/720)
+        self.live.toggleVfg()  # Key repeat/second request cannot queue another worker.
+        self.assertFalse(self.live.vfgEnabled)
+        self.live.stop()
+        self.assertFalse(self.live.vfgSwitching)
+        self.assertEqual(self.live.transitionImageUrl, '')
+        self.assertEqual(messages[-1], ('', False))
+        self.assertEqual(self.live.outputAspect, 0)
+        self.live.process.is_alive.return_value = False
+        with patch.object(self.live, 'start') as start:
+            self.live.poll()
+            start.assert_not_called()
+        self.assertFalse(self.desktop.busy)
+
+    def test_vfg_restart_keeps_source_identity_and_reports_failed_start(self):
+        self.fake_active()
+        source = dict(self.live.items[0])
+        self.live.source = source
+        self.live.vfg_switch = dict(enabled=True, source=source, phase='stopping')
+        self.live.stopping = True
+        self.live.items = [dict(kind='window', id=22, pid=2, label='Other')]
+        self.live.process.is_alive.return_value = False
+        with patch.object(self.live, 'start') as start:
+            self.live.poll()
+            start.assert_called_once()
+        self.assertTrue(self.live.vfgEnabled)
+        self.assertEqual(self.live.items[self.live.selected], source)
+        self.assertFalse(self.live.vfgSwitching)
+        self.assertFalse(self.desktop.busy)
+
+    def test_vfg_rejects_file_job_and_fixed_comparison_launcher(self):
+        self.desktop.lease.acquire('file')
+        with patch('depthsbs_app.vfg_runtime.unavailable_reason', return_value=''):
+            self.live.toggleVfg()
+        self.assertFalse(self.live.vfgEnabled)
+        self.desktop.lease.release('file')
+        self.live.vfg_configurable = False
+        self.live.toggleVfg()
+        self.assertFalse(self.live.vfgEnabled)
+
     def test_stop_clears_frame_before_worker_exit(self):
         self.fake_active()
         self.live.copy_pool.copy(self.live.mailbox.pixels, 16, 16)
@@ -471,7 +566,7 @@ class LiveControllerTests(unittest.TestCase):
 
     def test_output_exclusion_failure_does_not_show(self):
         self.live.output_window = Mock()
-        with patch("depthsbs_app.capture_sources.exclude_preview", return_value=False):
+        with patch("depthsbs_app.capture_sources.set_output_affinity", return_value=False):
             self.live.showOutput(0, True)
         self.live.output_window.showFullScreen.assert_not_called()
         self.assertFalse(self.live.output_excluded)
@@ -542,6 +637,52 @@ class LiveControllerTests(unittest.TestCase):
         self.assertEqual(len(self.live.output_latencies), 512)
         self.live.stop()
         self.assertIsNone(self.live.output_pending)
+
+
+class VfgHotkeyTests(unittest.TestCase):
+    def make_hotkey(self, registered=True):
+        from depthsbs_app.vfg_hotkey import VfgHotkey
+        app, live, user32 = Mock(), Mock(), Mock()
+        live.vfgConfigurable = True
+        user32.RegisterHotKey.return_value = registered
+        with patch('depthsbs_app.vfg_hotkey.ctypes.WinDLL', return_value=user32):
+            hotkey = VfgHotkey(app, live)
+        return hotkey, app, live, user32
+
+    def test_shortcut_receives_only_owned_message_and_unregisters_once(self):
+        import ctypes
+        from ctypes import wintypes
+        hotkey, app, live, user32 = self.make_hotkey()
+        user32.RegisterHotKey.assert_called_once_with(None, hotkey.identifier, 0x4003, 0x53)
+        msg = wintypes.MSG()
+        msg.message, msg.wParam = 0x312, hotkey.identifier + 1
+        self.assertEqual(hotkey.nativeEventFilter(b'windows_dispatcher_MSG', ctypes.addressof(msg)), (False, 0))
+        live.toggleVfg.assert_not_called()
+        msg.wParam = hotkey.identifier
+        self.assertEqual(hotkey.nativeEventFilter(b'windows_dispatcher_MSG', ctypes.addressof(msg)), (True, 0))
+        live.toggleVfg.assert_called_once()
+        hotkey.close()
+        hotkey.close()
+        user32.UnregisterHotKey.assert_called_once_with(None, hotkey.identifier)
+        app.removeNativeEventFilter.assert_called_once_with(hotkey)
+
+    def test_conflict_is_visible_without_intercepting_keys(self):
+        hotkey, app, live, user32 = self.make_hotkey(False)
+        self.assertFalse(hotkey.registered)
+        self.assertIn('Ctrl+Alt+S', live.vfg_shortcut)
+        self.assertIn('등록 실패', live.vfg_shortcut)
+        app.installNativeEventFilter.assert_not_called()
+        hotkey.close()
+        user32.UnregisterHotKey.assert_not_called()
+
+    def test_fixed_comparison_does_not_register_global_shortcut(self):
+        from depthsbs_app.vfg_hotkey import VfgHotkey
+        app, live = Mock(), Mock()
+        live.vfgConfigurable = False
+        with patch('depthsbs_app.vfg_hotkey.ctypes.WinDLL') as dll:
+            hotkey = VfgHotkey(app, live)
+            dll.assert_not_called()
+        self.assertFalse(hotkey.registered)
 
 
 if __name__ == "__main__":

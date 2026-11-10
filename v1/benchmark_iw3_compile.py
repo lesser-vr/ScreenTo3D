@@ -51,7 +51,7 @@ def main():
 
     def render(model, color, depth):
         left, right = apply_divergence_nn_LR(model,color,depth,2.6,.45,steps=1,enable_amp=True)
-        return right, left
+        return left, right
 
     def pixels(eyes):
         assert all(bool(torch.isfinite(eye).all()) for eye in eyes), 'Nonfinite renderer output'
