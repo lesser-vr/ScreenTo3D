@@ -58,8 +58,11 @@ class MessageTests(unittest.TestCase):
             with self.assertRaises(ValueError):from_payload(dict(source=source,values={'a':'value'}))
 
     def test_worker_messages_do_not_import_qt(self):
-        command='import sys; from depthsbs_app.messages import Message; assert not any(n.startswith("PySide6") for n in sys.modules)'
-        subprocess.run([sys.executable,'-c',command],check=True)
+        source=Path(__file__).resolve().parents[1]
+        command=(f'import sys; sys.path.insert(0,{str(source)!r}); '
+                 'from depthsbs_app.messages import Message; '
+                 'assert not any(n.startswith("PySide6") for n in sys.modules)')
+        subprocess.run([sys.executable,'-I','-S','-c',command],check=True)
 
     def test_catalog_covers_english_sources_and_preserves_placeholders(self):
         root=Path(__file__).resolve().parents[2]
