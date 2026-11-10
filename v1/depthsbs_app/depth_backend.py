@@ -66,7 +66,7 @@ def resolve_backend(model_id, engine_factory, prepare):
 
 
 def vda_binding(directory, runtime_dir, *, device_depth=False):
-    from .vda_artifacts import artifact_profiles, select_artifact
+    from .vda_artifacts import artifact_profiles, select_artifact, uses_mixed_fp16
     profiles = artifact_profiles(directory)
     if runtime_dir is None or not (runtime_dir / 'nvinfer_11.dll').is_file():
         raise ValueError('VDA requires an explicit TensorRT 11 runtime directory')
@@ -90,7 +90,8 @@ def vda_binding(directory, runtime_dir, *, device_depth=False):
             shape = next(shape for shape, path in profiles.items() if path == selected)
             progress({'event': 'vda_profile', 'input_shape': [1, 1, 3, *shape], 'automatic_match': matched_input})
         return VdaEngine(selected, runtime_dir, progress)
-    return BackendBinding(BackendSpec('vda-small', 'tensorrt-fp32', stateful=True, requires_every_frame=True),
+    runtime = 'tensorrt-mixed-fp16' if uses_mixed_fp16(directory) else 'tensorrt-fp32'
+    return BackendBinding(BackendSpec('vda-small', runtime, stateful=True, requires_every_frame=True),
                           factory, lambda frame: frame, validate)
 
 
@@ -101,7 +102,7 @@ def vda_offline_binding(directory, runtime_dir):
     return BackendBinding(
         BackendSpec(
             'vda-small',
-            'tensorrt-fp32',
+            streaming.spec.runtime,
             stateful=True,
             requires_every_frame=True,
             processing=CenteredDepthWindow.strategy,

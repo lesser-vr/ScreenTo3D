@@ -1,6 +1,5 @@
-"""Opt-in VDA Small TensorRT backend for the validated local FP32 profile."""
+"""VDA Small TensorRT streaming backend with FP32 image, depth and cache bindings."""
 import gc
-import os
 import threading
 import time
 from pathlib import Path
@@ -8,8 +7,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from .vda_artifacts import load_manifest, cache_layout
+from .vda_artifacts import load_manifest, cache_layout, content_rect
 from .vda_preprocess import preprocess
+from .engine_cache import device_identity
+from .resources import prepare_dll_search_path
 
 class VdaEngine:
     def __init__(self, directory, runtime_dir, progress=None):
@@ -27,11 +28,14 @@ class VdaEngine:
         if not torch.cuda.is_available():
             raise RuntimeError('VDA requires CUDA; CPU fallback is disabled')
         self.device = torch.cuda.current_device()
+        if (self.manifest.get('validation') == 'local-depth-and-cache-samples'
+                and device_identity(self.device) != device_identity()):
+            raise RuntimeError('VDA engine was built for a different GPU')
         if (list(torch.cuda.get_device_capability()) != self.manifest['compute_capability'] or
                 torch.cuda.get_device_name() != self.manifest['gpu']):
             raise RuntimeError('VDA engine GPU does not match this device')
         try:
-            self.dll = os.add_dll_directory(str(Path(runtime_dir).resolve(strict=True)))
+            self.dll = prepare_dll_search_path(runtime_dir)
             import tensorrt as trt
             self.trt = trt
             if trt.__version__ != self.manifest['tensorrt']:
@@ -130,6 +134,12 @@ class VdaEngine:
         self.peak = max(self.peak, len(self.history))
         return outputs['depth']
 
+    def _source_depth(self, depth, frame):
+        height, width = frame.shape[:2]
+        y, x, h, w = content_rect(width, height, self.input_shape[-2:])
+        return torch.nn.functional.interpolate(depth[..., y:y+h, x:x+w],
+            size=(height, width), mode='bilinear', align_corners=True)[0]
+
     def infer(self, frame):
         self._check()
         started = time.perf_counter()
@@ -142,9 +152,7 @@ class VdaEngine:
                 image = torch.from_numpy(chw)[None, None].to(f'cuda:{self.device}')
                 self.upload_bytes += chw.nbytes
                 depth = self._execute(image)
-                resized = torch.nn.functional.interpolate(depth.flatten(0, 1).unsqueeze(1),
-                    size=frame.shape[:2], mode='bilinear', align_corners=True)
-                result = resized[0].cpu().numpy().copy()
+                result = self._source_depth(depth, frame).cpu().numpy().copy()
             if not np.isfinite(result).all():
                 raise RuntimeError('VDA returned invalid resized depth')
             self.calls += 1
@@ -162,7 +170,7 @@ class VdaEngine:
         self._check()
         return dict(completed_inferences=self.calls, resets=self.resets, cache_entries=len(self.history),
             peak_cache_entries=self.peak, cache_entry_limit=42, zero_copy=False,
-            runtime='TensorRT FP32; torch CUDA buffers', input_shape=list(self.input_shape),
+            runtime=f"TensorRT {self.manifest.get('precision', 'fp32').upper()}; torch CUDA buffers", input_shape=list(self.input_shape),
             host_to_device_bytes=self.upload_bytes, device_to_host_bytes=self.download_bytes,
             preprocessing_ms=self.preprocess_seconds * 1000,
             preprocessing_timing_scope='Included in pipeline depth timing; do not add twice',

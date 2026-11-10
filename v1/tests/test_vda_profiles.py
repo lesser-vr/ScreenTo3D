@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import numpy as np
+import cv2
 
 from depthsbs_app import vda_artifacts as artifacts
 from depthsbs_app.depth_backend import vda_binding
@@ -84,6 +85,27 @@ class VdaProfileTests(unittest.TestCase):
                 artifacts.artifact_profiles(root)
             self.artifact(root, '518x924')
             profiles = artifacts.artifact_profiles(root)
-            for width, height in ((1080, 1920), (1024, 768), (2560, 1080)):
+            for width, height in ((4097, 1080), (1080, 2161), (0, 768), (True, 1080)):
                 with self.assertRaises(ValueError):
                     artifacts.select_artifact(profiles, dict(width=width, height=height))
+
+    def test_fit_selects_canvas_and_centers_odd_padding(self):
+        profiles = {shape: shape for shape in artifacts.PROFILES.values()}
+        for width, height, canvas, rect in (
+                (3440, 1440, (518, 924), (65, 0, 387, 924)),
+                (1440, 1080, (518, 896), (0, 102, 518, 691)),
+                (1080, 1920, (518, 896), (0, 302, 518, 291)),
+                (1920, 1080, (518, 924), (0, 0, 518, 924))):
+            self.assertEqual(artifacts.select_artifact(profiles, dict(width=width, height=height)), canvas)
+            self.assertEqual(artifacts.content_rect(width, height, canvas), rect)
+        self.assertEqual(artifacts.select_artifact({(518, 924): 'only'}, dict(width=600, height=800)), 'only')
+
+    def test_native_pixels_and_replicated_padding(self):
+        rng = np.random.default_rng(19)
+        for w, h, shape in ((320, 180, (518, 924)), (528, 304, (518, 896)), (180, 320, (518, 896))):
+            frame = rng.integers(0, 256, (h, w, 3), dtype=np.uint8)
+            y, x, rh, rw = artifacts.content_rect(w, h, shape)
+            content = cv2.resize(frame.astype(np.float32)/255, (rw, rh), interpolation=cv2.INTER_CUBIC)
+            ref = np.pad(content, ((y, shape[0]-rh-y), (x, shape[1]-rw-x), (0, 0)), mode='edge')
+            ref = ((ref-[.485,.456,.406])/[.229,.224,.225]).transpose(2,0,1).astype(np.float32)
+            np.testing.assert_array_equal(preprocess(frame, shape), ref)

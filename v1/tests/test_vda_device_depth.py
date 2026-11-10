@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import torch
 
-from depthsbs_app.vda_device import VdaDeviceDepth
+from depthsbs_app.vda_device import VdaDeviceDepth, VdaDeviceEngine
 
 
 class FakeTensor:
@@ -29,6 +29,17 @@ class FakeOwner:
 
 
 class VdaDeviceDepthTests(unittest.TestCase):
+    def test_crop_removes_asymmetric_padding_before_depth_resize(self):
+        engine = VdaDeviceEngine.__new__(VdaDeviceEngine)
+        engine.input_shape = (1, 1, 3, 518, 896)
+        # 9:16 content is 291 pixels wide, with 302 left and 303 right.
+        raw = torch.full((1, 1, 518, 896), -1000.)
+        raw[..., 302:593] = torch.arange(291, dtype=torch.float32)
+        frame = SimpleNamespace(shape=(320, 180, 3))
+        depth = engine._source_depth(raw, frame)
+        expected = torch.linspace(0., 290., 180).expand(1, 320, 180)
+        torch.testing.assert_close(depth, expected)
+
     def token(self):
         owner = FakeOwner()
         token = VdaDeviceDepth(owner, 7, FakeTensor(), 55, ())
