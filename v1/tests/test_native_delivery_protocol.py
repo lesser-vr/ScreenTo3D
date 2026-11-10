@@ -15,6 +15,18 @@ from depthsbs_app.texture_mailbox import (
 
 
 class NativeProtocolTests(unittest.TestCase):
+    def test_adaptive_poll_waits_for_deadline_but_not_retained_current_frame(self):
+        self.consume()
+        frame = TextureFrame(1, 1, 0, 1, 0, 0)
+        self.box.publish(frame)
+        c = PresentationCadence(60)
+        c.next_ns = 20_000_000
+        self.assertEqual(self.consumer.next_poll_delay_ns(self.box, c, 1_000_000), 19_000_000)
+        self.consume()
+        self.assertIsNone(self.consumer.next_poll_delay_ns(self.box, c, 1_000_000))
+        self.box.retire(1, 1)
+        self.assertEqual(self.consumer.next_poll_delay_ns(self.box, c, 1_000_000), 1_000_000)
+
     def setUp(self):
         self.box = TextureMailbox.create(mp.get_context("spawn"))
         self.pool = TexturePool(1, 1, os.getpid(), 640, 180, 2, -1, (100, 104))

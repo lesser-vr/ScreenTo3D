@@ -3,11 +3,12 @@
 import ctypes as ct
 import hashlib
 import time
+from collections import OrderedDict
 
 from .desktop_jobs import ROOT
 from .texture_mailbox import OFFERED, RETIRING
 
-NATIVE_SHA256 = "2b8f6581f0dd3e34f530f6495ee20910b42ff78b90116b6c9d27af294978942c"
+NATIVE_SHA256 = "a8f4f47f11842d9cc2c64cd5c903042c21bd7cc2c5ed3a8e45b4641e3ef026d0"
 _registered = None
 
 
@@ -39,6 +40,7 @@ def load_native():
     dll.native_publish.argtypes = [uid, uid, ct.c_int, uid]
     dll.native_releases.argtypes = [ct.POINTER(uid)]
     dll.native_metrics.argtypes = [ct.POINTER(uid)]
+    dll.native_output_samples.argtypes = [uid, ct.POINTER(uid), ct.c_uint]
     dll.native_error.restype = ct.c_char_p
     for name in ("native_retire", "native_drop_pool", "native_end"):
         getattr(dll, name).restype = None
@@ -57,6 +59,7 @@ class NativeDelivery:
         self.has_frame = False
         self.retiring = False
         self.session = 0
+        self._samples = (ct.c_ulonglong * (4096 * 2))()
 
     def check(self, code=1):
         error = self.dll.native_error()
@@ -67,6 +70,7 @@ class NativeDelivery:
 
     def begin(self, session):
         self.session = session
+        self.output_timing = OrderedDict()
         self.pool = None
         self.frames.clear()
         self.last_sequence = 0
@@ -117,6 +121,10 @@ class NativeDelivery:
                 break
             if frame.slot in self.frames:
                 raise RuntimeError("Native frame overwrote a pending slot")
+            timing = self.frame_origin(frame)
+            self.output_timing[frame.sequence] = timing
+            if len(self.output_timing) > 8192:
+                self.output_timing.popitem(last=False)
             self.check(
                 self.dll.native_publish(
                     frame.session, frame.generation, frame.slot, frame.sequence
@@ -152,6 +160,38 @@ class NativeDelivery:
         self.pool = None
         self.frames.clear()
         self.has_frame = False
+
+    def frame_due_ns(self, mailbox, frame):
+        return 0
+
+    def frame_origin(self, frame):
+        return frame.source_ns, 0
+
+    def recent_output(self, since):
+        count = self.dll.native_output_samples(since, self._samples, len(self._samples) // 2)
+        samples = []
+        for index in range(0, count * 2, 2):
+            origin = self.output_timing.get(self._samples[index + 1])
+            if origin is not None:
+                samples.append((self._samples[index], *origin))
+        return samples
+
+    def next_poll_delay_ns(self, mailbox, cadence, now):
+        """Only retry for pending GPU releases, retirement or a timed frame.
+
+        The retained current frame alone never causes polling. Producer state
+        changes wake the GUI separately; the health timer remains a fallback.
+        """
+        if self.pool is None:
+            return None
+        if self.retiring or len(self.frames) > 1 or mailbox.state() == RETIRING:
+            return 1_000_000
+        pending = [f for f in mailbox.pending(self.pool.session, self.pool.generation)
+                   if f.sequence > self.last_sequence]
+        if not pending:
+            return None
+        due = max(cadence.next_ns, self.frame_due_ns(mailbox, pending[0]))
+        return max(1_000_000, due - now)
 
     def report(self):
         values = (ct.c_ulonglong * 12)()

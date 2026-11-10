@@ -29,7 +29,7 @@ class TexturePool:
     session: int
     generation: int
     origin_pid: int
-    width: int  # Full SBS width, not one-eye width.
+    width: int  # Packed output dimensions, independent of stereo arrangement.
     height: int
     luid_low: int
     luid_high: int
@@ -41,10 +41,10 @@ class TexturePool:
         _integer(self.origin_pid, 1, (1 << 32) - 1, "origin PID")
         if self.session != session or self.origin_pid != owned_pid:
             raise ValueError("Texture descriptor is not from the owned session/worker")
-        _integer(self.width, 32, MAX_WIDTH * 2, "width")
-        _integer(self.height, 16, MAX_HEIGHT, "height")
-        if self.width % 2:
-            raise ValueError("Texture SBS width must be even")
+        _integer(self.width, 16, MAX_WIDTH * 2, "width")
+        _integer(self.height, 16, MAX_HEIGHT * 2, "height")
+        if self.width * self.height > MAX_WIDTH * MAX_HEIGHT * 2:
+            raise ValueError("Texture output exceeds the bounded stereo pixel count")
         _integer(self.luid_low, 0, (1 << 32) - 1, "LUID low")
         _integer(self.luid_high, -(1 << 31), (1 << 31) - 1, "LUID high")
         if type(self.handles) is not tuple or len(self.handles) != 2:
@@ -69,6 +69,16 @@ class TextureFrame:
 class TextureMailbox:
     words: object
     lock: object
+    wake_writer: object = None
+
+    def notify(self):
+        # Advisory bounded notification, never a GPU completion acknowledgment.
+        # A full nonblocking socket already contains an unread wakeup.
+        if self.wake_writer is not None:
+            try:
+                self.wake_writer.send(b'\x01')
+            except BlockingIOError:
+                pass
 
     @classmethod
     def create(cls, context):
@@ -112,6 +122,8 @@ class TextureMailbox:
             ]
         finally:
             self.lock.release()
+
+        self.notify()
 
     def offered(self, *, session, owned_pid):
         """GUI validates before DuplicateHandle/OpenSharedResource, not afterwards."""
@@ -158,6 +170,8 @@ class TextureMailbox:
             w[offset + 2], w[offset + 3] = frame.source_ns, frame.callback_ns
         finally:
             self.lock.release()
+
+        self.notify()
 
     def writable_slots(self, session, generation):
         """Sole producer checks BEFORE enqueueing a GPU write, then waits key 0.
@@ -226,6 +240,8 @@ class TextureMailbox:
         finally:
             self.lock.release()
 
+        self.notify()
+
     def finish_retirement(self, session, generation):
         """GUI acknowledges after import cancellation and all native releases."""
         self._acquire()
@@ -258,3 +274,4 @@ class TextureMailbox:
             self.words[_STATE] = CLOSED
         finally:
             self.lock.release()
+        self.notify()

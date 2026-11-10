@@ -16,7 +16,7 @@ class PreviewCopyPool:
         self.index = 0
 
     def copy(self, pixels, width, height):
-        if not (16 <= width <= 8192 and 16 <= height <= 2160):
+        if not (16 <= width <= 8192 and 16 <= height <= 4320 and width * height <= 8192 * 2160):
             raise ValueError("Invalid preview dimensions")
         if self.shape != (width, height):
             self.images = [QImage(width, height, QImage.Format_RGB32) for _ in range(2)]

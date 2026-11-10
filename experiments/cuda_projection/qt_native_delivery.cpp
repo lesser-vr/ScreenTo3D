@@ -40,6 +40,11 @@ struct Metrics {
     void reset(){uploads=lastUpload=submits=lastSubmit=copyNs=0;}
 };
 static Metrics metrics[2];
+// Protected by metricsMutex. Only distinct output submissions enter the ring.
+static constexpr unsigned sampleCapacity = 4096;
+struct OutputSample { Id endNs, sequence; };
+static OutputSample outputSamples[sampleCapacity]{};
+static Id outputSampleCount = 0;
 
 struct Pool {
     Id session,generation;
@@ -55,8 +60,8 @@ struct Pool {
     bool counted=false;
     Pool(Id s,Id g,DWORD pid,Id h0,Id h1,int w,int h,DWORD low,LONG high):
         session(s),generation(g),width(w),height(h),luid{low,high} {
-        if(!s || !g || !pid || !h0 || !h1 || h0==h1 || w<32 || w>8192 ||
-            w%2 || h<16 || h>2160)throw std::runtime_error("Invalid native pool descriptor");
+        if(!s || !g || !pid || !h0 || !h1 || h0==h1 || w<16 || w>8192 ||
+            h<16 || h>4320 || static_cast<Id>(w)*h>8192ULL*2160)throw std::runtime_error("Invalid native pool descriptor");
         if(poolCount.load()>=3)throw std::runtime_error("Native pool lifetime bound exceeded");
         ComPtr<IDXGIFactory1> factory;
         check(CreateDXGIFactory1(IID_PPV_ARGS(&factory)),"DXGI factory");
@@ -182,7 +187,15 @@ struct NativeNode:QSGSimpleTextureNode {
             std::lock_guard<std::mutex> guard(metricsMutex);
             if(activeSession!=session || !sequence)return;
             auto& m=metrics[consumer];
-            if(sequence!=m.lastSubmit.load()){m.lastSubmit=sequence;m.submits++;}
+            if(sequence!=m.lastSubmit.load()){
+                m.lastSubmit=sequence;m.submits++;
+                if(consumer==1){
+                    // MSVC steady_clock and Python perf_counter_ns use Windows QPC.
+                    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        Clock::now().time_since_epoch()).count();
+                    outputSamples[outputSampleCount++ % sampleCapacity] = {Id(ns), sequence};
+                }
+            }
         },Qt::DirectConnection);
         nodeCount[id]++;counted=true;
     }
@@ -283,7 +296,7 @@ __declspec(dllexport) int native_begin(Id session) {
     old.reset();
     {std::lock_guard<std::mutex> guard(errorMutex);failure.clear();}
     {std::lock_guard<std::mutex> guard(metricsMutex);
-     for(auto& m:metrics)m.reset();activeSession=session;}return 1;
+     for(auto& m:metrics)m.reset();outputSampleCount=0;activeSession=session;}return 1;
 }
 __declspec(dllexport) int native_install(Id session,Id generation,DWORD pid,Id h0,Id h1,
     int width,int height,DWORD low,LONG high) {
@@ -335,6 +348,17 @@ __declspec(dllexport) int native_metrics(Id* output) {
         output[i*5+2]=m.submits;output[i*5+3]=m.lastSubmit;output[i*5+4]=m.copyNs;
     }
     output[10]=poolCount.load();output[11]=nodeCount[0].load()+nodeCount[1].load();return 1;
+}
+__declspec(dllexport) int native_output_samples(Id since, OutputSample* output, unsigned capacity) {
+    if(!output)return 0;
+    std::lock_guard<std::mutex> guard(metricsMutex);
+    unsigned count=0;
+    while(count<capacity && count<sampleCapacity && count<outputSampleCount){
+        auto sample=outputSamples[(outputSampleCount-1-count)%sampleCapacity];
+        if(sample.endNs<since)break;
+        output[count++]=sample;
+    }
+    return int(count);
 }
 }
 #include "qt_native_delivery.moc"

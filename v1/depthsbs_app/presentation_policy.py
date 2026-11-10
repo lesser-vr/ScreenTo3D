@@ -19,3 +19,32 @@ class PresentationCadence:
     def emitted(self, now):
         # A late poll must not be followed by a shortened catch-up interval.
         self.next_ns = now + self.period_ns
+
+    def wait_seconds(self, now):
+        return .001
+
+
+class WorkCadence(PresentationCadence):
+    """One work-rate owner; recover bounded jitter, never replay missed work."""
+    def emitted(self, now):
+        jitter = min(3_000_000, self.period_ns // 4)
+        if self.period_ns and self.next_ns and 0 <= now - self.next_ns <= jitter:
+            self.next_ns += self.period_ns
+        else:
+            self.next_ns = now + self.period_ns
+
+    def wait_seconds(self, now):
+        # Deadline waits are interrupted by stop. Once due, a blocked texture
+        # slot still needs bounded GPU-ack polling, not a busy loop.
+        remaining = (self.next_ns - now) / 1e9
+        return min(remaining, .05) if remaining > 0 else .001
+
+
+class NativeDeliveryCadence(PresentationCadence):
+    """Short spacing guard; the non-VFG native worker owns the target rate."""
+    def emitted(self, now):
+        self.next_ns = now + self.period_ns - min(3_000_000, self.period_ns // 4)
+
+
+def delivery_cadence(hz, *, native, vfg):
+    return (NativeDeliveryCadence if native and not vfg else PresentationCadence)(hz)
