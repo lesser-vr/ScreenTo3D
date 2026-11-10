@@ -27,6 +27,17 @@ image or a 4K model input is not equivalent to 4K per eye.
 
 ## Desktop experience
 
+The desktop supports Korean and English. **Settings and diagnostics → Language**
+offers System default, 한국어 and English; the default follows the system UI
+language, with English for unsupported languages. The selection is saved in the
+existing user settings. Changes apply immediately to app text, stored progress,
+model help, errors, output menus and notices without restarting the active SBS
+session or changing its source, model, layout or VFG selection. An active VFG
+notice keeps its existing hold/fade timing. File states use stable internal codes.
+External window titles, filenames, original licenses and unknown diagnostic text
+are preserved. Windows-owned file-dialog buttons can follow the OS language.
+The first languages use left-to-right UI; packed eye order is never mirrored.
+
 The Qt/QML desktop opens a compact 420x260 logical-pixel control window (minimum
 380x260). Its primary controls are an explicit source picker and SBS start/stop.
 The main window switches between 실시간 SBS and 파일 변환. Opening the capture

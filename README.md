@@ -1,10 +1,13 @@
 # ScreenTo3D
 
 Desktop 2D-to-SBS conversion for games and videos. Run `ScreenTo3D.exe` in the
-prepared local environment for the Korean Live / Files / Settings app. Live and
+prepared local environment for the Korean/English Live / Files / Settings app. Live and
 file conversion resolve the selected product mode to its permitted installed depth
 model without silent fallback. Current source features are not automatically in
 old portable builds.
+
+Choose **Settings and diagnostics → Language** to use the system language,
+한국어 or English. The selection is saved and can change while SBS is running.
 
 The [current desktop portable build](docs/models/desktop-distribution.md) bundles
 DA2 Small and installs Base, VDA Small and optional NVIDIA VFG on demand.
@@ -57,6 +60,10 @@ CC BY 4.0.
 - [Historical evidence](docs/evidence/README.md); model setup links are in PRODUCT.
 
 ## Build and test on Windows
+
+Validate the source translation catalog with `python scripts/build-translations.py --check`.
+The portable builder compiles and includes the Korean Qt catalog automatically;
+English is the source-language fallback.
 
 Requirements:
 

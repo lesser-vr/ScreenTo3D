@@ -41,6 +41,16 @@ Processing-backend default and delivery-path default are separate decisions.
 
 ## Components and ownership
 
+`messages.py` carries English templates and scalar arguments without importing Qt.
+Exceptions are detached from tracebacks before a message is retained; bounded
+worker errors preserve message metadata when it fits and otherwise retain their
+original text. `localization.py` owns trusted bundled/Qt translators on the GUI
+thread, the saved `ui/language` selection and display-number formatting. It
+retranslates QML and notifies Python display properties without modifying session
+plans. File rows expose a translated `stateLabel` separately from their stable
+state code; live stop completion uses a flag rather than matching status text.
+The Qt-free launcher reads the same language selection for pre-GUI errors.
+
 Stereo arrangement is defined in `stereo_layout.py` and snapshotted per live/file
 job. The renderer API defaults to Full SBS; the GUI passes its explicit session
 layout. Standard paths synthesize full-resolution eyes before packing:

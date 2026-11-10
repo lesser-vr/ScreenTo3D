@@ -1,5 +1,19 @@
 # Current implementation status
 
+Korean/English desktop localization implemented (2026-11-10). The saved system/
+Korean/English choice updates QML, Python display models, progress, errors, output
+titles and active VFG notices without resetting the session. Stable file states
+and a live stop flag replace language-dependent comparisons. All 454 Korean
+catalog entries validate; 419 CPU/Qt and 26 runtime contracts, 24 additional
+desktop/preference tests and real CPU media publication/cancel/failure checks pass.
+Rendered 125%/150%/200% checks cover bilingual controls, keyboard selection,
+error copying and unchanged notice timing. An owned generated-window Small/Half
+TB native session retains its PID/session through four language changes while
+output advances. The native launcher builds and has been applied locally; the
+portable builder compiles/includes catalogs. This is local implementation and
+bounded runtime evidence, not new GPU compatibility or stereo comfort acceptance.
+See [scope and reproduction](evidence/localization-20261110.md).
+
 Full-reference native SBS RGB evaluation completed (2026-11-10). Four
 project-authored three-view scenes test both native eyes; the same four Spring
 scenes additionally test left-input to original right-camera RGB. Both Full SBS
