@@ -1,11 +1,13 @@
 # Derived oVDA experiment; NC-SA-UHDV1.0. See LICENSE and README.md.
-"""Owned device-depth token spike; not registered in the product backend."""
+"""Owned device-depth output for the optional source-only oVDA backend."""
 
 from dataclasses import dataclass
+import threading
 
 import torch
 
-from .oracle import schedule, validate_frame
+from .oracle import schedule
+from .preprocessing import validate_frame
 from .trt_engine import OvdaTrt
 
 
@@ -44,33 +46,68 @@ class OvdaDeviceTrt(OvdaTrt):
 
     def __init__(self, *args, **kwargs):
         self.pending_device = None
+        self.torch = torch
+        self._gpu_input = None
+        self._buffers = None
+        self.last_input_bytes = 0
+        self.input_upload_bytes = 0
+        self.gpu_input_calls = 0
         self.device_generation = 0
         self.device_submissions = 0
         self.device_completions = 0
         super().__init__(*args, **kwargs)
 
+    def _check(self):
+        self.check()
+
+    @property
+    def gpu_input(self):
+        self.check()
+        if self._gpu_input is None:
+            from .gpu_input import OvdaGpuInput
+            self._gpu_input = OvdaGpuInput(self)
+        return self._gpu_input
+
     def reset(self, reason):
+        self.check()
         if self.pending_device is not None:
             raise RuntimeError("Complete oVDA device depth before reset")
-        super().reset(reason)
+        if reason not in ('start','scene_cut','source_change','discontinuity'):
+            raise ValueError('Unknown reset reason')
+        with torch.inference_mode(),torch.cuda.stream(self.stream):
+            for value in self.cache.values():value.zero_()
+        self.stream.synchronize()
+        self.used=0
+        self.shape=None
+        self.resets+=1
         self.device_generation += 1
 
     def infer_device(self, frame):
         self.check()
         if self.pending_device is not None:
             raise RuntimeError("Complete oVDA device depth before another inference")
-        validate_frame(frame)
+        from depthsbs_app.gpu_frame import GpuFrame
+        if isinstance(frame, GpuFrame):
+            frame.validate(self)
+        else:
+            validate_frame(frame)
         if self.shape is not None and self.shape != frame.shape:
             raise ValueError("Reset before geometry change")
-        if self.pre.get_size(frame.shape[1], frame.shape[0]) != self.profile[::-1]:
-            raise ValueError("oVDA input does not match selected engine profile")
         try:
             with torch.inference_mode(), torch.cuda.stream(self.stream):
-                image = (
-                    self.pre.preprocess(frame.copy())
-                    .to(f"cuda:{self.device}")
-                    .contiguous()
-                )
+                if self._buffers is None:
+                    from .device_buffers import OvdaBuffers
+                    self._buffers=OvdaBuffers(self)
+                buffers=self._buffers
+                image=buffers.image
+                if isinstance(frame, GpuFrame):
+                    self.gpu_input.prepare(frame.rgb, self.profile, output=image[:,0])
+                    self.last_input_bytes = 0
+                    self.gpu_input_calls += 1
+                else:
+                    image.copy_(self.pre.preprocess(frame.copy()))
+                    self.last_input_bytes = image.numel()*image.element_size()
+                self.input_upload_bytes += self.last_input_bytes
                 if not self.cache:
                     self.cache = {
                         key: torch.zeros(
@@ -80,23 +117,19 @@ class OvdaDeviceTrt(OvdaTrt):
                         )
                         for key, (n, channels) in self.caches.items()
                     }
-                mask, position = schedule(self.used)
+                mask, position = buffers.schedules[self.used]
                 inputs = {
                     "image": image,
-                    "mask": torch.tensor(mask, device=image.device, dtype=torch.int64),
-                    "position": torch.tensor(
-                        position, device=image.device, dtype=torch.int64
-                    ),
+                    "mask": mask,
+                    "position": position,
                     **{f"cache_{key}": value for key, value in self.cache.items()},
                 }
-                outputs = {}
+                outputs = buffers.outputs
                 for name, (shape, dtype, is_input) in self.signature.items():
                     tensor = (
                         inputs[name]
                         if is_input
-                        else torch.empty(
-                            shape, device=image.device, dtype=torch.float32
-                        )
+                        else outputs[name]
                     )
                     if not is_input:
                         outputs[name] = tensor
@@ -116,35 +149,16 @@ class OvdaDeviceTrt(OvdaTrt):
                         raise RuntimeError("Binding failed")
                 if not self.context.execute_async_v3(self.stream.cuda_stream):
                     raise RuntimeError("Execution failed")
-                self.stream.synchronize()
-                if not all(
-                    bool(torch.isfinite(value).all()) for value in outputs.values()
-                ):
-                    raise ValueError("Nonfinite oVDA output")
+                buffers.check_outputs()
                 if self.used == 15:
-                    self.cache = {
-                        key: torch.cat(
-                            [
-                                value[:, :, :, 1:15, :],
-                                outputs[f"new_{key}"],
-                                torch.zeros_like(outputs[f"new_{key}"]),
-                            ],
-                            dim=3,
-                        )
-                        for key, value in self.cache.items()
-                    }
+                    buffers.shift_caches()
                 else:
                     for key in self.cache:
                         self.cache[key][:, :, :, self.used, :] = outputs[f"new_{key}"][
                             :, :, :, 0, :
                         ]
                 self.used = min(self.used + 1, 15)
-                result = torch.nn.functional.interpolate(
-                    outputs["depth"],
-                    size=frame.shape[:2],
-                    mode="bilinear",
-                    align_corners=True,
-                )[:, 0].contiguous()
+                result = self.pre.restore_depth(outputs["depth"], frame.shape[:2])[:, 0].contiguous()
             self.calls += 1
             self.shape = frame.shape
             self.device_generation += 1
@@ -167,6 +181,8 @@ class OvdaDeviceTrt(OvdaTrt):
             raise
 
     def complete_device(self, token):
+        if token.owner is not self:
+            raise ValueError('Depth belongs to another oVDA engine')
         token.validate()
         self.stream.synchronize()
         self.pending_device = None
@@ -179,6 +195,11 @@ class OvdaDeviceTrt(OvdaTrt):
             device_depth_submissions=self.device_submissions,
             device_depth_completions=self.device_completions,
             pending_device_depth=self.pending_device is not None,
+            gpu_input_calls=self.gpu_input_calls,
+            input_upload_bytes=self.input_upload_bytes,
+            fixed_inference_buffer_bytes=self._buffers.bytes() if self._buffers else 0,
+            output_validation_waits=self._buffers.checks if self._buffers else 0,
+            cache_bank_count=1 if self.cache else 0,
             depth_d2h_bytes_avoided=self.device_completions
             * (self.shape[0] * self.shape[1] * 4 if self.shape else 0),
             zero_copy=False,
@@ -186,12 +207,19 @@ class OvdaDeviceTrt(OvdaTrt):
         return result
 
     def close(self):
+        if threading.get_ident()!=self.owner:
+            raise RuntimeError('oVDA close requires owner thread')
         if getattr(self, "pending_device", None) is not None:
             if self.stream is not None:
                 self.stream.synchronize()
             self.pending_device = None
             self.device_generation += 1
-        super().close()
+        try:
+            super().close()
+        finally:
+            if self.closed:
+                self._gpu_input = None
+                self._buffers = None
 
 
 class OvdaBufferedDeviceTrt(OvdaDeviceTrt):
@@ -261,8 +289,6 @@ class OvdaBufferedDeviceTrt(OvdaDeviceTrt):
         validate_frame(frame)
         if self.shape is not None and self.shape != frame.shape:
             raise ValueError("Reset before geometry change")
-        if self.pre.get_size(frame.shape[1], frame.shape[0]) != self.profile[::-1]:
-            raise ValueError("oVDA input does not match selected engine profile")
         try:
             with torch.inference_mode(), torch.cuda.stream(self.stream):
                 image = (
@@ -317,12 +343,7 @@ class OvdaBufferedDeviceTrt(OvdaDeviceTrt):
                             :, :, :, 0, :
                         ]
                 self.used = min(self.used + 1, 15)
-                result = torch.nn.functional.interpolate(
-                    outputs["depth"],
-                    size=frame.shape[:2],
-                    mode="bilinear",
-                    align_corners=True,
-                )[:, 0].contiguous()
+                result = self.pre.restore_depth(outputs["depth"], frame.shape[:2])[:, 0].contiguous()
             self.calls += 1
             self.shape = frame.shape
             self.device_generation += 1

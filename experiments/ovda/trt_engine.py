@@ -1,24 +1,25 @@
 # oVDA cache/preprocessing adaptation, NC-SA-UHDV1.0; see LICENSE/README.md.
-"""Explicit local c16 FP32 engine; no weights, CPU or precision fallback."""
+"""Explicit local c16 mixed-FP16 engine with FP32 I/O/cache; no fallback."""
 import os
 import threading
 import numpy as np
 import torch
 if __package__:
-    from .oracle import ROOT, schedule, validate_frame, REVISION, WEIGHT_HASH
-    from .preprocessing import FramePreprocessor
+    from .oracle import ROOT, schedule, REVISION, WEIGHT_HASH
+    from .preprocessing import FramePreprocessor, validate_frame
 else:
-    from oracle import ROOT, schedule, validate_frame, REVISION, WEIGHT_HASH
-    from preprocessing import FramePreprocessor
+    from oracle import ROOT, schedule, REVISION, WEIGHT_HASH
+    from preprocessing import FramePreprocessor, validate_frame
 
-PLAN = ROOT/'out/ovda-trt/bb6a03e172414a60b470f70c2cfd9a98/model.plan'
+PLAN = ROOT/'out/ovda-local/518x924-fp16/model.plan'
 
 
 class OvdaTrt:
     def __init__(self, progress=None, directory=None, runtime_dir=None, profile=(518,924)):
-        from depthsbs_app.ovda import checked_plan, PROFILES
+        from depthsbs_app.ovda import checked_plan, PROFILES, RUNTIME
         if profile not in PROFILES:raise ValueError('Unvalidated oVDA profile')
         self.profile=profile;self.plan_hash=PROFILES[profile][0]
+        self.runtime_label=RUNTIME
         h,w=profile; n=(h//14)*(w//14)
         self.caches={'c1':(n,192),'c2':(((h//14+1)//2)*((w//14+1)//2),384),'c3':(n,64),'c4':(n*4,64)}
         self.owner=threading.get_ident();self.closed=False
@@ -31,7 +32,7 @@ class OvdaTrt:
                 raise RuntimeError('Only local validated RTX 5090 supported')
             payload=checked_plan(directory if directory is not None else PLAN.parent,profile)
             if torch.__version__!='2.7.1+cu128':raise RuntimeError('oVDA requires validated torch 2.7.1+cu128; use scripts/run-ovda.ps1')
-            self.pre=FramePreprocessor()
+            self.pre=FramePreprocessor(profile)
             self.dll=os.add_dll_directory(str(runtime_dir or 'C:/TensorRT/TensorRT-11.2.1.2/bin'))
             import tensorrt as trt
             if trt.__version__!='11.2.1.2':raise RuntimeError('TensorRT version mismatch')
@@ -71,7 +72,6 @@ class OvdaTrt:
     def infer(self,frame):
         self.check();validate_frame(frame)
         if self.shape is not None and self.shape!=frame.shape:raise ValueError('Reset before geometry change')
-        if self.pre.get_size(frame.shape[1],frame.shape[0])!=self.profile[::-1]:raise ValueError('oVDA input does not match selected engine profile')
         try:
             with torch.inference_mode(),torch.cuda.stream(self.stream):
                 image=self.pre.preprocess(frame.copy()).to(f'cuda:{self.device}').contiguous()
@@ -99,7 +99,7 @@ class OvdaTrt:
                 else:
                     for k in self.cache:self.cache[k][:,:,:,self.used,:]=outputs['new_'+k][:,:,:,0,:]
                 self.used=min(self.used+1,15)
-                result=torch.nn.functional.interpolate(outputs['depth'],size=frame.shape[:2],mode='bilinear',align_corners=True)
+                result=self.pre.restore_depth(outputs['depth'],frame.shape[:2])
                 result=result[:,0].cpu().numpy().astype(np.float32,copy=True)
                 self.stream.synchronize()
             if result.shape!=(1,*frame.shape[:2]) or not np.isfinite(result).all():raise ValueError('Invalid resized depth')
@@ -112,7 +112,7 @@ class OvdaTrt:
 
     def telemetry(self):
         self.check()
-        return dict(model_id='ovda-small-c16',runtime='tensorrt-fp32',
+        return dict(model_id='ovda-small-c16',runtime=self.runtime_label,
             source_revision=REVISION,weight_sha256=WEIGHT_HASH,plan_sha256=self.plan_hash,
             license='NC-SA-UHDV1.0',completed_inferences=self.calls,resets=self.resets,
             cache_slots=16,cache_used=self.used,cache_bytes=sum(v.numel()*v.element_size() for v in self.cache.values()),
