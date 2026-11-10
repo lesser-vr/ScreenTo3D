@@ -5,62 +5,91 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <cwctype>
+#include "generated_i18n.h"
 
 namespace fs = std::filesystem;
 
-static bool korean = false;
-static const wchar_t* ui(const wchar_t* english, const wchar_t* koreanText) {
-    return korean ? koreanText : english;
+namespace i18n = launcher_i18n;
+static std::size_t language = i18n::default_language;
+static const wchar_t* ui(i18n::Text key) { return i18n::text[language][key]; }
+
+static std::wstring normalized(std::wstring tag) {
+    for (auto& ch : tag) ch = ch == L'_' ? L'-' : wchar_t(towlower(ch));
+    return tag;
 }
 
-static bool korean_language() {
-    wchar_t choice[16]{};
+static std::size_t match_language(const std::wstring& requested, bool exact) {
+    const auto tag = normalized(requested);
+    for (std::size_t i = 0; i < std::size(i18n::languages); ++i)
+        if (tag == normalized(i18n::languages[i].code) || (!exact && tag == normalized(i18n::languages[i].locale))) return i;
+    if (!exact) {
+        const auto base = tag.substr(0, tag.find(L'-'));
+        for (std::size_t i = 0; i < std::size(i18n::languages); ++i)
+            if (base == normalized(i18n::languages[i].code)) return i;
+    }
+    return i18n::default_language;
+}
+
+static std::size_t selected_language() {
+    wchar_t choice[128]{};
     DWORD bytes = sizeof(choice);
     if (RegGetValueW(HKEY_CURRENT_USER, L"Software\\DepthSBS\\DepthSBS\\ui", L"language",
                      RRF_RT_REG_SZ, nullptr, choice, &bytes) == ERROR_SUCCESS) {
-        if (std::wstring(choice) == L"ko") return true;
-        if (std::wstring(choice) == L"en") return false;
+        for (const auto& entry : i18n::languages)
+            if (std::wstring(choice) == entry.code) return match_language(choice, true);
     }
-    return PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_KOREAN;
+    ULONG count = 0, chars = 0;
+    GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &count, nullptr, &chars);
+    if (chars && chars < 32768) {
+        std::vector<wchar_t> tags(chars);
+        if (GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &count, tags.data(), &chars) && tags[0])
+            return match_language(tags.data(), false);
+    }
+    wchar_t locale[LOCALE_NAME_MAX_LENGTH]{};
+    if (LCIDToLocaleName(MAKELCID(GetUserDefaultUILanguage(), SORT_DEFAULT), locale, LOCALE_NAME_MAX_LENGTH, 0))
+        return match_language(locale, false);
+    return i18n::default_language;
 }
 
-static int fail(const std::wstring& message, DWORD code = 0) {
-    std::wstring text = message;
-    if (code) text += std::wstring(ui(L"\nWindows error code ", L"\nWindows 오류 코드 ")) + std::to_wstring(code);
-    MessageBoxW(nullptr, text.c_str(), ui(L"ScreenTo3D launch error", L"ScreenTo3D 실행 오류"), MB_OK | MB_ICONERROR);
+static int fail(i18n::Text error, DWORD code = 0, const std::wstring& details = L"") {
+    std::wstring text = std::wstring(ui(i18n::ErrorId)) + L": " + i18n::ids[error] + L"\n\n" + ui(error);
+    if (!details.empty()) text += std::wstring(L"\n\n") + ui(i18n::Details) + L":\n" + details;
+    if (code) text += std::wstring(L"\n") + ui(i18n::WindowsCode) + L": " + std::to_wstring(code);
+    MessageBoxW(nullptr, text.c_str(), ui(i18n::Title), MB_OK | MB_ICONERROR);
     return 1;
 }
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
-    korean = korean_language();
+    language = selected_language();
     std::vector<wchar_t> filename(32768);
     DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
-    if (!length || length >= filename.size()) return fail(ui(L"Cannot locate the executable.", L"실행 파일 위치를 확인할 수 없습니다."), GetLastError());
+    if (!length || length >= filename.size()) return fail(i18n::E_LAUNCH_LOCATION, GetLastError());
     const fs::path root = fs::path(filename.data()).parent_path();
     const bool portable = fs::exists(root / L"desktop-portable");
     const fs::path python = root / (portable ? L"python/pythonw.exe" : L"out/vda-oracle-env/Scripts/pythonw.exe");
     if (!fs::exists(python) || !fs::exists(root / L"v1/depthsbs_app/launcher.py"))
-        return fail(std::wstring(ui(L"Required launch components are missing. Check the complete ScreenTo3D distribution folder.\n", L"실행 구성요소가 없습니다. ScreenTo3D 배포 폴더 전체를 확인해 주세요.\n")) + root.wstring());
+        return fail(i18n::E_LAUNCH_COMPONENTS, 0, root.wstring());
 
     PWSTR local = nullptr;
     HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_CREATE, nullptr, &local);
-    if (FAILED(result)) return fail(ui(L"Cannot locate the user log folder.", L"사용자 로그 폴더를 찾을 수 없습니다."), DWORD(result));
+    if (FAILED(result)) return fail(i18n::E_LAUNCH_USER_FOLDER, DWORD(result));
     fs::path logs = fs::path(local) / L"DepthSBS/logs";
     CoTaskMemFree(local);
     std::error_code error;
     fs::create_directories(logs, error);
-    if (error) return fail(std::wstring(ui(L"Cannot create the launch log folder.\n", L"실행 로그 폴더를 만들 수 없습니다.\n")) + logs.wstring(), DWORD(error.value()));
+    if (error) return fail(i18n::E_LAUNCH_LOG_FOLDER, DWORD(error.value()), logs.wstring());
     // Each concurrent launcher owns its log, including native stdout/stderr.
     fs::path log = logs / (L"launch-" + std::to_wstring(GetCurrentProcessId()) + L".log");
     SECURITY_ATTRIBUTES security{sizeof(SECURITY_ATTRIBUTES), nullptr, TRUE};
     HANDLE stream = CreateFileW(log.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
         &security, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (stream == INVALID_HANDLE_VALUE) return fail(ui(L"Cannot open the launch log.", L"실행 로그를 열 수 없습니다."), GetLastError());
+    if (stream == INVALID_HANDLE_VALUE) return fail(i18n::E_LAUNCH_LOG_OPEN, GetLastError());
     HANDLE input = CreateFileW(L"NUL", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
         &security, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (input == INVALID_HANDLE_VALUE) {
         DWORD code = GetLastError(); CloseHandle(stream);
-        return fail(ui(L"Cannot prepare the input stream.", L"입력 스트림을 준비할 수 없습니다."), code);
+        return fail(i18n::E_LAUNCH_INPUT, code);
     }
     SetEnvironmentVariableW(L"DEPTHSBS_LAUNCH_LOG", log.c_str());
     if (!portable) {
@@ -80,12 +109,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         CREATE_NO_WINDOW, nullptr, root.c_str(), &startup, &process);
     DWORD code = GetLastError();
     CloseHandle(input); CloseHandle(stream);
-    if (!created) return fail(std::wstring(ui(L"Cannot start ScreenTo3D.\n", L"ScreenTo3D를 실행할 수 없습니다.\n")) + log.wstring(), code);
+    if (!created) return fail(i18n::E_LAUNCH_PROCESS, code, log.wstring());
     CloseHandle(process.hThread);
     WaitForSingleObject(process.hProcess, INFINITE);
     DWORD exitCode = 1;
     GetExitCodeProcess(process.hProcess, &exitCode);
     CloseHandle(process.hProcess);
-    if (exitCode) return fail(std::wstring(ui(L"ScreenTo3D exited with an error.\nLog file\n", L"ScreenTo3D가 오류로 종료되었습니다.\n로그 파일\n")) + log.wstring(), exitCode);
+    if (exitCode) return fail(i18n::E_LAUNCH_EXIT, exitCode, log.wstring());
     return 0;
 }

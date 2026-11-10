@@ -1,5 +1,12 @@
+param([string]$Python = '')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
+if (-not $Python) {
+    $Python = Join-Path $repo 'out/vda-oracle-env/Scripts/python.exe'
+    if (-not (Test-Path -LiteralPath $Python)) { $Python = 'python' }
+}
+& $Python (Join-Path $PSScriptRoot 'build-translations.py') --native-only
+if ($LASTEXITCODE) { throw 'Launcher translation generation failed.' }
 $build = Join-Path $repo 'out/desktop-launcher'
 $source = Join-Path $repo 'native/launcher'
 New-Item -ItemType Directory -Path $build -Force | Out-Null
