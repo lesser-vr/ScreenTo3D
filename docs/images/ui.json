@@ -1,0 +1,47 @@
+{
+  "captured": "2026-11-11",
+  "revision": "5f63464f29e73d2b29c07dcabec7b9ebf5f3c3b5",
+  "live": {
+    "native_session": true,
+    "submitted_frames": 12,
+    "source": "Owned Spring player window only",
+    "model": "da2-small",
+    "strength": 0.5,
+    "vfg": false
+  },
+  "file": {
+    "model": "da2-base",
+    "strength": 0.5,
+    "vfg": false,
+    "state": "queued",
+    "output_path": "Public relative example destination, to omit local user directories"
+  },
+  "dpi": 1.5,
+  "files": {
+    "en/ui-live.png": {
+      "width": 630,
+      "height": 390,
+      "bytes": 29046,
+      "sha256": "ea92380867de3553868b16682c68ef32ecfa0a393f7bcb81957a1c2434ae54a4"
+    },
+    "ko/ui-live.png": {
+      "width": 630,
+      "height": 390,
+      "bytes": 25985,
+      "sha256": "32c71a9ea46f88e3236e00c909a55a8271e5f2b9449b863a56d97801ceb44fa0"
+    },
+    "en/ui-files.png": {
+      "width": 1290,
+      "height": 1650,
+      "bytes": 201466,
+      "sha256": "4edb3ea6c465610ad22e28536309f44ff5a99a10a7f330418a6c7efaf78ab539"
+    },
+    "ko/ui-files.png": {
+      "width": 1290,
+      "height": 1650,
+      "bytes": 165125,
+      "sha256": "504622c1bfbb5b32733cefc9fa8ea98abbe92d8ed77f68363c6180595398e398"
+    }
+  },
+  "qml_warnings": []
+}

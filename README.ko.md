@@ -2,14 +2,32 @@
 
 [English](README.md) | **한국어**
 
-데스크톱의 게임·영상 화면을 2D에서 SBS 입체 영상으로 변환합니다. 준비된 로컬
-환경에서 `ScreenTo3D.exe`를 실행하면 한국어·영어를 지원하는 실시간 / 파일 / 설정
+게임·영상 화면을 실시간 3D로 변환하고, 영상 파일도 입체 영상으로 변환합니다. 준비된 로컬
+환경에서 `ScreenTo3D.exe`를 실행하면 한국어·영어를 지원하는 실시간 3D / 파일 / 설정
 앱이 열립니다. 실시간 처리와 파일 변환은 선택한 처리 모드에 맞는 설치된 깊이
 모델을 사용하며, 다른 모델로 자동 대체하지 않습니다. 최신 소스의 기능이 기존
 포터블 배포본에 자동으로 반영되지는 않습니다.
 
+## 앱 화면
+
+창이나 모니터를 선택하고 실시간 3D를 시작합니다. 아래는 공개 Spring 장면을
+입력으로 DA2 Small·Half Top-and-Bottom 출력을 실제 실행 중인 화면입니다.
+
+<img src="docs/images/ko/ui-live.png" width="420" alt="Spring 창을 선택하고 실시간 3D를 실행 중인 ScreenTo3D 앱과 3D 중지 버튼">
+
+<details>
+<summary>파일 변환: 대기열·입체감·선택적 VFG</summary>
+
+영상을 추가하고 출력 형식을 선택한 뒤 변환을 시작합니다. 파일 설정은 기본으로
+모두 표시됩니다. 최초 모델은 DA2 Base, 입체감은 0.5이며 VFG와 변환 완료 후
+Windows 종료는 기본으로 꺼져 있습니다.
+
+<img src="docs/images/ko/ui-files.png" width="760" alt="Spring 영상이 대기 중인 파일 변환 화면: DA2 Base, Half Top-and-Bottom, 입체감 0.5, VFG 꺼짐, 변환 완료 후 종료 꺼짐">
+
+</details>
+
 **설정 및 진단 → 언어**에서 시스템 기본값, 한국어, English를 선택할 수 있습니다.
-선택 값은 저장되며 SBS 실행 중에도 언어를 바꿀 수 있습니다.
+선택 값은 저장되며 실시간 3D 실행 중에도 언어를 바꿀 수 있습니다.
 
 [현재 데스크톱 포터블 배포 구성](docs/models/desktop-distribution.md)은 DA2 Small을
 기본 동봉하고, Base·VDA Small·선택 기능인 NVIDIA VFG는 필요할 때 설치합니다.
@@ -17,6 +35,29 @@ Small·Base·VDA의 TensorRT 엔진은 사용자의 NVIDIA GPU에서 생성합�
 
 목표는 Small + Lossless Scaling FG보다 나은 깊이 품질과 사용성, 눈당 3840×2160 /
 Full SBS 7680×2160 해상도에서 최종 60fps 출력입니다. 검증이 완료된 지원 사양은 아닙니다.
+
+## Half Top-and-Bottom 예제
+
+같은 프레임의 원본과 실제 네이티브 입체 변환 결과입니다. **DA2 Small FP16 ·
+입체감 0.5 · VFG 꺼짐**으로 생성했습니다. 기본 편안함 보정을 포함한 일반 실시간
+설정을 사용했으며, 벤치마크용 카메라 맞춤 보정은 적용하지 않았습니다.
+
+| 원본 2D 입력 | Half Top-and-Bottom 출력 |
+|---|---|
+| [![원본 Spring 산악 장면](docs/images/spring-original-preview.webp)](docs/images/spring-original.png) | [![왼눈을 위쪽, 오른눈을 아래쪽에 배치한 실제 Half Top-and-Bottom 출력](docs/images/spring-half-tb-preview.webp)](docs/images/spring-half-tb.png) |
+
+미리보기를 누르면 **1920×1080 PNG**를 열 수 있습니다. 출력은 위쪽에 왼눈,
+아래쪽에 오른눈을 각각 **1920×540**으로 저장합니다. 일반 2D 페이지에서 두 영상이
+세로로 압축되어 보이는 것이 정상입니다. 출력 PNG를 내려받고 대응하는 입체 이미지
+뷰어나 3D 디스플레이에서 **Half Top-and-Bottom**을 선택하면 각 눈의 비율이 복원되어
+입체로 볼 수 있습니다.
+
+출처: [Spring 데이터셋, DaRUS V2](https://doi.org/10.18419/DARUS-3376),
+Mehl·Schmalfuss·Jahedi·Nalivayko·Bruhn(2023);
+장면 에셋: [Spring, Blender Foundation / Blender Studio](https://studio.blender.org/films/spring/).
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+변경 사항: ScreenTo3D 입체 변환 및 웹 미리보기 축소.
+[이미지 출처와 재현 방법](docs/images/README.md).
 
 ## RGB 화질 평가 (2026-11-10)
 

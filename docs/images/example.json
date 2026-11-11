@@ -1,0 +1,75 @@
+{
+  "source": {
+    "dataset": "Spring",
+    "version": 2,
+    "doi": "10.18419/DARUS-3376",
+    "url": "https://doi.org/10.18419/DARUS-3376",
+    "license": "CC-BY-4.0",
+    "creators": [
+      "Lukas Mehl",
+      "Jenny Schmalfuss",
+      "Azin Jahedi",
+      "Yaroslava Nalivayko",
+      "Andrés Bruhn"
+    ],
+    "film_assets": "Spring, Blender Foundation / Blender Studio, CC-BY-4.0",
+    "file": "spring/train/0001/frame_left/frame_left_0064.png",
+    "sha256": "5e48735b989fdf06540ad3a8576843cb09c4c2419f48033fd44b1d9a741e97dc"
+  },
+  "processing": {
+    "model": "DA2 Small",
+    "precision": "FP16",
+    "strength": 0.5,
+    "vfg": false,
+    "renderer": "native CUDA live Half Top-and-Bottom",
+    "input_size": [
+      1920,
+      1080
+    ],
+    "output_size": [
+      1920,
+      1080
+    ],
+    "packed_eye_size": [
+      1920,
+      540
+    ],
+    "eye_order": "left eye above right eye",
+    "frames": 64,
+    "source_clock_hz": 60,
+    "camera_calibration": false,
+    "default_comfort_policy": true,
+    "resets": [
+      {
+        "frame": 1,
+        "reason": "start"
+      }
+    ],
+    "changes": "Native stereo synthesis; unchanged source RGB PNG re-encoding; 960x540 lossy web previews."
+  },
+  "verification": {
+    "native_png_roundtrip_exact": true,
+    "eyes_mean_absolute_difference": 10.825529835390947,
+    "gpu": "NVIDIA GeForce RTX 5090",
+    "revision": "5f63464f29e73d2b29c07dcabec7b9ebf5f3c3b5",
+    "scope": "A documented still example, not FPS, quality ranking or display-comfort validation."
+  },
+  "files": {
+    "spring-half-tb-preview.webp": {
+      "bytes": 144490,
+      "sha256": "7f2fdf48ab88abb6fd89e19574556ca74c6899f51472fe27fc54e90ef51127c1"
+    },
+    "spring-half-tb.png": {
+      "bytes": 3338179,
+      "sha256": "dba2ce4375b3c91c66e1b3f107f2531aed7e5de26c69f92870330bab3ca1801e"
+    },
+    "spring-original-preview.webp": {
+      "bytes": 146950,
+      "sha256": "2464c7c33767ed330ad4fab488f18dc83a22b58836da81a930398d739ffe5696"
+    },
+    "spring-original.png": {
+      "bytes": 3534082,
+      "sha256": "025bea9fe857bcfff66c4ee16324f3c619fa25f3c43ba1ee75042ae77368419f"
+    }
+  }
+}

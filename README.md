@@ -2,14 +2,33 @@
 
 **English** | [한국어](README.ko.md)
 
-Desktop 2D-to-SBS conversion for games and videos. Run `ScreenTo3D.exe` in the
-prepared local environment for the Korean/English Live / Files / Settings app. Live and
+Real-time 2D-to-3D conversion for games and videos, plus stereo video file conversion.
+Run `ScreenTo3D.exe` in the prepared local environment for the Korean/English
+Live 3D / Files / Settings app. Live and
 file conversion resolve the selected product mode to its permitted installed depth
 model without silent fallback. Current source features are not automatically in
 old portable builds.
 
+## App UI
+
+Select a window or monitor and start Live 3D. This is the actual app running with
+the public Spring scene as its input, using DA2 Small and Half Top-and-Bottom.
+
+<img src="docs/images/en/ui-live.png" width="420" alt="ScreenTo3D Live 3D running with the Spring window selected and the Stop 3D button available">
+
+<details>
+<summary>File conversion: queue, depth strength and optional VFG</summary>
+
+Add videos to the queue, choose an output layout, then start conversion. File
+settings are always visible; DA2 Base is the initial file model, depth strength
+starts at 0.5, and VFG and shutdown after conversion start off.
+
+<img src="docs/images/en/ui-files.png" width="760" alt="ScreenTo3D file conversion with a queued Spring video, DA2 Base, Half Top-and-Bottom, depth strength 0.5, VFG off and shutdown off">
+
+</details>
+
 Choose **Settings and diagnostics → Language** to use the system language,
-한국어 or English. The selection is saved and can change while SBS is running.
+한국어 or English. The selection is saved and can change while Live 3D is running.
 
 The [current desktop portable build](docs/models/desktop-distribution.md) bundles
 DA2 Small and installs Base, VDA Small and optional NVIDIA VFG on demand.
@@ -17,6 +36,29 @@ Small, Base and VDA build their TensorRT engines on the user's NVIDIA GPU.
 
 The goal is better depth and easier use than Small + Lossless Scaling FG, with
 3840x2160 per eye / 7680x2160 Full SBS at final 60 fps. This is not certified support.
+
+## Half Top-and-Bottom example
+
+The same frame before and after native stereo conversion: **DA2 Small FP16 ·
+depth strength 0.5 · VFG off**. The output uses the ordinary live settings,
+including the default comfort processing, without benchmark camera calibration.
+
+| Original 2D input | Half Top-and-Bottom output |
+|---|---|
+| [![Original Spring mountain scene](docs/images/spring-original-preview.webp)](docs/images/spring-original.png) | [![Actual Half Top-and-Bottom output: left eye above right eye](docs/images/spring-half-tb-preview.webp)](docs/images/spring-half-tb.png) |
+
+Click either preview for its **1920×1080 PNG**. The output contains the left eye
+on top and the right eye below, each stored at **1920×540**. Two vertically
+compressed views are expected on a normal 2D page. Download the output PNG and
+select **Half Top-and-Bottom** in a compatible stereoscopic image viewer or 3D
+display to restore each eye's proportions and view it in 3D.
+
+Source: [Spring dataset, DaRUS V2](https://doi.org/10.18419/DARUS-3376),
+Mehl, Schmalfuss, Jahedi, Nalivayko and Bruhn (2023); scene assets from
+[Spring, Blender Foundation / Blender Studio](https://studio.blender.org/films/spring/).
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Changes: stereo synthesis by ScreenTo3D and reduced web previews.
+[Image provenance and reproduction](docs/images/README.md).
 
 ## RGB quality evaluation (2026-11-10)
 
