@@ -182,6 +182,17 @@ Utility navigation remains available during work; closing a utility does not
 cancel a job. Closing the main app during live SBS stops and waits for owned
 worker cleanup before exit. File-work cancellation still asks before quitting.
 
+File VFG processes completed Full SBS stereo frames before packing into any of
+the four layouts. Original frames retain their source timestamps on the doubled
+output timeline. A generated midpoint is inserted between ordinary adjacent
+frames; a detected cut repeats the previous frame at that midpoint, and one final
+repeat completes the original duration. Generated frames never enter depth-model
+history. The file adapter uses the same pinned Medium 2x NVIDIA VFG bridge with
+bounded host/device buffers; SDK/geometry errors stop the job and preserve any
+previous output. Source-processing rate and output file FPS are distinct metrics.
+The file API/CLI keep strength 1.0 and VFG off by default for existing diagnostics;
+Desktop controls are integrated separately. This does not change live VFG policy.
+
 ## Live capture and output
 
 1. Select an explicit window or monitor; there is no initial automatic selection.

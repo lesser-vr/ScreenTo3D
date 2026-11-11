@@ -2604,6 +2604,21 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <extracomment>ScreenTo3D exited with an error.</extracomment>
       <translation>ScreenTo3D가 오류로 종료되었습니다.</translation>
     </message>
+    <message>
+      <source>E_FILE_VFG_FAILED</source>
+      <extracomment>File frame interpolation failed. Check the VFG installation and GPU compatibility.</extracomment>
+      <translation>파일 프레임 보간에 실패했습니다. VFG 설치 상태와 GPU 호환성을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_FILE_VFG_GEOMETRY</source>
+      <extracomment>VFG requires a source video no larger than 4096×2160.</extracomment>
+      <translation>VFG는 원본 영상 크기가 4096×2160 이하여야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_FILE_VFG_SELECTION</source>
+      <extracomment>Invalid file frame interpolation setting.</extracomment>
+      <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
+    </message>
   </context>
   <context>
     <name>PublicErrors</name>
@@ -3281,6 +3296,21 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <source>E_LAUNCH_EXIT</source>
       <extracomment>ScreenTo3D exited with an error.</extracomment>
       <translation>ScreenTo3D가 오류로 종료되었습니다.</translation>
+    </message>
+    <message>
+      <source>E_FILE_VFG_FAILED</source>
+      <extracomment>File frame interpolation failed. Check the VFG installation and GPU compatibility.</extracomment>
+      <translation>파일 프레임 보간에 실패했습니다. VFG 설치 상태와 GPU 호환성을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_FILE_VFG_GEOMETRY</source>
+      <extracomment>VFG requires a source video no larger than 4096×2160.</extracomment>
+      <translation>VFG는 원본 영상 크기가 4096×2160 이하여야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_FILE_VFG_SELECTION</source>
+      <extracomment>Invalid file frame interpolation setting.</extracomment>
+      <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
     </message>
   </context>
 </TS>

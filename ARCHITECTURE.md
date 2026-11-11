@@ -86,6 +86,12 @@ arrangement; text stays at the same logical size in the output window.
 
 - `desktop_jobs.py` and isolated workers own job/session lifecycle; the GUI does
   not run inference. Live and file work share an exclusive processing lease.
+  File workers accept depth strength and optional VFG. `pipeline.py` applies
+  strength to divergence before synthesis; `file_interpolation.py` owns the bounded
+  original/midpoint/cut/tail 2x cadence, before stereo packing. `file_vfg.py` owns
+  the worker's independent CUDA stream, three pinned host/device RGBA buffers,
+  trusted SDK handles and pinned existing bridge. Its cleanup completes before
+  atomic publication. No QML/GUI object loads Torch or creates a VFG session.
 - `desktop_preferences.py` owns validated mode/model/layout selections in the
   existing DepthSBS QSettings namespace, separated by live/file scope. Explicit
   UI activation saves them; diagnostic setters and fixed comparisons do not.

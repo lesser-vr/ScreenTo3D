@@ -718,6 +718,21 @@
       "public": "ScreenTo3D exited with an error.",
       "category": "launcher",
       "native": true
+    },
+    "E_FILE_VFG_GEOMETRY": {
+      "source": "VFG requires a source video no larger than 4096×2160.",
+      "public": "VFG requires a source video no larger than 4096×2160.",
+      "category": "backend"
+    },
+    "E_FILE_VFG_FAILED": {
+      "source": "File frame interpolation failed. Check the VFG installation and GPU compatibility.",
+      "public": "File frame interpolation failed. Check the VFG installation and GPU compatibility.",
+      "category": "backend"
+    },
+    "E_FILE_VFG_SELECTION": {
+      "source": "Invalid file frame interpolation setting.",
+      "public": "Invalid file frame interpolation setting.",
+      "category": "backend"
     }
   }
 }

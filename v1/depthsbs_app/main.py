@@ -28,6 +28,9 @@ def run_worker(arguments, gpu_preview=False) -> int:
         from .pipeline import convert_video
         options = {'output_codec': getattr(arguments, 'output_codec', 'h264')}
         options['stereo_layout'] = getattr(arguments, 'stereo_layout', 'full-sbs')
+        strength=getattr(arguments,'depth_strength',1.)
+        if strength!=1.:options['depth_strength']=strength
+        if getattr(arguments,'vfg',False):options['vfg']=True
         if getattr(arguments, 'depth_backend', 'da2-small') == 'ovda-small-c16':
             from .ovda import binding, LICENSE_NOTICE
             options['depth_backend'] = binding(arguments.ovda_engine_dir, arguments.runtime_dir, arguments.ovda_noncommercial)
@@ -104,6 +107,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument('--reference-cpu', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--frame-hashes', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--letterbox-refinement', action='store_true', help='Experimental black-bar backdrop refinement (off by default)')
+    parser.add_argument('--depth-strength',type=float,default=1.,help='File stereo depth strength, 0.25..2.0')
+    parser.add_argument('--vfg',action='store_true',help='File conversion: NVIDIA VFG 2x output FPS with unchanged duration')
     parser.add_argument("--input", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--mode", choices=tuple(MODES), default="balanced")

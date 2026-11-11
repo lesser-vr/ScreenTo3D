@@ -19,6 +19,7 @@ from .offline_depth import is_scene_cut as is_offline_scene_cut
 from .telemetry import StageMetrics
 from .lifecycle import Lifecycle
 from .stereo import project_eye, guide_depth, refine_flat_background, color_change
+from .messages import ErrorMessage as E
 
 
 Progress = Callable[[dict], None]
@@ -252,6 +253,7 @@ def convert_video(
     *, projection_factory=None, diagnostic_hashes=False, output_codec='h264', depth_backend=None,
     letterbox_refinement=False,
     stereo_layout="full-sbs",
+    depth_strength=1.0,vfg=False,interpolation_factory=None,
 ) -> dict:
     job_started = time.perf_counter()
     import hashlib
@@ -266,7 +268,12 @@ def convert_video(
     probe_started = time.perf_counter()
     if type(letterbox_refinement) is not bool:
         raise ValueError('letterbox_refinement must be boolean')
+    import math
+    if isinstance(depth_strength,bool) or not isinstance(depth_strength,(int,float)) or not math.isfinite(depth_strength) or not .25<=depth_strength<=2:
+        raise ValueError(E('E_DEPTH_STRENGTH_INVALID'))
+    if type(vfg) is not bool:raise ValueError(E('E_FILE_VFG_SELECTION'))
     policy = replace(MODES[mode], letterbox_refinement=letterbox_refinement, stereo_layout=stereo_layout)
+    policy = replace(policy,divergence=policy.divergence*depth_strength)
     from .stereo_layout import dimensions, pack
     metadata = probe_video(input_path, output_codec=output_codec, stereo_layout=stereo_layout)
     backend = depth_backend if depth_backend is not None else resolve_backend(policy.depth_backend, DepthEngine, preprocess)
@@ -287,6 +294,8 @@ def convert_video(
     video_path = output_path.with_name(f".{output_path.name}.{token}.video-only.mp4")
     width, height = metadata["width"], metadata["height"]
     packed_width, packed_height = dimensions(width, height, stereo_layout)
+    output_fps=metadata['fps']*(2 if vfg else 1)
+    output_total=(metadata['total_frames'] or 0)*(2 if vfg else 1)
     decode = encode = None
     started, frames, decoded_frames, last_depth = time.perf_counter(), 0, 0, None
     metrics = StageMetrics()
@@ -302,6 +311,15 @@ def convert_video(
         with backend.engine_factory(progress) as engine, ExitStack() as projection_scope:
             backend.reset(engine, 'start')
             lifecycle.checkpoint('engine_startup')
+            interpolator=vfg_session=None
+            if vfg:
+                from .file_interpolation import DoubleRate
+                if interpolation_factory is None:
+                    from .file_vfg import FileVfg
+                    interpolation_factory=FileVfg
+                vfg_session=projection_scope.enter_context(interpolation_factory(width*2,height))
+                interpolator=DoubleRate(vfg_session.generate)
+                progress(dict(event='file_vfg',enabled=True,multiplier=2,output_fps=output_fps))
             decode = subprocess.Popen(
                 [_tool("ffmpeg"), "-v", "error", "-i", str(input_path),
                  "-map", "0:v:0", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"],
@@ -311,7 +329,7 @@ def convert_video(
             encode = subprocess.Popen(
                 [_tool("ffmpeg"), "-y", "-v", "error", "-f", "rawvideo",
                  "-pix_fmt", "rgb24", "-s", f"{packed_width}x{packed_height}",
-                 "-r", f"{metadata['fps']:.8f}", "-i", "pipe:0", "-an",
+                 "-r", f"{output_fps:.8f}", "-i", "pipe:0", "-an",
                  "-c:v", output_policy.encoder, "-tag:v", output_policy.tag,
                  "-preset", policy.nvenc_preset,
                  "-tune", "hq", "-rc", "vbr", "-cq", str(policy.cq),
@@ -331,12 +349,12 @@ def convert_video(
                     'bounded': True,
                 })
 
-            def write_sample(output_frame, output_depth):
+            def write_stereo(stereo):
                 nonlocal encoded_pipe_bytes, frames
-                with metrics.measure('temporal_stereo'):
-                    rendered = pack(synthesizer.render(output_frame, output_depth), stereo_layout).tobytes()
+                _check_cancel(cancel_path)
+                with metrics.measure('stereo_pack'):
+                    rendered=pack(stereo,stereo_layout).tobytes()
                 if hashes is not None:
-                    hashes['depth'].update(output_depth.tobytes())
                     hashes['sbs_rgb'].update(rendered)
                 with metrics.measure('encode_write'):
                     written = encode.stdin.write(rendered)
@@ -345,11 +363,23 @@ def convert_video(
                     encoded_pipe_bytes += written
                 frames += 1
                 if frames == 1 or frames % 10 == 0:
-                    total = metadata['total_frames']
+                    total = output_total
                     progress({
                         'event': 'progress', 'frame': frames, 'total_frames': total,
                         'percent': min(100.0, frames * 100.0 / total) if total else None,
                     })
+
+            def write_sample(output_frame,output_depth):
+                cut=synthesizer.is_scene_cut(output_frame) if interpolator is not None else False
+                with metrics.measure('temporal_stereo'):
+                    stereo=synthesizer.render(output_frame,output_depth)
+                if hashes is not None:hashes['depth'].update(output_depth.tobytes())
+                if interpolator is None:samples=(stereo,)
+                else:
+                    _check_cancel(cancel_path)
+                    with metrics.measure('frame_interpolation'):
+                        samples=interpolator.submit(stereo,cut_before=cut)
+                for sample in samples:write_stereo(sample)
 
             lifecycle.checkpoint('pipeline_setup')
             while True:
@@ -408,8 +438,10 @@ def convert_video(
                     remaining = offline_window.finish()
                 for output_frame, output_depth in remaining:
                     write_sample(output_frame, output_depth)
-                if frames != decoded_frames:
-                    raise RuntimeError('Offline depth processing changed the frame count')
+            if interpolator is not None:
+                for sample in interpolator.finish():write_stereo(sample)
+            if frames!=decoded_frames*(2 if vfg else 1):
+                raise RuntimeError('File processing changed the expected frame count')
             lifecycle.checkpoint('frame_loop')
             _check_cancel(cancel_path)
             decode.stdout.close()
@@ -424,6 +456,8 @@ def convert_video(
             lifecycle.checkpoint('encode_drain')
             resource_stats = engine.telemetry()
             projection_stats = projection.telemetry() if projection is not None else None
+            vfg_stats=({**interpolator.telemetry(),'resources':vfg_session.telemetry()}
+                       if interpolator is not None else {'enabled':False})
             lifecycle.checkpoint('resource_snapshot')
         lifecycle.checkpoint('backend_close')
         if frames == 0:
@@ -461,6 +495,8 @@ def convert_video(
             "event": "complete", "output": str(output_path), "frames": frames,
             "elapsed_seconds": elapsed, "processing_fps": frames / elapsed,
             "mode": mode, "policy": policy.__dict__,
+            'output_fps':output_fps,'depth_strength':depth_strength,'vfg':vfg_stats,
+            'decoded_frames':decoded_frames,'source_processing_fps':decoded_frames/elapsed,
             'output_codec': output_codec, 'output_policy': output_policy.__dict__,
             'stereo_layout': stereo_layout, 'output_width': packed_width, 'output_height': packed_height,
             'depth_backend': backend.describe(),
