@@ -2,6 +2,9 @@
 
 [English](README.md) | **한국어**
 
+**[1.0.0 다운로드](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0)** ·
+[릴리스 안내와 압축 해제 방법](docs/releases/1.0.0.md)
+
 게임·영상 화면을 실시간 3D로 변환하고, 영상 파일도 입체 영상으로 변환합니다. 준비된 로컬
 환경에서 `ScreenTo3D.exe`를 실행하면 한국어·영어를 지원하는 실시간 3D / 파일 / 설정
 앱이 열립니다. 실시간 처리와 파일 변환은 선택한 처리 모드에 맞는 설치된 깊이

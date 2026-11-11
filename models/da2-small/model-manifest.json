@@ -19,5 +19,5 @@
     "data_type": "float32",
     "shape": [1, 518, 518]
   },
-  "distribution": "downloaded_to_local_cache_for_validation_only"
+  "distribution": "bundled_onnx_in_desktop_portable; per_gpu_tensorrt_engine_built_locally"
 }

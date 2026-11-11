@@ -1,5 +1,12 @@
 # Current implementation status
 
+1.0.0 version metadata aligned (2026-11-11). Python, CMake, Windows launcher
+resources and the legacy build manifest now use 1.0.0. The desktop packager
+records its source revision, version and pinned runtime/model identities. Release
+archives use disjoint ZIP entries and a checksum-verifying, new-directory-only
+extractor. Download and feature details belong to the
+[1.0.0 release notes](releases/1.0.0.md), with artifact availability on GitHub.
+
 Live feature terminology updated (2026-11-11). The desktop uses 실시간 3D /
 Live 3D for its tab, installation target, help and live status; start/stop actions
 and error guidance use 3D consistently. Full SBS and Half SBS remain packing

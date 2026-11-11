@@ -2,6 +2,9 @@
 
 **English** | [한국어](README.ko.md)
 
+**[Download 1.0.0](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0)** ·
+[Release notes and extraction instructions](docs/releases/1.0.0.md)
+
 Real-time 2D-to-3D conversion for games and videos, plus stereo video file conversion.
 Run `ScreenTo3D.exe` in the prepared local environment for the Korean/English
 Live 3D / Files / Settings app. Live and

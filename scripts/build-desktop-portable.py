@@ -6,6 +6,7 @@ import shutil
 import sys
 import subprocess
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 from zipfile import ZipFile
@@ -31,6 +32,7 @@ def copy(src, dst):
 def build(dest, python_zip, origin):
     sys.path.insert(0, str(ROOT/'v1'))
     from depthsbs_app.portable_cuda import PINS
+    from depthsbs_app import __version__
     import importlib.util
     spec=importlib.util.spec_from_file_location('depthsbs_translations',ROOT/'scripts/build-translations.py')
     translations=importlib.util.module_from_spec(spec)
@@ -71,7 +73,10 @@ def build(dest, python_zip, origin):
             copy(ROOT/rel, stage/rel)
         for name in ('THIRD_PARTY_NOTICES.txt', 'TENSORRT-LICENSE.txt', 'CUDA-EULA.txt'):
             copy(ROOT/PREVIEW/name, stage/'licenses'/name)
+        copy(ROOT/'distribution/THIRD_PARTY_NOTICES.txt',stage/'licenses/THIRD_PARTY_NOTICES.txt')
         copy(ROOT/'out/da2-base-source/LICENSE', stage/'licenses/Apache-2.0.txt')
+        copy(ROOT/'models/da2-small/model-manifest.json',stage/'licenses/da2-small-model-manifest.json')
+        copy(ROOT/'distribution/DESKTOP-README.txt',stage/'README.txt')
         packages = {
             'out/gui-python-deps': ('PySide6*', 'shiboken6*'),
             'out/capture-python-deps': ('windows_capture*',),
@@ -86,6 +91,14 @@ def build(dest, python_zip, origin):
                     raise FileNotFoundError(f'{folder}/{pattern}')
                 for src in matches:
                     copy(src, stage/'packages'/src.name)
+        metadata=dict(product='ScreenTo3D',product_version=__version__,
+            source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
+            source_dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),
+            built_at_utc=datetime.now(timezone.utc).isoformat(),
+            python='CPython 3.13.9 Windows x64 embeddable',python_zip_sha256=PYTHON_SHA,
+            small_onnx_sha256=manifest['onnx_sha256'],portable_cuda_sha256=PINS,
+            optional_models='DA2 Base and VDA Small local packs; NVIDIA VFG official download, default off')
+        (stage/'build-manifest.json').write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf-8')
         stage.rename(dest)
 
 
