@@ -82,10 +82,7 @@ def vda_binding(directory, runtime_dir, *, device_depth=False):
     def factory(progress):
         if selected is None:
             raise ValueError('VDA profile must be selected by input preflight before engine creation')
-        if device_depth:
-            from .vda_device import VdaDeviceEngine as VdaEngine
-        else:
-            from .vda_backend import VdaEngine
+        from .native_engines import NativeVdaEngine as VdaEngine
         if progress is not None:
             shape = next(shape for shape, path in profiles.items() if path == selected)
             progress({'event': 'vda_profile', 'input_shape': [1, 1, 3, *shape], 'automatic_match': matched_input})

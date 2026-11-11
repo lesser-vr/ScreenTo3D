@@ -100,7 +100,7 @@ def profiles(directory):
     return found
 
 
-def binding(directory, runtime_dir, *, device_depth=False):
+def binding(directory, runtime_dir, *, device_depth=False,legacy_torch=False):
     from .depth_backend import BackendBinding, BackendSpec
     if directory is None or runtime_dir is None:
         raise ValueError('DA2 Base requires engine and TensorRT runtime directories')
@@ -120,12 +120,21 @@ def binding(directory, runtime_dir, *, device_depth=False):
             raise ValueError('Select DA2 Base profile with input preflight first')
         if progress:
             progress(dict(event='da2_base_profile', input_shape=[1,3,*selected]))
-        engine_type = Da2BaseEngine
-        if device_depth:
-            from .da2_base_device import Da2BaseDeviceEngine
-            engine_type = Da2BaseDeviceEngine
-        return engine_type(installed[selected], runtime_dir, selected)
+        create=legacy_engine if legacy_torch else native_engine
+        return create(installed[selected], runtime_dir, selected,device_depth=device_depth)
     return BackendBinding(BackendSpec('da2-base', f'tensorrt-{PRECISION}'), factory, lambda frame: frame, validate)
+
+
+def native_engine(directory,runtime,shape,*,device_depth=False):
+    from .native_engines import NativeBaseEngine
+    return NativeBaseEngine(directory,runtime,shape,device_depth=device_depth)
+
+
+def legacy_engine(directory,runtime,shape,*,device_depth=False):
+    if device_depth:
+        from .da2_base_device import Da2BaseDeviceEngine
+        return Da2BaseDeviceEngine(directory,runtime,shape)
+    return Da2BaseEngine(directory,runtime,shape)
 
 
 class Da2BaseEngine:

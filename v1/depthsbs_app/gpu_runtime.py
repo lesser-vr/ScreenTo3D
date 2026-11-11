@@ -1,6 +1,8 @@
 """Borrowed GPU execution and image utilities; engines retain resource ownership."""
 import ctypes as ct
 import hashlib
+from contextlib import nullcontext
+import numpy as np
 from .portable_cuda import binary
 
 
@@ -14,7 +16,8 @@ class GpuExecution:
         owner._check()
         self.owner = owner
         self.stream = stream
-        self.torch = owner.torch
+        self.native = getattr(owner,'native',False)
+        self.torch = None if self.native else owner.torch
         self.device = owner.device
 
     def check(self):
@@ -27,15 +30,23 @@ class GpuExecution:
 
     def scope(self):
         self.check()
+        if self.native:return nullcontext()
         return self.torch.cuda.stream(self.stream)
 
     def require_current(self):
         self.check()
+        if self.native:return
         if self.torch.cuda.current_stream(self.device) != self.stream:
             raise RuntimeError('GPU preprocessing requires the engine stream context')
 
     def validate_image(self, image, *, channels=(3,), pitched=False):
         self.check()
+        if self.native:
+            from .cuda_memory import Buffer
+            if (not isinstance(image,Buffer) or image.device.index!=self.device or image.dtype!=np.uint8
+                    or image.ndim!=3 or image.shape[2] not in channels or not 16<=image.shape[1]<=4096
+                    or not 16<=image.shape[0]<=2160):raise ValueError('Invalid native CUDA image')
+            image.data_ptr();return
         if (image.device.type != 'cuda' or image.device.index != self.device or
                 image.dtype != self.torch.uint8 or image.ndim != 3 or
                 image.shape[2] not in channels or
@@ -62,12 +73,13 @@ class GpuInputSupport:
         gpu = self.execution
         gpu.validate_image(rgb)
         with gpu.scope():
-            output = gpu.torch.empty((32,32,3), dtype=gpu.torch.uint8, device=rgb.device)
+            output = (self.engine.memory.empty((32,32,3),np.uint8) if gpu.native else
+                      gpu.torch.empty((32,32,3), dtype=gpu.torch.uint8, device=rgb.device))
             code = self.dll.base_thumbnail(rgb.data_ptr(), rgb.shape[1], rgb.shape[0],
                                            output.data_ptr(), gpu.handle)
             if code:
                 raise RuntimeError(f'GPU scene thumbnail failed: CUDA {code}')
-            return output.cpu().numpy()
+            return output.download() if gpu.native else output.cpu().numpy()
 
 
 class FixedCanvasGpuInput(GpuInputSupport):
@@ -87,8 +99,9 @@ class FixedCanvasGpuInput(GpuInputSupport):
         rect = self.content_rect(w, h, shape)
         dims = (1, 3, *shape)
         if output is None:
-            output = gpu.torch.empty(dims, dtype=gpu.torch.float32, device=rgb.device)
-        if (output.device != rgb.device or output.dtype != gpu.torch.float32 or
+            output = (self.engine.memory.empty(dims) if gpu.native else
+                      gpu.torch.empty(dims, dtype=gpu.torch.float32, device=rgb.device))
+        if (output.device != rgb.device or output.dtype != (np.float32 if gpu.native else gpu.torch.float32) or
                 tuple(output.shape) != dims or not output.is_contiguous()):
             raise ValueError('Invalid persistent model input buffer')
         code = self.launch(rgb.data_ptr(), rgb.stride(0), w, h, channels,

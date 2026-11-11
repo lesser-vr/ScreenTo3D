@@ -8,6 +8,12 @@ from depthsbs_app import da2_base
 
 
 class ProfileTests(unittest.TestCase):
+    def test_explicit_source_legacy_selection_does_not_change_native_default(self):
+        with patch.object(da2_base,'profiles',return_value={(518,924):Path('wide')}),patch.object(Path,'is_file',return_value=True),patch.object(da2_base,'native_engine') as native,patch.object(da2_base,'legacy_engine') as legacy:
+            for selected in (False,True):
+                backend=da2_base.binding(Path('root'),Path('runtime'),device_depth=True,legacy_torch=selected)
+                backend.engine_factory(None)
+            self.assertEqual(native.call_count,1);self.assertEqual(legacy.call_count,1)
     def test_default_precision_and_no_fp32_folder_fallback(self):
         self.assertEqual(da2_base.PRECISION, 'fp16')
         with tempfile.TemporaryDirectory() as temporary:
@@ -22,7 +28,7 @@ class ProfileTests(unittest.TestCase):
 
     def test_resolution_mapping_and_fail_closed_selection(self):
         installed = {(518,896): Path('original'), (518,924): Path('wide')}
-        with patch.object(da2_base, 'profiles', return_value=installed), patch.object(Path, 'is_file', return_value=True), patch.object(da2_base, 'Da2BaseEngine') as engine:
+        with patch.object(da2_base, 'profiles', return_value=installed), patch.object(Path, 'is_file', return_value=True), patch.object(da2_base, 'native_engine') as engine:
             backend = da2_base.binding(Path('root'), Path('runtime'))
             self.assertEqual(backend.spec.runtime, 'tensorrt-fp16')
             with self.assertRaises(ValueError): backend.engine_factory(None)

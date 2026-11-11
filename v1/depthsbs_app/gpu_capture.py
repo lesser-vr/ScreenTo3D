@@ -13,8 +13,8 @@ DLL_SHA256 = 'adebe984ad7b66a35e007a99921e810694b1aa822f08ca0dea17b7afc6326a68'
 
 class GpuCapture:
     def __init__(self, source, cursor, device):
-        import torch
-        self.torch, self.device = torch, device
+        from .cuda_memory import Stream,Arena
+        self.device=device;self.memory=Arena(Stream(device,handle=0));self.image=None
         self.thread = threading.get_ident()
         self.source = dict(source)
         self.handle = ct.c_void_p()
@@ -37,7 +37,8 @@ class GpuCapture:
         self._check(self.dll.gpu_capture_create(ct.byref(self.handle), target, source['kind'] == 'monitor', bool(cursor), device))
 
     def _owner(self):
-        if threading.get_ident() != self.thread or self.torch.cuda.current_device() != self.device:
+        from .cuda_memory import cudart,_cuda
+        if threading.get_ident() != self.thread or int(_cuda(cudart.cudaGetDevice())) != self.device:
             raise RuntimeError('GPU capture requires its owner thread/device')
 
     def _check(self, result):
@@ -64,9 +65,18 @@ class GpuCapture:
             self.resizes += 1
         self.previous_shape = shape
         try:
-            with self.torch.cuda.stream(stream):
-                image = self.torch.empty((*shape, 4), dtype=self.torch.uint8, device=f'cuda:{self.device}')
+            if getattr(stream,'native',False):
+                import numpy as np
+                if self.image is None or self.image.shape!=(*shape,4):
+                    if self.image is not None:self.image.close()
+                    self.image=self.memory.empty((*shape,4),np.uint8)
+                image=self.image
                 self._check(self.dll.gpu_capture_copy(self.handle, image.data_ptr(), image.numel(), stream.cuda_stream))
+            else:
+                import torch
+                with torch.cuda.stream(stream):
+                    image=torch.empty((*shape,4),dtype=torch.uint8,device=f'cuda:{self.device}')
+                    self._check(self.dll.gpu_capture_copy(self.handle,image.data_ptr(),image.numel(),stream.cuda_stream))
         except BaseException:
             self.failed = True
             raise
@@ -75,9 +85,11 @@ class GpuCapture:
 
     def close(self):
         self._owner()
-        if self.handle.value:
-            self._check(self.dll.gpu_capture_destroy(self.handle))
-            self.handle = ct.c_void_p()
+        try:
+            if self.handle.value:
+                self._check(self.dll.gpu_capture_destroy(self.handle))
+                self.handle = ct.c_void_p()
+        finally:self.memory.close()
 
     def __enter__(self):
         return self

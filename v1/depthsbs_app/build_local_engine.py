@@ -15,44 +15,53 @@ from .resources import configure_resource_root, prepare_dll_search_path
 
 def sample_outputs(folder, key, width):
     """Exercise the input/output contract, including a real VDA cache transition."""
-    import torch
+    from .cuda_memory import Stream,Arena
     import tensorrt as trt
     from .vda_artifacts import cache_layout
     runtime = trt.Runtime(trt.Logger(trt.Logger.ERROR))
     samples, previous = {}, {}
     rng = np.random.default_rng(9071)
     base = key == 'da2-base'
-    for stage in (('model',) if base else ('warmup', 'cached')):
+    stream=Stream();arena=Arena(stream)
+    try:
+      for stage in (('model',) if base else ('warmup', 'cached')):
         engine = runtime.deserialize_cuda_engine((folder/f'{stage}.plan').read_bytes())
         if engine is None:
             raise RuntimeError(E('E_ENGINE_OPEN_FAILED', v0=stage))
         ctx = engine.create_execution_context()
         image_shape = (1, 3, 518, width) if base else (1, 1, 3, 518, width)
-        inputs = {'image': torch.from_numpy(rng.uniform(-1, 1, image_shape).astype('float32')).cuda()}
+        inputs = {'image': arena.from_numpy(rng.uniform(-1, 1, image_shape).astype('float32'))}
         expected = {'depth': (1, 518, width) if base else (1, 1, 518, width)}
         if not base:
             for i, (spatial, channels) in enumerate(cache_layout((518, width))):
                 expected[f'new_cache_{i}'] = (spatial, 1, channels)
                 if stage == 'cached':
-                    inputs[f'cache_{i}'] = previous[f'new_cache_{i}'].expand(-1, 31, -1).contiguous()
+                    source=previous[f'new_cache_{i}']
+                    pointers=arena.from_numpy(np.full((31,),source.data_ptr(),np.uint64))
+                    inputs[f'cache_{i}']=arena.empty((spatial,31,channels))
+                    arena.result(arena.dll.memory_cache(pointers.data_ptr(),inputs[f'cache_{i}'].data_ptr(),spatial,channels,int(stream)))
+                    stream.synchronize();pointers.close()
         if set(inputs) | set(expected) != {engine.get_tensor_name(i) for i in range(engine.num_io_tensors)}:
             raise ValueError('Engine tensor names differ from the expected model')
-        outputs = {name: torch.empty(shape, device='cuda') for name, shape in expected.items()}
+        outputs = {name: arena.empty(shape) for name, shape in expected.items()}
         for name, tensor in (inputs | outputs).items():
             mode = trt.TensorIOMode.INPUT if name in inputs else trt.TensorIOMode.OUTPUT
             if (engine.get_tensor_dtype(name) != trt.float32 or engine.get_tensor_mode(name) != mode
                     or tuple(engine.get_tensor_shape(name)) != tuple(tensor.shape)
                     or not ctx.set_tensor_address(name, tensor.data_ptr())):
                 raise ValueError(f'Invalid engine tensor: {name}')
-        if not ctx.execute_async_v3(torch.cuda.current_stream().cuda_stream):
+        if not ctx.execute_async_v3(int(stream)):
             raise RuntimeError(E('E_ENGINE_TEST_FAILED'))
-        torch.cuda.synchronize()
+        stream.synchronize()
         for name, tensor in outputs.items():
-            if not bool(tensor.isfinite().all()):
+            host=tensor.download()
+            if not np.isfinite(host).all():
                 raise ValueError(f'Nonfinite output: {name}')
-            samples[f'{stage}_{name}'] = tensor.flatten()[::max(1, tensor.numel()//256)].cpu().numpy()
+            samples[f'{stage}_{name}'] = host.flatten()[::max(1, tensor.numel()//256)]
         previous = outputs
         del ctx, engine
+    finally:
+        arena.close();stream.close()
     return samples
 
 
