@@ -68,7 +68,7 @@ RowLayout {
             }
         }
         Accessible.name: header.files ? qsTr("File conversion settings") : qsTr("Live output settings")
-        ToolTip.visible: hovered || activeFocus
+        ToolTip.visible: settings.visible && settings.enabled && settings.Accessible.name.trim().length > 0 && (hovered || activeFocus)
         ToolTip.text: Accessible.name
         onClicked: header.settingsRequested()
     }

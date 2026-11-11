@@ -11,6 +11,15 @@ preference checks pass. Actual Small/Base/VDA and five-frame VDA workers convert
 confirms real SDK calls. Bilingual 150%/200% GUI checks pass. VFG-off real CPU media
 contracts also pass. See [file VFG evidence](evidence/file-vfg-20261111.md).
 
+Empty-tooltip guards added throughout the desktop (2026-11-11). Output-path,
+shared help, choice-picker and settings-icon tooltips now require meaningful
+content and visible owners; disabled help/select/settings owners close them.
+41 Qt contracts pass, including six rendered production-component regressions.
+Actual bilingual file-screen hover checks at 150%/200% scaling cover no file,
+valid destination, whitespace and removal of the last file; real path tooltips
+and normal help remain available. Reports: `out/tooltip-qt-final.json` and
+`out/tooltip-ui-{150,200}/`. No conversion or shutdown behavior changed.
+
 File workspace and sequential conversion updated (2026-11-11). All file settings
 are expanded, the file settings icon is hidden, and fresh file selection defaults
 to DA2 Base while live still defaults to Small and explicit saved selections stay

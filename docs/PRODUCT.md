@@ -69,6 +69,9 @@ its application icon when available, otherwise a neutral window symbol. Icon
 lookup reads only OS icon metadata, is bounded and never captures a thumbnail.
 The quality, file, settings and separate error windows share the light treatment;
 the SBS video surface itself remains black. QML color tokens live in Theme.qml.
+Tooltips and help overlays require nonempty, non-whitespace content and a visible
+owner; disabled help/select/settings controls do not retain their popups. The
+file save-location placeholder has no tooltip until an output path is available.
 The single **깊이 모델** picker names DA2 Small, DA2 Base and VDA Small,
 with computation precision beside each name. Base is marked **FP16 혼합**;
 VDA shows **FP16 혼합** for the managed mixed-precision pack or **FP32** for an

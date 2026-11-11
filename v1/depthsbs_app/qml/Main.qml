@@ -203,7 +203,7 @@ ApplicationWindow {
                         id: outputPathLabel; objectName: "fileOutputPath"
                         text: desktop.destination || qsTr("Save location is set automatically when you add a file")
                         color: root.muted; elide: Text.ElideMiddle; Layout.fillWidth: true
-                        ToolTip.visible: outputHover.hovered
+                        ToolTip.visible: outputPathLabel.visible && outputHover.hovered && desktop.destination.trim().length > 0
                         ToolTip.text: desktop.destination
                         HoverHandler { id: outputHover }
                     }

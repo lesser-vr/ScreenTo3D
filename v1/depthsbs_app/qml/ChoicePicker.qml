@@ -75,7 +75,7 @@ ComboBox {
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
-    ToolTip.visible: (hovered || activeFocus) && contentItem.truncated === true
+    ToolTip.visible: control.visible && control.enabled && control.displayText.trim().length > 0 && (hovered || activeFocus) && contentItem.truncated === true
     ToolTip.text: displayText
     ToolTip.delay: 500
 }

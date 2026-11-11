@@ -23,7 +23,8 @@ Button {
         objectName: "helpPopup"
         parent: help
         x: (help.width - width) / 2; y: help.height + 6
-        visible: help.hovered || help.activeFocus
+        visible: help.visible && help.enabled && help.helpText.trim().length > 0 && (help.hovered || help.activeFocus)
+        text: help.helpText
         delay: 300; timeout: -1; popupType: Popup.Item
         width: Math.min(340, help.Window.window ? help.Window.window.width - 24 : 340)
         margins: 12; padding: 12

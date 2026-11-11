@@ -82,6 +82,28 @@ def main():
             window.setProperty('page',1);pump()
             window.resize(760,620)
             capture(window,code+'-file-workspace')
+            # Hover the unused right side of the real output label with no file.
+            path_label=control('fileOutputPath');path_label.forceActiveFocus();pump()
+            tooltip=next(child for child in path_label.children() if child.inherits('QQuickToolTipAttached'))
+            point=path_label.mapToScene(QPointF(path_label.width()-5,path_label.height()/2))
+            QTest.mouseMove(window,point.toPoint());pump(.6)
+            assert not desktop.destination and not tooltip.property('visible')
+            capture(window,code+'-empty-output-hover')
+            source=args.output/'tooltip-generated-video.mp4';source.touch(exist_ok=True)
+            desktop.add_paths([str(source)])
+            control('modePicker').forceActiveFocus();path_label.forceActiveFocus();pump()
+            point=path_label.mapToScene(QPointF(path_label.width()-5,path_label.height()/2))
+            QTest.mouseMove(window,point.toPoint());pump(.7)
+            assert tooltip.property('visible') and tooltip.property('text')==desktop.destination
+            capture(window,code+'-output-path-tooltip')
+            destination=desktop.destination
+            desktop.rows[0]['output']='   ';desktop.changed.emit();pump()
+            assert not tooltip.property('visible')
+            desktop.rows[0]['output']=destination;desktop.changed.emit();pump()
+            assert tooltip.property('visible')
+            desktop.removeSelected();pump()
+            assert not desktop.destination and not tooltip.property('visible')
+            QTest.mouseMove(window,QPointF(2,2).toPoint());pump()
             assert not control('fileOptions').isVisible()
             assert control('modePicker').isVisible() and control('fileStereoLayout').isVisible()
             file_strength=control('fileStrength');file_strength.forceActiveFocus();pump()
@@ -215,7 +237,7 @@ def main():
         assert not warnings,warnings
         forbidden_shutdown.assert_not_called()
         report.update(passed=True,qt_warnings=warnings,error_copy_and_retranslation=True,picker_keyboard_and_persistence=True,
-                      black_bar_help_hover_and_focus=True,black_bar_checkbox_binding=True,
+                      black_bar_help_hover_and_focus=True,black_bar_checkbox_binding=True,empty_path_tooltip_suppressed=True,
                       file_strength_and_vfg_binding=True,file_controls_busy_lock=True)
     finally:
         if live.active:
