@@ -1994,6 +1994,18 @@ Model operations use FP16; input, output and some processing use FP32.</source>
       <source>Windows shutdown requested.</source>
       <translation>Windows 종료를 요청했습니다.</translation>
     </message>
+    <message>
+      <source>GPU engine builder · NVIDIA terms apply</source>
+      <translation>GPU 엔진 생성 구성요소 · NVIDIA 이용 조건 적용</translation>
+    </message>
+    <message>
+      <source>Required for file conversion</source>
+      <translation>파일 변환에 필요</translation>
+    </message>
+    <message>
+      <source>Required for live 3D and file conversion</source>
+      <translation>실시간 3D 및 파일 변환에 필요</translation>
+    </message>
   </context>
   <context>
     <name>StereoLayoutPicker</name>
@@ -2743,6 +2755,41 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <extracomment>Invalid file frame interpolation setting.</extracomment>
       <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
     </message>
+    <message>
+      <source>E_GPU_RUNTIME_REQUIRED</source>
+      <extracomment>Install the GPU runtime in installation settings before starting 3D or file conversion.</extracomment>
+      <translation>3D 또는 파일 변환을 시작하기 전에 설치 설정에서 GPU 실행 구성요소를 준비하세요.</translation>
+    </message>
+    <message>
+      <source>E_GPU_RUNTIME_INTEGRITY</source>
+      <extracomment>GPU runtime verification failed. Reinstall the GPU runtime pack.</extracomment>
+      <translation>GPU 실행 구성요소의 무결성 검증에 실패했습니다. GPU 실행 구성요소 팩을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_GPU_RUNTIME_LAYOUT</source>
+      <extracomment>The packaged TensorRT runtime layout is invalid. Re-extract the application.</extracomment>
+      <translation>배포판의 TensorRT 구성 정보가 올바르지 않습니다. 앱의 압축을 다시 풀어 주세요.</translation>
+    </message>
+    <message>
+      <source>E_COMPONENT_INTEGRITY</source>
+      <extracomment>Component verification failed. Install the original runtime pack again.</extracomment>
+      <translation>구성요소 검증에 실패했습니다. 원본 런타임 팩을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_MEDIA_REQUIRED</source>
+      <extracomment>Install the media tools before converting files.</extracomment>
+      <translation>파일을 변환하기 전에 미디어 도구를 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_RUNTIME_REQUIRED</source>
+      <extracomment>Install the required TensorRT components before starting 3D.</extracomment>
+      <translation>3D를 시작하기 전에 필요한 TensorRT 구성요소를 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETUP_SELECTION_CHANGED</source>
+      <extracomment>The selected source or settings changed during setup. Start 3D again.</extracomment>
+      <translation>설치 중 선택한 입력이나 설정이 변경되었습니다. 3D를 다시 시작하세요.</translation>
+    </message>
   </context>
   <context>
     <name>PublicErrors</name>
@@ -3455,6 +3502,64 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <source>E_FILE_VFG_SELECTION</source>
       <extracomment>Invalid file frame interpolation setting.</extracomment>
       <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_GPU_RUNTIME_REQUIRED</source>
+      <extracomment>Install the GPU runtime in installation settings before starting 3D or file conversion.</extracomment>
+      <translation>3D 또는 파일 변환을 시작하기 전에 설치 설정에서 GPU 실행 구성요소를 준비하세요.</translation>
+    </message>
+    <message>
+      <source>E_GPU_RUNTIME_INTEGRITY</source>
+      <extracomment>GPU runtime verification failed. Reinstall the GPU runtime pack.</extracomment>
+      <translation>GPU 실행 구성요소의 무결성 검증에 실패했습니다. GPU 실행 구성요소 팩을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_GPU_RUNTIME_LAYOUT</source>
+      <extracomment>The packaged TensorRT runtime layout is invalid. Re-extract the application.</extracomment>
+      <translation>배포판의 TensorRT 구성 정보가 올바르지 않습니다. 앱의 압축을 다시 풀어 주세요.</translation>
+    </message>
+    <message>
+      <source>E_COMPONENT_INTEGRITY</source>
+      <extracomment>Component verification failed. Install the original runtime pack again.</extracomment>
+      <translation>구성요소 검증에 실패했습니다. 원본 런타임 팩을 다시 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_MEDIA_REQUIRED</source>
+      <extracomment>Install the media tools before converting files.</extracomment>
+      <translation>파일을 변환하기 전에 미디어 도구를 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_RUNTIME_REQUIRED</source>
+      <extracomment>Install the required TensorRT components before starting 3D.</extracomment>
+      <translation>3D를 시작하기 전에 필요한 TensorRT 구성요소를 설치하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETUP_SELECTION_CHANGED</source>
+      <extracomment>The selected source or settings changed during setup. Start 3D again.</extracomment>
+      <translation>설치 중 선택한 입력이나 설정이 변경되었습니다. 3D를 다시 시작하세요.</translation>
+    </message>
+  </context>
+  <context>
+    <name>RuntimeSetup</name>
+    <message>
+      <source>Close</source>
+      <translation>닫기</translation>
+    </message>
+    <message>
+      <source>Downloaded once and reused. Your requested task continues when setup finishes. Cancelling will keep it stopped.</source>
+      <translation>한 번 설치하면 다시 사용할 수 있습니다. 준비가 끝나면 요청한 작업을 계속합니다. 취소하면 실행하지 않습니다.</translation>
+    </message>
+    <message>
+      <source>Preparing required components</source>
+      <translation>필수 구성요소 준비 중</translation>
+    </message>
+    <message>
+      <source>ScreenTo3D · Required components</source>
+      <translation>ScreenTo3D · 필수 구성요소</translation>
+    </message>
+    <message>
+      <source>After installation, start your task again.</source>
+      <translation>설치가 끝나면 작업을 다시 시작하세요.</translation>
     </message>
   </context>
 </TS>

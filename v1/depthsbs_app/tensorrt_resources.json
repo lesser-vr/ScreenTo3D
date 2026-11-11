@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "version": "11.2.1.2",
+  "common": {
+    "nvinfer_builder_resource_ptx_11.dll": {
+      "bytes": 244992624,
+      "sha256": "26b9fa4fbe4076f4dd462e55419442e9ce39d5f07549a68cb7bd27ad548688a2"
+    }
+  },
+  "packs": {
+    "trt-sm100": {
+      "filename": "tensorrt-11.2.1.2-sm100.zip",
+      "size": 293284829,
+      "sha": "b545263bce0c85b6c5bcdbcdb122842952b7293b861a9534410c9adb42226333",
+      "files": {
+        "nvinfer_builder_resource_sm100_11.dll": {
+          "bytes": 293237360,
+          "sha256": "d773c31c24201891291271888f7ac96f5308d4fb0777b416f010f0016c8eb743"
+        },
+        "TENSORRT-LICENSE.txt": {
+          "bytes": 47141,
+          "sha256": "c86915fd95bbefbdda3135aace3e6ad6b4612846dcbdbc5d2f5a38b139dd88b4"
+        }
+      }
+    },
+    "trt-sm120": {
+      "filename": "tensorrt-11.2.1.2-sm120.zip",
+      "size": 272016861,
+      "sha": "6fe25f2a73d9b1872bff01d2e7098976c6566b39cd820dfd15fc93ca7f84f83a",
+      "files": {
+        "nvinfer_builder_resource_sm120_11.dll": {
+          "bytes": 271969392,
+          "sha256": "25300dbb9e8a50d93d67375315c02f1d4d400bcdb25e9e63eabf19bb9eed51d6"
+        },
+        "TENSORRT-LICENSE.txt": {
+          "bytes": 47141,
+          "sha256": "c86915fd95bbefbdda3135aace3e6ad6b4612846dcbdbc5d2f5a38b139dd88b4"
+        }
+      }
+    },
+    "trt-sm75": {
+      "filename": "tensorrt-11.2.1.2-sm75.zip",
+      "size": 118510555,
+      "sha": "8690eda3d2222c3d27120a23af8c8cf318fd42292bb79ff5eb450a4ec417879b",
+      "files": {
+        "nvinfer_builder_resource_sm75_11.dll": {
+          "bytes": 118463088,
+          "sha256": "b64d331aeca813b2ad852fd78d9d9d4496a2c4672560bc904111946dfae22789"
+        },
+        "TENSORRT-LICENSE.txt": {
+          "bytes": 47141,
+          "sha256": "c86915fd95bbefbdda3135aace3e6ad6b4612846dcbdbc5d2f5a38b139dd88b4"
+        }
+      }
+    },
+    "trt-sm80": {
+      "filename": "tensorrt-11.2.1.2-sm80.zip",
+      "size": 190741467,
+      "sha": "5777196065a3e9415f18457c20b442192b2e6d99f2354c81ead2c31345db7247",
+      "files": {
+        "nvinfer_builder_resource_sm80_11.dll": {
+          "bytes": 190694000,
+          "sha256": "53bb25cc71acf2f0b38853c354fde587dabfa7b09e4480ec6c7d5aa00038a308"
+        },
+        "TENSORRT-LICENSE.txt": {
+          "bytes": 47141,
+          "sha256": "c86915fd95bbefbdda3135aace3e6ad6b4612846dcbdbc5d2f5a38b139dd88b4"
+        }
+      }
+    },
+    "trt-sm86": {
+      "filename": "tensorrt-11.2.1.2-sm86.zip",
+      "size": 180043739,
+      "sha": "5743b3ae4e83d153f3c15fb729a804248ee9ec114c73c2842f679d76a2bad91a",
+      "files": {
+        "nvinfer_builder_resource_sm86_11.dll": {
+          "bytes": 179996272,
+          "sha256": "ec873a2f98254f780ac20838aebd5c46e6c729ff89aa7476e3ae605c2f2b5a97"
+        },
+        "TENSORRT-LICENSE.txt": {
+          "bytes": 47141,
+          "sha256": "c86915fd95bbefbdda3135aace3e6ad6b4612846dcbdbc5d2f5a38b139dd88b4"
+        }
+      }
+    },
+    "trt-sm89": {
+      "filename": "tensorrt-11.2.1.2-sm89.zip",
+      "size": 189092315,
+      "sha": "58885d5290d93c696ba90fc6bd3543c940f346bdf17602210015ea96192b5bb6",
+      "files": {
+        "nvinfer_builder_resource_sm89_11.dll": {
+          "bytes": 189044848,
+          "sha256": "f40b200da982599e8ddbfb372c8ca7788f6c16518d952492f7264d2037cbce1b"
+        },
+        "TENSORRT-LICENSE.txt": {
+          "bytes": 47141,
+          "sha256": "c86915fd95bbefbdda3135aace3e6ad6b4612846dcbdbc5d2f5a38b139dd88b4"
+        }
+      }
+    },
+    "trt-sm90": {
+      "filename": "tensorrt-11.2.1.2-sm90.zip",
+      "size": 459860443,
+      "sha": "fa1fc6e53f5398b18b917b2060e70092018fd14fca48976ea6f51f335312fe6e",
+      "files": {
+        "nvinfer_builder_resource_sm90_11.dll": {
+          "bytes": 459812976,
+          "sha256": "5193ba8ba2c3d568397b8aca187ab3078e3dd131d5da38e7a3c9ab028b2c8b82"
+        },
+        "TENSORRT-LICENSE.txt": {
+          "bytes": 47141,
+          "sha256": "c86915fd95bbefbdda3135aace3e6ad6b4612846dcbdbc5d2f5a38b139dd88b4"
+        }
+      }
+    },
+    "trt-all": {
+      "filename": "tensorrt-11.2.1.2-all.zip",
+      "size": 1703266415,
+      "sha": "0b4c9fd32d6b6a4c3fc4ed0a274d999d17ca1f0ec57a82d8cbb326b643263210",
+      "files": {
+        "nvinfer_builder_resource_sm100_11.dll": {
+          "bytes": 293237360,
+          "sha256": "d773c31c24201891291271888f7ac96f5308d4fb0777b416f010f0016c8eb743"
+        },
+        "nvinfer_builder_resource_sm120_11.dll": {
+          "bytes": 271969392,
+          "sha256": "25300dbb9e8a50d93d67375315c02f1d4d400bcdb25e9e63eabf19bb9eed51d6"
+        },
+        "nvinfer_builder_resource_sm75_11.dll": {
+          "bytes": 118463088,
+          "sha256": "b64d331aeca813b2ad852fd78d9d9d4496a2c4672560bc904111946dfae22789"
+        },
+        "nvinfer_builder_resource_sm80_11.dll": {
+          "bytes": 190694000,
+          "sha256": "53bb25cc71acf2f0b38853c354fde587dabfa7b09e4480ec6c7d5aa00038a308"
+        },
+        "nvinfer_builder_resource_sm86_11.dll": {
+          "bytes": 179996272,
+          "sha256": "ec873a2f98254f780ac20838aebd5c46e6c729ff89aa7476e3ae605c2f2b5a97"
+        },
+        "nvinfer_builder_resource_sm89_11.dll": {
+          "bytes": 189044848,
+          "sha256": "f40b200da982599e8ddbfb372c8ca7788f6c16518d952492f7264d2037cbce1b"
+        },
+        "nvinfer_builder_resource_sm90_11.dll": {
+          "bytes": 459812976,
+          "sha256": "5193ba8ba2c3d568397b8aca187ab3078e3dd131d5da38e7a3c9ab028b2c8b82"
+        },
+        "TENSORRT-LICENSE.txt": {
+          "bytes": 47141,
+          "sha256": "c86915fd95bbefbdda3135aace3e6ad6b4612846dcbdbc5d2f5a38b139dd88b4"
+        }
+      }
+    }
+  }
+}

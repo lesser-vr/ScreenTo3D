@@ -38,6 +38,13 @@ PACKS = {
                 '5aaf6a42bc6b6dbbf52fcb714194c994a6893cbbf7ada38bc2165a1f83e4a6fc',
                 M('NVIDIA VFX · NVIDIA software and model terms apply')),
 }
+from .builder_resources import PACKS as BUILDER_PACKS
+PACKS.update({key:Pack('TensorRT '+key.removeprefix('trt-').upper(),item['filename'],item['size'],item['sha'],
+    M('GPU engine builder · NVIDIA terms apply')) for key,item in BUILDER_PACKS.items()})
+from .desktop_runtimes import PACKS as COMPONENT_PACKS
+PACKS.update({key:Pack('TensorRT' if key=='trt-core' else 'FFmpeg',item['filename'],item['size'],item['sha'],
+    M('Required for live 3D and file conversion') if key=='trt-core' else M('Required for file conversion'))
+    for key,item in COMPONENT_PACKS.items()})
 
 
 GRAPH_HASHES = {
@@ -70,6 +77,10 @@ def available(key, directory):
     if key not in PACKS or not directory:
         return False
     path = Path(directory)
+    if key in COMPONENT_PACKS:
+        return ((path/'.verified').is_file() and all((path/name).is_file() for name in COMPONENT_PACKS[key]['files']))
+    if key in BUILDER_PACKS:
+        return ((path/'.verified').is_file() and all((path/name).is_file() for name in BUILDER_PACKS[key]['files']))
     from .engine_cache import VDA_ENCODER_PACK, VDA_FP32_PACK
     old_vda = key == 'vda-small' and path.is_relative_to(model_root(key).parent / VDA_FP32_PACK[:16])
     encoder_vda = key == 'vda-small' and path.is_relative_to(model_root(key).parent / VDA_ENCODER_PACK[:16])
@@ -92,6 +103,13 @@ def source_for(key):
     pack = PACKS[key]
     if key == 'vfg':
         return 'https://pypi.nvidia.com/nvidia-vfx/' + pack.filename
+    category='runtime-packs' if key in BUILDER_PACKS or key in COMPONENT_PACKS else 'packs'
+    folders=(ROOT.parent/category,ROOT/'out/desktop-distribution'/category)
+    # A supplied GPU sidecar must remain usable offline even when this build
+    # also carries an HTTPS origin. Model-download priority stays unchanged.
+    if key in BUILDER_PACKS or key in COMPONENT_PACKS:
+        for folder in folders:
+            if (folder/pack.filename).is_file():return folder/pack.filename
     # A distributor supplies the origin together with the desktop build. The
     # origin cannot change the digest or the engine version the app accepts.
     origin = ROOT / 'model-origin.txt'
@@ -100,7 +118,7 @@ def source_for(key):
         if urlsplit(base).scheme != 'https' or not urlsplit(base).hostname:
             raise ValueError(E('E_MODEL_URL_INVALID'))
         return base + '/' + pack.filename
-    for folder in (ROOT.parent / 'packs', ROOT / 'out/desktop-distribution/packs'):
+    for folder in folders:
         if (folder / pack.filename).is_file():
             return folder / pack.filename
     raise FileNotFoundError(E('E_MODEL_SERVER_UNCONFIGURED'))
@@ -143,7 +161,8 @@ def install(key, source, target, progress, cancelled):
         payload.mkdir()
         digest = hashlib.sha256()
         read = 0
-        required = pack.size * (4 if key in GRAPH_HASHES else 2)
+        expanded=sum(p['bytes'] for p in COMPONENT_PACKS[key]['files'].values()) if key in COMPONENT_PACKS else pack.size
+        required = pack.size*4 if key in GRAPH_HASHES else pack.size+expanded+16*1024**2
         if shutil.disk_usage(scratch).free < required:
             raise OSError(E('E_INSTALL_SPACE_REQUIRED', v0=required / 1e9))
         check()
@@ -182,6 +201,12 @@ def install(key, source, target, progress, cancelled):
         if key == 'vfg':
             (payload/'licenses/NOTICE.txt').write_text(
                 'Licensed by NVIDIA Corporation under the NVIDIA Open Model License\n', encoding='utf-8')
+        elif key in BUILDER_PACKS:
+            from .builder_resources import validate_payload
+            validate_payload(key,payload)
+        elif key in COMPONENT_PACKS:
+            from .desktop_runtimes import validate_payload
+            validate_payload(key,payload)
         else:
             check()
             progress(M('Optimizing and validating the engine for this GPU…'), -1)
@@ -195,4 +220,7 @@ def install(key, source, target, progress, cancelled):
             mark = target / '.verified'
             if not available(key, target) or not mark.is_file() or mark.read_text(encoding='ascii') != pack.sha:
                 raise
+            if key in COMPONENT_PACKS:
+                from .desktop_runtimes import validate_payload
+                validate_payload(key,target)
         return target

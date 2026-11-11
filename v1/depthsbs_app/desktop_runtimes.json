@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "packs": {
+    "trt-core": {
+      "filename": "tensorrt-11.2.1.2-core-v1.zip",
+      "size": 438176196,
+      "sha": "361cc4a5fe508930689d5541e4ace62b57b28c8dcbaf6a8d33883e3843c99060",
+      "files": {
+        "builder-layout.json": {
+          "bytes": 66,
+          "sha256": "f77e596957f6f6b689298019a01786344d0d3de2517b224cf909c817ca1728e2"
+        },
+        "cudart64_13.dll": {
+          "bytes": 540784,
+          "sha256": "352ba4ebe61e9a3b171f357a3daf5dd15b6af4a9857673ff893bd6fd2964c075"
+        },
+        "licenses/CUDA-EULA.txt": {
+          "bytes": 69589,
+          "sha256": "c8acca4db5b97135ce5cfcffb807e8f6231293f5d54436151413d6536082b12d"
+        },
+        "licenses/TENSORRT-LICENSE.txt": {
+          "bytes": 47141,
+          "sha256": "c86915fd95bbefbdda3135aace3e6ad6b4612846dcbdbc5d2f5a38b139dd88b4"
+        },
+        "nvinfer_11.dll": {
+          "bytes": 393636464,
+          "sha256": "19a836028d37b9dfe3171b88678c7c3b5abdba94ac79bee81c3be963569c5cd3"
+        },
+        "nvinfer_builder_resource_ptx_11.dll": {
+          "bytes": 244992624,
+          "sha256": "26b9fa4fbe4076f4dd462e55419442e9ce39d5f07549a68cb7bd27ad548688a2"
+        },
+        "nvinfer_plugin_11.dll": {
+          "bytes": 45514352,
+          "sha256": "6a79561025a8d81d4f9d7bfd3527c4443d57a652456073825ecfeb716627480b"
+        },
+        "nvonnxparser_11.dll": {
+          "bytes": 2276464,
+          "sha256": "9d15046ade1740a0f53d2d707e632de6b44525a6a5e02d1e78c5b39bb7b1000c"
+        }
+      }
+    },
+    "media-tools": {
+      "filename": "ffmpeg-9.0.1-shared-v1.zip",
+      "size": 92456432,
+      "sha": "7d8a756f02c8f7209bfded4d732d0afe321264e4132e7ef88f2cefba3c362150",
+      "files": {
+        "avcodec-63.dll": {
+          "bytes": 97830912,
+          "sha256": "f958e8ae31ce50b58e228c354411e406cd46c0021a6d250e90cf007fe65740d3"
+        },
+        "avdevice-63.dll": {
+          "bytes": 6547456,
+          "sha256": "cc2de2187efd18aed52d3021d90934337bfe0e8ec60d988797b87ae7664f5ee0"
+        },
+        "avfilter-12.dll": {
+          "bytes": 103180800,
+          "sha256": "8f8e2d63f6658450169d7fe2f5696fa9b01df3c1d3820cf706e142ba80758924"
+        },
+        "avformat-63.dll": {
+          "bytes": 20256256,
+          "sha256": "8c0615789d41737051cf082351d4b9c869dd2f0abac4b792ff838041638752e5"
+        },
+        "avutil-61.dll": {
+          "bytes": 3160576,
+          "sha256": "e289456490e190e0d74aa34980aeaa68903a6656248e2e7ef830e17acd80eb49"
+        },
+        "ffmpeg.exe": {
+          "bytes": 632832,
+          "sha256": "cf6b46df53d3672e86af7662358bbd2b21c90cc78c133f3f81f46e63acc387b3"
+        },
+        "ffprobe.exe": {
+          "bytes": 230400,
+          "sha256": "0c49675a5f3098b881b1508368deb22e23d22fe56fa7a197df1b98c4e5ea79bf"
+        },
+        "licenses/LICENSE": {
+          "bytes": 35147,
+          "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+        },
+        "licenses/README.txt": {
+          "bytes": 45547,
+          "sha256": "9b4da8b6d2d28594d4f1dce98153708e4b1bd3bc37107e737bd4da5f1ca970f2"
+        },
+        "provenance.json": {
+          "bytes": 1837,
+          "sha256": "6758ad235d9d3ad09fb64494c4b0a61c3048834d0634deea28ee94df2d195364"
+        },
+        "swresample-7.dll": {
+          "bytes": 486912,
+          "sha256": "d240955beb927ff2fb46cc4f80f83db20a10a9b9032f4092a10f492836fb0213"
+        },
+        "swscale-10.dll": {
+          "bytes": 2421760,
+          "sha256": "89df1925fc718639cb13e849bc940dca114a10e97d93f8fdfd6c14369941a964"
+        }
+      }
+    }
+  }
+}

@@ -753,6 +753,41 @@
       "source": "Invalid file frame interpolation setting.",
       "public": "Invalid file frame interpolation setting.",
       "category": "backend"
+    },
+    "E_GPU_RUNTIME_REQUIRED": {
+      "source": "Install the GPU runtime in installation settings before starting 3D or file conversion.",
+      "public": "Install the GPU runtime in installation settings before starting 3D or file conversion.",
+      "category": "runtime"
+    },
+    "E_GPU_RUNTIME_INTEGRITY": {
+      "source": "GPU runtime verification failed. Reinstall the GPU runtime pack.",
+      "public": "GPU runtime verification failed. Reinstall the GPU runtime pack.",
+      "category": "runtime"
+    },
+    "E_GPU_RUNTIME_LAYOUT": {
+      "source": "The packaged TensorRT runtime layout is invalid. Re-extract the application.",
+      "public": "The packaged TensorRT runtime layout is invalid. Re-extract the application.",
+      "category": "runtime"
+    },
+    "E_RUNTIME_REQUIRED": {
+      "source": "Install the required TensorRT components before starting 3D.",
+      "public": "Install the required TensorRT components before starting 3D.",
+      "category": "installation"
+    },
+    "E_MEDIA_REQUIRED": {
+      "source": "Install the media tools before converting files.",
+      "public": "Install the media tools before converting files.",
+      "category": "installation"
+    },
+    "E_COMPONENT_INTEGRITY": {
+      "source": "Component verification failed. Install the original runtime pack again.",
+      "public": "Component verification failed. Install the original runtime pack again.",
+      "category": "installation"
+    },
+    "E_SETUP_SELECTION_CHANGED": {
+      "source": "The selected source or settings changed during setup. Start 3D again.",
+      "public": "The selected source or settings changed during setup. Start 3D again.",
+      "category": "installation"
     }
   }
 }

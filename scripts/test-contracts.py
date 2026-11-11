@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # Current-profile expectations may change with an intentional product change.
 # Keep all test modules classified so additions cannot silently miss CI.
 GROUPS = {'core': ['test_cleanup.py',
+          'test_desktop_runtimes.py',
           'test_native_memory_contract.py',
           'test_file_interpolation.py',
           'test_messages.py',
@@ -55,6 +56,7 @@ GROUPS = {'core': ['test_cleanup.py',
               'test_retained_capture.py',
               'test_texture_mailbox.py'],
  'profiles': ['test_cuda_projection_owner.py',
+              'test_builder_resources.py',
               'test_optional_models.py',
               'test_ovda_resolution.py',
               'test_base_trt_fp16_trial.py',
