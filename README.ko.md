@@ -2,8 +2,11 @@
 
 [English](README.md) | **한국어**
 
-**[1.0.0 다운로드](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0)** ·
-[릴리스 안내와 압축 해제 방법](docs/releases/1.0.0.md)
+**[Windows 앱 ZIP 다운로드](https://github.com/lesser-vr/ScreenTo3D/releases/download/v1.0.0/ScreenTo3D-1.0.0-windows-x64.zip)** ·
+[런타임 팩과 릴리스](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0) ·
+[설치 안내](docs/releases/1.0.0.md)
+
+ZIP을 풀고 `ScreenTo3D.exe`를 실행하세요. 첫 3D 실행에 필요한 추가 팩은 앱에서 안내합니다.
 
 게임·영상 화면을 실시간 3D로 변환하고, 영상 파일도 입체 영상으로 변환합니다. 준비된 로컬
 환경에서 `ScreenTo3D.exe`를 실행하면 한국어·영어를 지원하는 실시간 3D / 파일 / 설정

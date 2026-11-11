@@ -47,6 +47,11 @@ def package(app,output,packs,runtime_packs=None):
             finish()
         finally:
             if archive is not None:archive.close()
+        # Part numbers communicate a multi-archive set; omit them for one ZIP.
+        if len(assets)==1:
+            single=f'{name}-windows-x64.zip'
+            (stage/assets[0]['name']).rename(stage/single)
+            assets[0]['name']=single
         if packs:
             import sys
             sys.path.insert(0,str(ROOT/'v1'))

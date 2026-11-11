@@ -2,8 +2,11 @@
 
 **English** | [한국어](README.ko.md)
 
-**[Download 1.0.0](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0)** ·
-[Release notes and extraction instructions](docs/releases/1.0.0.md)
+**[Download Windows app ZIP](https://github.com/lesser-vr/ScreenTo3D/releases/download/v1.0.0/ScreenTo3D-1.0.0-windows-x64.zip)** ·
+[Runtime packs and release](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0) ·
+[Installation instructions](docs/releases/1.0.0.md)
+
+Extract the ZIP and run `ScreenTo3D.exe`. The app identifies the additional packs needed for first 3D use.
 
 Real-time 2D-to-3D conversion for games and videos, plus stereo video file conversion.
 Run `ScreenTo3D.exe` in the prepared local environment for the Korean/English
