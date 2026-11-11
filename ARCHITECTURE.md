@@ -41,6 +41,43 @@ Processing-backend default and delivery-path default are separate decisions.
 
 ## Components and ownership
 
+`builder_resources.py` owns the bundled TensorRT resource catalog, GPU-architecture
+mapping and exact split-layout validation. `optional_models.py` supplies the
+existing bounded, cancelable, hash-pinned installer for both model and runtime
+packs; runtime packs never invoke model optimization. `resources.py` activates
+only verified DLL directories before TensorRT import and retains their handles.
+`desktop_runtimes.py` owns the pinned common TensorRT/media component catalogs
+and explicit deferred-layout resolution. Default portable builds install common
+TensorRT/PTX/CUDA runtime and media tools into revisioned user caches on first
+use; architecture resources remain separate. Loader resolution verifies the
+entire component payload and never performs network requests. Legacy/bundled
+layouts retain their explicit directories.
+`ModelDownloads.ensure` sequences required installations under the shared lease
+after an explicit Start/Install action. Completion hands control directly to the
+requested task; cancellation/failure drops its continuation. The separate,
+capture-excluded `RuntimeSetup.qml` window displays progress and file-install
+recovery. A changed live source/processing selection cancels deferred execution.
+`portable_package.py` owns dependency pruning and license-file exceptions.
+`qt_portable_profile.json` records the PySide6 6.10.2 Python/QML/plugin dependency
+closure; the builder rejects another or incomplete SDK instead of applying that
+profile blindly. `scripts/check-portable-dependencies.py` checks retained Qt PE
+imports, while actual desktop checks cover dynamic loading. Full TensorRT,
+ONNX parser, plugins and builder resources remain; unused lean/dispatch/version-
+compatible plugin runtimes are excluded. Build scripts export deterministic
+GPU-resource sidecars and verify the pinned shared FFmpeg distribution.
+
+`cuda_memory.py` owns bounded CUDA/pinned-host allocations, a single-stream reuse
+pool, lifetime/thread/device checks and verified native memory utilities.
+`native_small.py` borrows Small's existing engine stream; `native_engines.py` owns
+Base/VDA streams, buffers and VDA's unchanged first-two/latest-29 history schedule.
+Finite-output checks include every VDA depth/cache output. Depth crop/resize keeps
+the FP32 align-corners and fused operation order of the former Torch path.
+Live/file VFG uses the same native buffers and unchanged NVIDIA bridge.
+Production Small/Base/VDA and their installer validation do not import Torch.
+The earlier `experiments/native_gpu_runtime/` proof is historical; Torch remains
+available in the source development environment for oVDA/RowFlow and explicit
+legacy comparison classes, and is excluded from the ordinary desktop package.
+
 `catalogs.py` loads the trusted bundled language and error registries in
 `translations/languages.json` and `translations/errors.json` without Qt.
 `messages.py` carries ordinary English templates and scalar arguments; errors
@@ -174,8 +211,8 @@ arrangement; text stays at the same logical size in the output window.
   before replacing the engine/stream. Base file conversion keeps host depth.
 - `gpu_runtime.py` provides a borrowed `GpuExecution` view of the engine-owned
   stream and shared `GpuInputSupport` for pinned native loading, image validation
-  and thumbnail generation. Small supplies its ExternalStream view; Base supplies
-  its Torch stream. Frame/capture consumers use the same explicit interface.
+  and thumbnail generation. Small lends its raw-stream wrapper; Base/VDA supply
+  CUDA-owned streams. Frame/capture consumers use the same explicit interface.
   This layer never creates/destroys engine streams or changes token completion.
   Base and Small keep separate preprocessing algorithms and native library pins.
 - `gpu_capture.cpp` owns a two-frame WGC pool, one replaceable latest frame, one
@@ -187,11 +224,11 @@ arrangement; text stays at the same logical size in the output window.
   `gpu_capture.py` preserves HWND/PID, input-desktop, visibility and SDR checks.
   `GpuFrame` owns same-stream RGB; `base_input.cu` preserves Base's float64 cubic
   preprocessing arithmetic. Small wraps the existing TensorRT-owned raw stream
-  with a non-owning Torch ExternalStream; it does not change the FP16 model.
+  with a non-owning native stream view; it does not change the FP16 model.
   `small_gpu_input.py` computes bounded, shape-only IPP cubic coefficients once
   per size. `small_input.cu` resizes captured RGB to uint8 518x518, then applies
   the existing float32 normalization. `live_small_gpu_input.py` retains input and
-  coefficient tensors through stream completion and uses a separately pinned
+  coefficient buffers through stream completion and uses a separately pinned
   DLL with the unchanged Small postprocessing/native borrowed layout.
   Device buffers stay owned through SBS completion.
   Exact 32x32 scene pixels and border samples cross to CPU; full RGB readback is
@@ -418,7 +455,7 @@ or Base baseline measurement; enabling VFG composes shared output ownership and
 interpolation with the selected model's existing renderer. Small retains its GPU
 cubic preprocessing and 518-square depth path; Base retains its source-depth
 path. The shared VFG layer borrows each engine's checked stream view, including
-Small's non-owning Torch wrapper over its raw CUDA stream. Normal application
+Small's non-owning native wrapper over its raw CUDA stream. Normal application
 startup does not import it.
 Its interactive comparison launcher clears the output's QWindow transient parent
 for external full-screen discovery. The output HWND has no native owner and is

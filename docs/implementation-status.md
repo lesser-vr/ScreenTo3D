@@ -1,5 +1,104 @@
 # Current implementation status
 
+1.0.0 release explicitly deleted and recreated (2026-11-12). The old release
+`441356629` is gone; the new published/latest release is `441937625`, using the
+same `v1.0.0` tag. All 17 assets were reuploaded and their sizes/server digests
+verified. Actual app/manifest/checksum/helper downloads, new-directory extraction
+and isolated-path EXE launch pass. Evidence is
+`out/recreate-release-1.0.0/{verified.json,downloaded-launcher.json}`. The private
+repository and original Git tag were preserved. Native/runtime/packaging/UX code
+is now recorded in task-sized main-branch commits; the full GPU-free CPU/Qt suite
+passes 488 checks. Translation XML indentation was restored to the repository's
+style without changing messages or the shipped compiled catalog. The release's
+source snapshot remains the exact pre-commit build source; current code is also
+available on main.
+
+Single-archive naming and installation guidance simplified (2026-11-12).
+The app was renamed `ScreenTo3D-1.0.0-windows-x64.zip` without changing its asset
+ID, bytes or hash during that naming operation. Subsequent release recreation
+assigned new asset IDs while preserving bytes/hashes. Manifest/checksums, bilingual download instructions and the
+source snapshot were refreshed. Direct ZIP extraction and EXE launch are the
+default instructions; extraction scripts are optional. Single/multiple archive
+packaging checks and actual GitHub redownload/extraction/EXE launch pass. The
+installation review recommends a later single installer with automatic GPU/pack
+selection and a resolved download-authentication path; that installer is not yet
+implemented. See [the installation review](evidence/installation-ux-review-20261112.md).
+
+First-use runtime/media setup implemented (2026-11-11) and distributed in the
+refreshed 1.0.0 release (2026-11-12). The default
+portable keeps Small and the UI bundled and moves common TensorRT/PTX/CUDA and
+FFmpeg/FFprobe into pinned component packs. Explicit Start installs missing
+components and continues the requested task; cancel/failure drops continuation.
+A protected bilingual setup window supports progress, Cancel and file recovery.
+The app is 428,866,502 bytes and its ZIP is 182,759,785 bytes, versus
+1,350,538,768 / 713,331,657 for the preceding candidate. Installed caches and GPU
+resource downloads are additional. 267 core/profile/Qt contracts, translation
+validation (149 errors / 787 translations) and the 121-binary Qt closure check
+pass. Actual first-use cancellation/retry, native Small output, deferred media
+installation and two queued conversions pass. Fresh Base/VDA engines validate
+numerically and convert files; live VFG toggles and all four file/VFG paths pass.
+Injected connection failure and unconfigured-origin recovery do not auto-start.
+Final packaging and GPU/numerical scope are in
+[first-use component evidence](evidence/first-use-components-20261111.md).
+The private [1.0.0 release](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0)
+now provides 17 verified assets, including original runtime packs and an exact
+source snapshot. No public download origin is configured. Actual GitHub downloads,
+checksum extraction and extracted EXE launch pass; the existing Git tag remains.
+The source snapshot includes uncommitted changes over the tag's base, explicitly
+documented in the release. Original release files are preserved locally. See
+[release-refresh evidence](evidence/release-refresh-20261112.md).
+
+Previous unused Qt/TensorRT pruning candidate (2026-11-11, unreleased). The versioned
+PySide6 6.10.2 profile retains eight Python bindings, 36 root Qt libraries and
+their QML/plugin dependencies. Lean/dispatch/version-compatible TensorRT helper
+DLLs are omitted; full inference, parser, plugins and user-GPU engine generation
+remain. Relative to the source-pruned candidate, 1,418 files and 173,009,022 bytes
+are removed, with all 50 license/notice files preserved. The app is
+1,350,538,768 bytes; its single ZIP is 713,331,657 bytes. 121 core contracts and
+the static/delay dependency check of 121 Qt/native binaries pass. Actual
+bilingual GUI, file picker, dropdowns/help, separate error window/Copy/Close,
+fresh Small/Base/VDA engine creation and conversion, native output, repeated
+Small/Base VFG switching, four file/VFG paths, final ZIP extraction and extracted
+EXE launch pass. GPU tests use RTX 5090; published 1.0.0 artifacts are unchanged.
+See [Qt/TensorRT pruning evidence](evidence/qt-tensorrt-pruning-20261111.md).
+
+Previous development-source pruning candidate (2026-11-11, unreleased).
+126 C/C++/CUDA/Cython dependency-source files (125,196,005 bytes) are omitted;
+all 50 license/notice files and retained runtime binaries are preserved. The app
+is 1,523,539,309 bytes and its single ZIP is 778,370,865 bytes. 117 core
+contracts pass. In another empty cache, the packaged interpreter builds Small,
+Base's two and VDA's four engines and completes native Small output and real
+queued/file conversions with decoded frames/audio checked. Existing numerical
+evidence applies because model graphs and runtime binaries are unchanged.
+See [source-pruning evidence](evidence/portable-source-pruning-20261111.md).
+
+Previous Torch-free desktop candidate implemented (2026-11-11, unreleased). Small/Base/VDA,
+their installer reference validation, and live/file VFG use bounded CUDA-owned
+memory/streams. Model graphs, precision, stereo policy and VFG cadence remain.
+The app is 1,648,735,237 bytes (previous candidate 6,563,125,196); its single app ZIP
+is 788,372,541 bytes, or 1,060,389,402 including the selected SM120 resource.
+471 CPU/Qt contracts pass. Same-input comparisons match depth/output exactly for
+Base/VDA and output exactly for Small, including separate portrait and 4K cases.
+Actual Torch-free GUI, fresh Base/VDA engine installation, all four file model
+paths with VFG, repeated live VFG switching and a 120-second owned-window Small
+run pass. Source-only oVDA/RowFlow retain Torch; RowFlow explicitly keeps its
+legacy Base binding. Actual GPU validation is RTX 5090 only. See
+[native memory evidence](evidence/native-cuda-memory-20261111.md) for scope and limits.
+
+Initial portable slimming candidate prepared (2026-11-11, superseded locally). The builder
+excludes development files and unused Qt WebEngine, uses same-version full shared
+FFmpeg, and separates pinned TensorRT GPU-builder resources into automatically
+selected sidecars. Small remains bundled; optional models and user-GPU engine
+generation are unchanged. The local app is 6,563,125,196 bytes versus 9,730,850,006
+for the original 1.0.0; selected GPU resources are additional. 468 CPU/Qt contracts,
+114 overlapping Qt/GPU-free core contracts, translation and QML checks pass.
+Fresh split-runtime caches build Small, Base and VDA engines; native Half TB and
+actual queued conversions pass. The separate Torch-free Small memory prototype
+imports no Torch and matches all output pixels over 16 paired frames, but is not
+a production adapter or a throughput result. Actual GPU evidence is RTX 5090 only;
+the published 1.0.0 and user caches were preserved. Sizes, artifacts, tests and
+limits are recorded in [the slimming evidence](evidence/distribution-slimming-20261111.md).
+
 1.0.0 version metadata aligned (2026-11-11). Python, CMake, Windows launcher
 resources and the legacy build manifest now use 1.0.0. The desktop packager
 records its source revision, version and pinned runtime/model identities. Release

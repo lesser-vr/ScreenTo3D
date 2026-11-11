@@ -394,12 +394,13 @@ as physical display latency. See [current paths and limits](implementation-statu
 
 ## Files and models
 
-The current desktop portable opens live and file tasks in 빠른 처리 with DA2 Small
-FP16 bundled. Small builds its local TensorRT engine on first use. Selecting
+The current desktop portable opens live with DA2 Small FP16 bundled and initially
+selects DA2 Base for files; explicit saved selections are restored. Small builds
+its local TensorRT engine on first use. Selecting
 Balanced, VDA Small, or enabling VFG exposes the missing component beside that
 selection, with its download size and terms. Installation starts on explicit
 action, shares the processing lease, and supports cancel, retry and a verified
-local file. The install never starts capture or conversion. Both tasks reuse
+local file. Standalone model installation never starts capture or conversion. Both tasks reuse
 completed installations from the user's local DepthSBS model cache. The packaged
 Base and VDA installers compile verified ONNX graphs on the user's current GPU
 and check numerical depth output before making the new engines available.
@@ -407,8 +408,26 @@ VDA uses mixed FP16 for encoder projections and spatial attention in all twelve
 encoder blocks, and FP32 for its temporal layers
 and state. The installer also verifies its warmup-to-cached transition. The packaged
 desktop offers VDA Small for Video Quality; oVDA is a source-only integration.
-Source and portable desktops share the Small default even if Base is installed;
-the saved selection can restore Base without downloading it again.
+Source and portable desktops share these task-specific defaults; saved selections
+reuse installed models without downloading them again.
+New portable builds retain Small and the UI in the app. An explicit Start 3D
+installs missing common TensorRT components before building/using the local
+engine. File Start also installs missing FFmpeg/FFprobe. A separate protected
+setup window shows size, progress and Cancel; the requested task continues only
+after successful setup. Cancellation, failure or closing setup keeps the task
+stopped. After a failure, explicit installation may be retried, then Start is
+pressed again. A changed live source or processing selection requires a new Start.
+App launch and merely selecting a model never initiate network downloads.
+The app selects an engine-builder resource by the detected GPU architecture.
+Pinned local `runtime-packs/` sidecars take precedence over a configured HTTPS
+origin; without either, setup offers installation from the original file and an
+actionable separate error. Installed common/media components are reused by both
+tasks; complete payload verification precedes executable loading.
+Unmapped architectures use the full upstream resource pack; TensorRT determines
+GPU support. Full-runtime builds and source checkouts keep their existing layout.
+The CUDA runtime is in the common component pack. The app needs no manual
+Python, Torch, TensorRT SDK or CUDA Toolkit installation. Depth models, precision, packing and
+the VFG opt-in/default-off policy remain unchanged.
 See the [portable build and optional pack procedure](models/desktop-distribution.md).
 
 The current file picker/drop list accepts supported MP4/MKV/MOV/M4V inputs, up to
