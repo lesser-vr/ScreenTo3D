@@ -125,14 +125,14 @@ Item {
             objectName: "captureStatus"; Layout.fillWidth: true
             color: page.theme.muted; wrapMode: Text.WordWrap; font.pixelSize: 12
             maximumLineCount: 2; elide: Text.ElideRight
-            text: live.vfgSwitching ? qsTr("Switching frame interpolation…") : live.stoppingNow ? qsTr("Stopping SBS…") : live.active ? (live.hasFrame ? qsTr("SBS is running") : qsTr("Preparing SBS output…")) : desktop.busy ? qsTr("You can start after the current task finishes") : live.status
+            text: live.vfgSwitching ? qsTr("Switching frame interpolation…") : live.stoppingNow ? qsTr("Stopping 3D…") : live.active ? (live.hasFrame ? qsTr("Live 3D is running") : qsTr("Preparing 3D output…")) : desktop.busy ? qsTr("You can start after the current task finishes") : live.status
             Accessible.role: Accessible.StaticText
             }
         }
         ActionButton {
             objectName: "captureStart"; Layout.fillWidth: true; primary: true
             symbol: live.active ? "stop" : "play"
-            text: live.vfgSwitching ? qsTr("Cancel switch") : live.stoppingNow ? qsTr("Stopping…") : live.active ? (live.hasFrame ? qsTr("Stop SBS") : qsTr("Cancel")) : page.installNeeded ? qsTr("Open installation settings") : qsTr("Start SBS")
+            text: live.vfgSwitching ? qsTr("Cancel switch") : live.stoppingNow ? qsTr("Stopping…") : live.active ? (live.hasFrame ? qsTr("Stop 3D") : qsTr("Cancel")) : page.installNeeded ? qsTr("Open installation settings") : qsTr("Start 3D")
             enabled: live.vfgSwitching || (live.active ? !live.stoppingNow : !desktop.busy && (page.installNeeded || live.selectedIndex >= 0))
             onClicked: live.active ? live.stop() : page.installNeeded ? page.Window.window.openPage(3) : live.startMinimal()
         }

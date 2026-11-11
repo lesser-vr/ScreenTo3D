@@ -672,7 +672,7 @@ class DesktopController(QObject):
             v["model"] = self.live.liveModel
             v["engine"] = self.engine_paths.get(v["model"], "")
             v["renderer"] = "cuda"
-        self.check_target = (M('Live SBS') if target == "live" else M('File conversion')) + " / " + self.models_label(v["model"])
+        self.check_target = (M('Live 3D') if target == "live" else M('File conversion')) + " / " + self.models_label(v["model"])
         self.lease.acquire("check")
         self.checking = True
         self.check_buffer = b""

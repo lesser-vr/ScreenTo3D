@@ -62,8 +62,9 @@ def main():
 
     try:
         window.resize(380,260)
-        for code,label in (('ko','SBS 시작'),('en','Start SBS')):
+        for code,label in (('ko','3D 시작'),('en','Start 3D')):
             language.setLanguage(code);pump()
+            assert control('liveTab').property('text')==('실시간 3D' if code=='ko' else 'Live 3D')
             assert control('captureStart').property('text')==label
             assert control('captureStart').property('width')>=control('captureStart').property('implicitWidth')
             capture(window,code+'-live-minimum')

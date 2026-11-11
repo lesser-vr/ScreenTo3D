@@ -153,7 +153,7 @@ def main():
             live.provider.image = QImage(2, 2, QImage.Format_RGB32)
             live.provider.image.fill(Qt.black)
             live.frameChanged.emit(); pump()
-            assert control('captureStart').property('text') == 'SBS 중지'
+            assert control('captureStart').property('text') == '3D 중지'
             screenshot(window, 'running')
             click('captureStart')
             assert live.stopping and live.provider.image.isNull()

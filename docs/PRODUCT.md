@@ -46,7 +46,7 @@ diagnostics; detailed file errors require the explicit diagnostic option.
 
 The Qt/QML desktop opens a compact 420x260 logical-pixel control window (minimum
 380x260). Its primary controls are an explicit source picker and SBS start/stop.
-The main window switches between 실시간 SBS and 파일 변환. Opening the capture
+The main window switches between 실시간 3D (Live 3D) and 파일 변환. Opening the capture
 picker offers 창 and 모니터 전체 before source selection. The file workspace
 expands the window and shows the queue and conversion action. Navigation
 preserves the current job and the shared processing lease.
@@ -227,7 +227,7 @@ comparison app before opening the other. These fixed A/B launchers hide the norm
 VFG toggle to keep their measurement variants explicit. Existing portable packages
 do not gain this new option automatically. See the [comparison instructions](../experiments/vfg/README.md#실사용-ab-비교).
 Utility navigation remains available during work; closing a utility does not
-cancel a job. Closing the main app during live SBS stops and waits for owned
+cancel a job. Closing the main app during live 3D stops and waits for owned
 worker cleanup before exit. File-work cancellation still asks before quitting.
 
 ## Live capture and output
@@ -263,19 +263,19 @@ worker cleanup before exit. File-work cancellation still asks before quitting.
    There is no new user-facing option. Whole-monitor capture and reference paths
    retain their existing input path. This delivery change does not change the
    depth model, stereo renderer, source resolution or capture exclusion.
-3. SBS 시작 starts conversion and opens the separate output. Invalid target
+3. 3D 시작 starts conversion and opens the separate output. Invalid target
    selection rejects before capture; an output-open failure stops the owned job.
    Missing source selection or another owned job disables start with an adjacent
    explanation. Closing the output stops SBS; minimizing it keeps the session
    alive. Stop before changing session settings.
    Before the first available SBS frame, the status reports preparation and the
-   action is 취소; after a frame arrives it becomes SBS 중지. It does not invent
+   action is 취소; after a frame arrives it becomes 3D 중지. It does not invent
    model-load progress or an estimated completion time.
 4. Stop hides output, clears stale pixels and releases the owned session. Hidden
    Qt output scene graphs are not retained, so GPU nodes retire without waiting
    for another presentation. Source loss, incompatible
    color/topology changes and errors are visible; there is no silent source fallback.
-   Live setup/start/output/runtime failures open a separate native SBS error
+   Live setup/start/output/runtime failures open a separate native 3D error
    window with a title-bar close control and an explicit 닫기 button. Escape also
    closes it. Ctrl+C copies the entire plain-text error without selecting text,
    whether the text or close button has focus. There is no copy button or QML
@@ -420,7 +420,7 @@ File-specific model choice and license confirmation are on the file page, next
 to its processing settings. Conversion/progress actions remain outside the
 scrolling settings area. Completed files offer video and parent-folder opening.
 Settings contains environment checking and collapsed diagnostics/paths. The user
-selects live SBS (initial choice) or file conversion as the installation-check
+selects live 3D (initial choice) or file conversion as the installation-check
 target; the check snapshots that task's model and paths and labels its result.
 The existing no-argument diagnostic API still checks file conversion. Installation
 inventory does not execute a model or certify GPU performance. Advanced model-path

@@ -90,12 +90,12 @@ VFG 전환 중…</translation>
       <translation>입체 출력 형식</translation>
     </message>
     <message>
-      <source>Stop SBS to change the depth model or FPS limit.</source>
-      <translation>깊이 모델과 FPS 제한을 변경하려면 SBS를 중지하세요.</translation>
+      <source>Stop 3D to change the depth model or FPS limit.</source>
+      <translation>깊이 모델과 FPS 제한을 변경하려면 3D를 중지하세요.</translation>
     </message>
     <message>
-      <source>The depth model and FPS limit apply to the next SBS session.</source>
-      <translation>깊이 모델과 FPS 제한은 다음 SBS 실행에 적용됩니다.</translation>
+      <source>The depth model and FPS limit apply to the next live 3D session.</source>
+      <translation>깊이 모델과 FPS 제한은 다음 3D 실행에 적용됩니다.</translation>
     </message>
     <message>
       <source>Unlimited</source>
@@ -145,28 +145,28 @@ VFG 전환 중…</translation>
       <translation>설치 옵션 열기</translation>
     </message>
     <message>
-      <source>Preparing SBS output…</source>
-      <translation>SBS 화면 준비 중…</translation>
+      <source>Preparing 3D output…</source>
+      <translation>3D 화면 준비 중…</translation>
     </message>
     <message>
-      <source>SBS is running</source>
-      <translation>SBS 실행 중</translation>
+      <source>Live 3D is running</source>
+      <translation>3D 실행 중</translation>
     </message>
     <message>
       <source>Select a source</source>
       <translation>대상을 선택하세요</translation>
     </message>
     <message>
-      <source>Start SBS</source>
-      <translation>SBS 시작</translation>
+      <source>Start 3D</source>
+      <translation>3D 시작</translation>
     </message>
     <message>
-      <source>Stop SBS</source>
-      <translation>SBS 중지</translation>
+      <source>Stop 3D</source>
+      <translation>3D 중지</translation>
     </message>
     <message>
-      <source>Stopping SBS…</source>
-      <translation>SBS 종료 중…</translation>
+      <source>Stopping 3D…</source>
+      <translation>3D 종료 중…</translation>
     </message>
     <message>
       <source>Stopping…</source>
@@ -260,8 +260,8 @@ VFG 전환 중…</translation>
       <translation>파일 변환</translation>
     </message>
     <message>
-      <source>File conversion · Experimental black-bar background refinement</source>
-      <translation>파일 변환 · 실험적 검은 여백 배경 보정</translation>
+      <source>Uniform-background depth refinement for videos with black bars</source>
+      <translation>검은 여백 영상의 단색 배경 깊이 보정</translation>
     </message>
     <message>
       <source>File depth model</source>
@@ -316,12 +316,12 @@ VFG 전환 중…</translation>
       <translation>기존 처리 · 진단용</translation>
     </message>
     <message>
-      <source>Live SBS</source>
-      <translation>실시간 SBS</translation>
+      <source>Live 3D</source>
+      <translation>실시간 3D</translation>
     </message>
     <message>
-      <source>Live SBS · Diagnostics</source>
-      <translation>실시간 SBS · 진단 설정</translation>
+      <source>Live 3D · Diagnostics</source>
+      <translation>실시간 3D · 진단 설정</translation>
     </message>
     <message>
       <source>MP4 · MKV · MOV · M4V / Convert one selected video at a time</source>
@@ -408,12 +408,12 @@ VFG 전환 중…</translation>
       <translation>스테레오 처리</translation>
     </message>
     <message>
-      <source>Stop SBS</source>
-      <translation>SBS 중지</translation>
+      <source>Stop 3D</source>
+      <translation>3D 중지</translation>
     </message>
     <message>
-      <source>Stop live SBS to convert a file.</source>
-      <translation>파일을 변환하려면 실시간 SBS를 중지하세요.</translation>
+      <source>Stop live 3D to convert a file.</source>
+      <translation>파일을 변환하려면 실시간 3D를 중지하세요.</translation>
     </message>
     <message>
       <source>TensorRT runtime</source>
@@ -440,14 +440,6 @@ VFG 전환 중…</translation>
       <translation>검은 여백 영상의 깊이 보정 도움말</translation>
     </message>
     <message>
-      <source>Cancel shutdown</source>
-      <translation>종료 취소</translation>
-    </message>
-    <message>
-      <source>Depth strength</source>
-      <translation>입체감</translation>
-    </message>
-    <message>
       <source>Experimental · File conversion only · Default: off
 
 Extends the existing uniform-background depth refinement to the image inside detected black bars. The bars are preserved; the video is not cropped or stretched.
@@ -460,32 +452,8 @@ Applied only when stable bar boundaries and a suitable uniform background are de
 여백 경계와 단색 배경 조건이 안정적일 때만 적용됩니다. 이 옵션을 꺼도 일반 단색 배경 보정은 기본 동작합니다.</translation>
     </message>
     <message>
-      <source>File VFG frame interpolation help</source>
-      <translation>파일 VFG 프레임 보간 도움말</translation>
-    </message>
-    <message>
-      <source>File depth strength</source>
-      <translation>파일 변환 입체감</translation>
-    </message>
-    <message>
-      <source>Frame interpolation (VFG 2×)</source>
-      <translation>프레임 보간 (VFG 2×)</translation>
-    </message>
-    <message>
       <source>MP4 · MKV · MOV · M4V / Files convert automatically in queue order</source>
       <translation>MP4 · MKV · MOV · M4V / 추가된 순서대로 자동 변환</translation>
-    </message>
-    <message>
-      <source>Off by default and not saved. After every queued file converts successfully, a 30-second countdown lets you cancel shutdown. Errors or cancellation stop the queue and prevent shutdown. Other applications are not forcibly closed.</source>
-      <translation>기본은 미선택이며 저장되지 않습니다. 대기열의 모든 파일 변환이 성공하면 30초 카운트다운 후 Windows를 종료합니다. 카운트다운 중 종료를 취소할 수 있습니다. 오류나 취소 시 대기열을 중단하고 종료하지 않습니다. 다른 앱을 강제로 닫지 않습니다.</translation>
-    </message>
-    <message>
-      <source>Off by default. Uses NVIDIA VFG to double the file's output FPS while preserving playback duration and audio. No interpolation crosses detected scene cuts. This uses additional GPU resources and may increase conversion time. The VFG runtime must be installed. File settings apply to the next conversion queue and are independent of live SBS.</source>
-      <translation>기본은 꺼짐입니다. NVIDIA VFG로 출력 파일의 FPS를 2배로 높이며 재생 길이와 오디오는 유지합니다. 감지된 장면 전환 사이에서는 보간하지 않습니다. GPU 자원을 추가로 사용하며 변환 시간이 늘어날 수 있습니다. VFG 런타임 설치가 필요합니다. 파일 설정은 다음 변환 대기열에 적용되며 실시간 SBS 설정과 별개입니다.</translation>
-    </message>
-    <message>
-      <source>Reset</source>
-      <translation>초기화</translation>
     </message>
     <message>
       <source>Shut down Windows after all conversions finish</source>
@@ -496,12 +464,40 @@ Applied only when stable bar boundaries and a suitable uniform background are de
       <translation>변환 완료 후 Windows 종료 도움말</translation>
     </message>
     <message>
+      <source>Off by default and not saved. After every queued file converts successfully, a 30-second countdown lets you cancel shutdown. Errors or cancellation stop the queue and prevent shutdown. Other applications are not forcibly closed.</source>
+      <translation>기본은 미선택이며 저장되지 않습니다. 대기열의 모든 파일 변환이 성공하면 30초 카운트다운 후 Windows를 종료합니다. 카운트다운 중 종료를 취소할 수 있습니다. 오류나 취소 시 대기열을 중단하고 종료하지 않습니다. 다른 앱을 강제로 닫지 않습니다.</translation>
+    </message>
+    <message>
+      <source>Cancel shutdown</source>
+      <translation>종료 취소</translation>
+    </message>
+    <message>
       <source>Start conversion</source>
       <translation>변환 시작</translation>
     </message>
     <message>
-      <source>Uniform-background depth refinement for videos with black bars</source>
-      <translation>검은 여백 영상의 단색 배경 깊이 보정</translation>
+      <source>Depth strength</source>
+      <translation>입체감</translation>
+    </message>
+    <message>
+      <source>Reset</source>
+      <translation>초기화</translation>
+    </message>
+    <message>
+      <source>File depth strength</source>
+      <translation>파일 변환 입체감</translation>
+    </message>
+    <message>
+      <source>Frame interpolation (VFG 2×)</source>
+      <translation>프레임 보간 (VFG 2×)</translation>
+    </message>
+    <message>
+      <source>File VFG frame interpolation help</source>
+      <translation>파일 VFG 프레임 보간 도움말</translation>
+    </message>
+    <message>
+      <source>Off by default. Uses NVIDIA VFG to double the file's output FPS while preserving playback duration and audio. No interpolation crosses detected scene cuts. This uses additional GPU resources and may increase conversion time. The VFG runtime must be installed. File settings apply to the next conversion queue and are independent of live 3D.</source>
+      <translation>기본은 꺼짐입니다. NVIDIA VFG로 출력 파일의 FPS를 2배로 높이며 재생 길이와 오디오는 유지합니다. 감지된 장면 전환 사이에서는 보간하지 않습니다. GPU 자원을 추가로 사용하며 변환 시간이 늘어날 수 있습니다. VFG 런타임 설치가 필요합니다. 파일 설정은 다음 변환 대기열에 적용되며 실시간 3D 설정과 별개입니다.</translation>
     </message>
   </context>
   <context>
@@ -637,16 +633,16 @@ Uses a 518×924 mixed-precision engine. The encoder and spatial attention use FP
       <translation>고급 설정 · 진단</translation>
     </message>
     <message>
-      <source>An SBS output window cannot be used as input. Select the original game or video window.</source>
-      <translation>SBS 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.</translation>
+      <source>A live 3D output window cannot be used as input. Select the original game or video window.</source>
+      <translation>3D 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.</translation>
     </message>
     <message>
-      <source>An unknown SBS processing error occurred.</source>
-      <translation>SBS 처리 중 알 수 없는 오류가 발생했습니다.</translation>
+      <source>An unknown 3D processing error occurred.</source>
+      <translation>3D 처리 중 알 수 없는 오류가 발생했습니다.</translation>
     </message>
     <message>
-      <source>Another task is running. Finish or stop it before starting SBS.</source>
-      <translation>다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 SBS를 시작하세요.</translation>
+      <source>Another task is running. Finish or stop it before starting live 3D.</source>
+      <translation>다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 3D를 시작하세요.</translation>
     </message>
     <message>
       <source>Another task is running. Stop it before starting this task.</source>
@@ -773,8 +769,8 @@ You can try GPU host output in Settings and diagnostics.</source>
       <translation>선택한 설정을 저장하지 못했습니다. 사용자 설정 저장 권한을 확인하세요.</translation>
     </message>
     <message>
-      <source>Cannot set the SBS output capture policy. The output window will remain closed.</source>
-      <translation>SBS 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다.</translation>
+      <source>Cannot set the live 3D output capture policy. The output window will remain closed.</source>
+      <translation>3D 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다.</translation>
     </message>
     <message>
       <source>Cannot set the capture worker's DPI coordinate system.</source>
@@ -1185,12 +1181,12 @@ You can try GPU host output in Settings and diagnostics.</source>
       <translation>라이브 CUDA DLL 검증 실패: 검증된 로컬 빌드가 필요합니다.</translation>
     </message>
     <message>
-      <source>Live SBS</source>
-      <translation>실시간 SBS</translation>
+      <source>Live 3D</source>
+      <translation>실시간 3D</translation>
     </message>
     <message>
-      <source>Live SBS · Diagnostics</source>
-      <translation>실시간 SBS · 진단 설정</translation>
+      <source>Live 3D · Diagnostics</source>
+      <translation>실시간 3D · 진단 설정</translation>
     </message>
     <message>
       <source>Live output settings</source>
@@ -1333,12 +1329,12 @@ You can try GPU host output in Settings and diagnostics.</source>
       <translation>출력 처리 경로</translation>
     </message>
     <message>
-      <source>Preparing SBS output…</source>
-      <translation>SBS 화면 준비 중…</translation>
+      <source>Preparing 3D output…</source>
+      <translation>3D 화면 준비 중…</translation>
     </message>
     <message>
-      <source>Preparing SBS… Checking the capture source and output display.</source>
-      <translation>SBS 시작 준비 중… 캡처 대상과 출력 화면을 확인합니다.</translation>
+      <source>Preparing live 3D… Checking the capture source and output display.</source>
+      <translation>3D 시작 준비 중… 캡처 대상과 출력 화면을 확인합니다.</translation>
     </message>
     <message>
       <source>Preparing VFG…</source>
@@ -1399,32 +1395,32 @@ Session average: processed {v2:.1f} fps · Output submitted {v3:.1f} fps · Late
       <translation>RowFlow 준비를 취소했습니다.</translation>
     </message>
     <message>
-      <source>SBS error</source>
-      <translation>SBS 오류</translation>
+      <source>3D error</source>
+      <translation>3D 오류</translation>
     </message>
     <message>
-      <source>SBS is already running. Stop it before restarting.</source>
-      <translation>SBS가 이미 실행 중입니다. 중지 후 다시 시작하세요.</translation>
+      <source>Live 3D is already running. Stop it before restarting.</source>
+      <translation>3D가 이미 실행 중입니다. 중지 후 다시 시작하세요.</translation>
     </message>
     <message>
-      <source>SBS is running</source>
-      <translation>SBS 실행 중</translation>
+      <source>Live 3D is running</source>
+      <translation>3D 실행 중</translation>
     </message>
     <message>
-      <source>SBS stopped because output preparation failed: {v0}</source>
-      <translation>출력 준비 실패로 SBS를 중단했습니다: {v0}</translation>
+      <source>Live 3D stopped because output preparation failed: {v0}</source>
+      <translation>출력 준비 실패로 3D를 중단했습니다: {v0}</translation>
     </message>
     <message>
-      <source>SBS stopped because the VFG transition failed.</source>
-      <translation>VFG 전환을 완료하지 못해 SBS를 중지했습니다.</translation>
+      <source>Live 3D stopped because the VFG transition failed.</source>
+      <translation>VFG 전환을 완료하지 못해 3D를 중지했습니다.</translation>
     </message>
     <message>
-      <source>SBS stopped because the output window could not be opened.</source>
-      <translation>출력 창을 열지 못해 SBS를 중단했습니다.</translation>
+      <source>Live 3D stopped because the output window could not be opened.</source>
+      <translation>출력 창을 열지 못해 3D를 중단했습니다.</translation>
     </message>
     <message>
-      <source>SBS stopped.</source>
-      <translation>SBS를 중지했습니다.</translation>
+      <source>Live 3D stopped.</source>
+      <translation>3D를 중지했습니다.</translation>
     </message>
     <message>
       <source>Save SBS video</source>
@@ -1515,8 +1511,8 @@ Session average: processed {v2:.1f} fps · Output submitted {v3:.1f} fps · Late
       <translation>원본 미리보기 · CPU 복사 경로 · 출력 목표 {v0} fps</translation>
     </message>
     <message>
-      <source>Source preview · Separate from SBS performance measurements.</source>
-      <translation>원본 미리보기 · SBS 성능 수치와 별개입니다.</translation>
+      <source>Source preview · Separate from live 3D performance measurements.</source>
+      <translation>원본 미리보기 · 실시간 3D 성능 수치와 별개입니다.</translation>
     </message>
     <message>
       <source>Source {v0} · Output {v1} · Interpolated {v2} fps · Latency {v3} · {v4}</source>
@@ -1527,8 +1523,8 @@ Session average: processed {v2:.1f} fps · Output submitted {v3:.1f} fps · Late
       <translation>원본 {v0} × {v1}  →  {v2} {v3} × {v4}</translation>
     </message>
     <message>
-      <source>Start SBS</source>
-      <translation>SBS 시작</translation>
+      <source>Start 3D</source>
+      <translation>3D 시작</translation>
     </message>
     <message>
       <source>Starting capture… Your screen is not being recorded.</source>
@@ -1547,28 +1543,28 @@ Session average: processed {v2:.1f} fps · Output submitted {v3:.1f} fps · Late
       <translation>스테레오 처리</translation>
     </message>
     <message>
-      <source>Stop SBS</source>
-      <translation>SBS 중지</translation>
+      <source>Stop 3D</source>
+      <translation>3D 중지</translation>
     </message>
     <message>
-      <source>Stop SBS to change the depth model or FPS limit.</source>
-      <translation>깊이 모델과 FPS 제한을 변경하려면 SBS를 중지하세요.</translation>
+      <source>Stop 3D to change the depth model or FPS limit.</source>
+      <translation>깊이 모델과 FPS 제한을 변경하려면 3D를 중지하세요.</translation>
     </message>
     <message>
-      <source>Stop live SBS to convert a file.</source>
-      <translation>파일을 변환하려면 실시간 SBS를 중지하세요.</translation>
+      <source>Stop live 3D to convert a file.</source>
+      <translation>파일을 변환하려면 실시간 3D를 중지하세요.</translation>
     </message>
     <message>
-      <source>Stopped because the display configuration changed. Restart SBS.</source>
-      <translation>디스플레이 구성이 변경되어 중지했습니다. SBS를 다시 시작하세요.</translation>
+      <source>Stopped because the display configuration changed. Restart live 3D.</source>
+      <translation>디스플레이 구성이 변경되어 중지했습니다. 3D를 다시 시작하세요.</translation>
     </message>
     <message>
       <source>Stopped because the output capture policy could not be set.</source>
       <translation>출력 창 캡처 정책 설정 실패로 중단했습니다.</translation>
     </message>
     <message>
-      <source>Stopping SBS…</source>
-      <translation>SBS 종료 중…</translation>
+      <source>Stopping 3D…</source>
+      <translation>3D 종료 중…</translation>
     </message>
     <message>
       <source>Stopping capture…</source>
@@ -1643,8 +1639,8 @@ Model operations use FP16; input, output and some processing use FP32.</source>
 FP16 모델 연산을 사용하며, 입출력과 일부 처리는 FP32입니다.</translation>
     </message>
     <message>
-      <source>The depth model and FPS limit apply to the next SBS session.</source>
-      <translation>깊이 모델과 FPS 제한은 다음 SBS 실행에 적용됩니다.</translation>
+      <source>The depth model and FPS limit apply to the next live 3D session.</source>
+      <translation>깊이 모델과 FPS 제한은 다음 3D 실행에 적용됩니다.</translation>
     </message>
     <message>
       <source>The display configuration changed. Try again.</source>
@@ -1959,18 +1955,6 @@ Recent preprocessing/inference/SBS {v4:.1f}/{v5:.1f}/{v6:.1f} ms · Includes CPU
       <translation>ScreenTo3D 실행 오류</translation>
     </message>
     <message>
-      <source>All conversions succeeded. Windows will shut down in {seconds} seconds.</source>
-      <translation>모든 변환이 완료되었습니다. {seconds}초 후 Windows가 종료됩니다.</translation>
-    </message>
-    <message>
-      <source>All queued conversions completed · Open the results to review them.</source>
-      <translation>대기열 변환 완료 · 결과를 열어 확인하세요.</translation>
-    </message>
-    <message>
-      <source>File {current} of {total}</source>
-      <translation>파일 {current} / {total}</translation>
-    </message>
-    <message>
       <source>Prioritizes speed and responsiveness.
 
 Model operations use FP16; input, output and some processing use FP32.</source>
@@ -1979,20 +1963,32 @@ Model operations use FP16; input, output and some processing use FP32.</source>
 모델 연산은 FP16을 사용하며 입력·출력과 일부 처리는 FP32를 사용합니다.</translation>
     </message>
     <message>
-      <source>Replace {count} existing output files only after their conversions succeed?</source>
-      <translation>출력 파일 {count}개가 이미 존재합니다. 각 변환이 성공한 뒤 해당 파일을 교체할까요?</translation>
-    </message>
-    <message>
-      <source>Requesting Windows shutdown…</source>
-      <translation>Windows 종료 요청 중…</translation>
+      <source>File {current} of {total}</source>
+      <translation>파일 {current} / {total}</translation>
     </message>
     <message>
       <source>Save stereo video</source>
       <translation>입체 영상 저장</translation>
     </message>
     <message>
+      <source>Replace {count} existing output files only after their conversions succeed?</source>
+      <translation>출력 파일 {count}개가 이미 존재합니다. 각 변환이 성공한 뒤 해당 파일을 교체할까요?</translation>
+    </message>
+    <message>
+      <source>All queued conversions completed · Open the results to review them.</source>
+      <translation>대기열 변환 완료 · 결과를 열어 확인하세요.</translation>
+    </message>
+    <message>
+      <source>All conversions succeeded. Windows will shut down in {seconds} seconds.</source>
+      <translation>모든 변환이 완료되었습니다. {seconds}초 후 Windows가 종료됩니다.</translation>
+    </message>
+    <message>
       <source>Windows shutdown cancelled.</source>
       <translation>Windows 종료를 취소했습니다.</translation>
+    </message>
+    <message>
+      <source>Requesting Windows shutdown…</source>
+      <translation>Windows 종료 요청 중…</translation>
     </message>
     <message>
       <source>Windows shutdown requested.</source>
@@ -2017,8 +2013,8 @@ Model operations use FP16; input, output and some processing use FP32.</source>
       <translation>파일 변환 설정</translation>
     </message>
     <message>
-      <source>Live SBS</source>
-      <translation>실시간 SBS</translation>
+      <source>Live 3D</source>
+      <translation>실시간 3D</translation>
     </message>
     <message>
       <source>Live output settings</source>
@@ -2130,8 +2126,8 @@ Model operations use FP16; input, output and some processing use FP32.</source>
     </message>
     <message>
       <source>E_CAPTURE_OUTPUT_RECURSION</source>
-      <extracomment>An SBS output window cannot be used as input. Select the original game or video window.</extracomment>
-      <translation>SBS 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.</translation>
+      <extracomment>A live 3D output window cannot be used as input. Select the original game or video window.</extracomment>
+      <translation>3D 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.</translation>
     </message>
     <message>
       <source>E_CAPTURE_SOURCE_CLOSED</source>
@@ -2330,8 +2326,8 @@ Model operations use FP16; input, output and some processing use FP32.</source>
     </message>
     <message>
       <source>E_OUTPUT_CAPTURE_POLICY</source>
-      <extracomment>Cannot set the SBS output capture policy. The output window will remain closed.</extracomment>
-      <translation>SBS 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다.</translation>
+      <extracomment>Cannot set the live 3D output capture policy. The output window will remain closed.</extracomment>
+      <translation>3D 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다.</translation>
     </message>
     <message>
       <source>E_OUTPUT_CAPTURE_POLICY_STOP</source>
@@ -2340,18 +2336,18 @@ Model operations use FP16; input, output and some processing use FP32.</source>
     </message>
     <message>
       <source>E_OUTPUT_DISPLAY_CHANGED</source>
-      <extracomment>Stopped because the display configuration changed. Restart SBS.</extracomment>
-      <translation>디스플레이 구성이 변경되어 중지했습니다. SBS를 다시 시작하세요.</translation>
+      <extracomment>Stopped because the display configuration changed. Restart live 3D.</extracomment>
+      <translation>디스플레이 구성이 변경되어 중지했습니다. 3D를 다시 시작하세요.</translation>
     </message>
     <message>
       <source>E_LIVE_ALREADY_RUNNING</source>
-      <extracomment>SBS is already running. Stop it before restarting.</extracomment>
-      <translation>SBS가 이미 실행 중입니다. 중지 후 다시 시작하세요.</translation>
+      <extracomment>Live 3D is already running. Stop it before restarting.</extracomment>
+      <translation>3D가 이미 실행 중입니다. 중지 후 다시 시작하세요.</translation>
     </message>
     <message>
       <source>E_LIVE_TASK_BUSY</source>
-      <extracomment>Another task is running. Finish or stop it before starting SBS.</extracomment>
-      <translation>다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 SBS를 시작하세요.</translation>
+      <extracomment>Another task is running. Finish or stop it before starting live 3D.</extracomment>
+      <translation>다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 3D를 시작하세요.</translation>
     </message>
     <message>
       <source>E_LIVE_SOURCE_REQUIRED</source>
@@ -2385,8 +2381,8 @@ Model operations use FP16; input, output and some processing use FP32.</source>
     </message>
     <message>
       <source>E_OUTPUT_PREPARATION_FAILED</source>
-      <extracomment>SBS stopped because output preparation failed: {v0}</extracomment>
-      <translation>출력 준비 실패로 SBS를 중단했습니다: {v0}</translation>
+      <extracomment>Live 3D stopped because output preparation failed: {v0}</extracomment>
+      <translation>출력 준비 실패로 3D를 중단했습니다: {v0}</translation>
     </message>
     <message>
       <source>E_CAPTURE_NO_FRAMES</source>
@@ -2395,8 +2391,8 @@ Model operations use FP16; input, output and some processing use FP32.</source>
     </message>
     <message>
       <source>E_OUTPUT_WINDOW_FAILED</source>
-      <extracomment>SBS stopped because the output window could not be opened.</extracomment>
-      <translation>출력 창을 열지 못해 SBS를 중단했습니다.</translation>
+      <extracomment>Live 3D stopped because the output window could not be opened.</extracomment>
+      <translation>출력 창을 열지 못해 3D를 중단했습니다.</translation>
     </message>
     <message>
       <source>E_OUTPUT_FRAME_DELIVERY</source>
@@ -2569,8 +2565,8 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     </message>
     <message>
       <source>E_VFG_TRANSITION</source>
-      <extracomment>SBS stopped because the VFG transition failed.</extracomment>
-      <translation>VFG 전환을 완료하지 못해 SBS를 중지했습니다.</translation>
+      <extracomment>Live 3D stopped because the VFG transition failed.</extracomment>
+      <translation>VFG 전환을 완료하지 못해 3D를 중지했습니다.</translation>
     </message>
     <message>
       <source>E_CAPTURE_TIMEOUT</source>
@@ -2713,29 +2709,19 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <translation>ScreenTo3D가 오류로 종료되었습니다.</translation>
     </message>
     <message>
-      <source>E_BATCH_OUTPUT_CHANGED</source>
-      <extracomment>An output file appeared after the queue was prepared. Check the save location and restart conversion.</extracomment>
-      <translation>대기열 준비 후 출력 경로에 파일이 생겼습니다. 저장 위치를 확인하고 변환을 다시 시작해 주세요.</translation>
-    </message>
-    <message>
       <source>E_BATCH_OUTPUT_COLLISION</source>
       <extracomment>Queue outputs must be different files and must not overwrite any input video.</extracomment>
       <translation>대기열의 출력 파일 경로는 서로 달라야 하며 입력 영상을 덮어쓸 수 없습니다.</translation>
     </message>
     <message>
-      <source>E_FILE_VFG_FAILED</source>
-      <extracomment>File frame interpolation failed. Check the VFG installation and GPU compatibility.</extracomment>
-      <translation>파일 프레임 보간에 실패했습니다. VFG 설치 상태와 GPU 호환성을 확인해 주세요.</translation>
+      <source>E_BATCH_OUTPUT_CHANGED</source>
+      <extracomment>An output file appeared after the queue was prepared. Check the save location and restart conversion.</extracomment>
+      <translation>대기열 준비 후 출력 경로에 파일이 생겼습니다. 저장 위치를 확인하고 변환을 다시 시작해 주세요.</translation>
     </message>
     <message>
-      <source>E_FILE_VFG_GEOMETRY</source>
-      <extracomment>VFG requires a source video no larger than 4096×2160.</extracomment>
-      <translation>VFG는 원본 영상 크기가 4096×2160 이하여야 합니다.</translation>
-    </message>
-    <message>
-      <source>E_FILE_VFG_SELECTION</source>
-      <extracomment>Invalid file frame interpolation setting.</extracomment>
-      <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
+      <source>E_SHUTDOWN_UNSUPPORTED</source>
+      <extracomment>Automatic shutdown is available on Windows only.</extracomment>
+      <translation>자동 종료는 Windows에서만 사용할 수 있습니다.</translation>
     </message>
     <message>
       <source>E_SHUTDOWN_FAILED</source>
@@ -2743,9 +2729,19 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <translation>Windows 종료를 요청할 수 없습니다. 변환된 파일은 보존됩니다.</translation>
     </message>
     <message>
-      <source>E_SHUTDOWN_UNSUPPORTED</source>
-      <extracomment>Automatic shutdown is available on Windows only.</extracomment>
-      <translation>자동 종료는 Windows에서만 사용할 수 있습니다.</translation>
+      <source>E_FILE_VFG_GEOMETRY</source>
+      <extracomment>VFG requires a source video no larger than 4096×2160.</extracomment>
+      <translation>VFG는 원본 영상 크기가 4096×2160 이하여야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_FILE_VFG_FAILED</source>
+      <extracomment>File frame interpolation failed. Check the VFG installation and GPU compatibility.</extracomment>
+      <translation>파일 프레임 보간에 실패했습니다. VFG 설치 상태와 GPU 호환성을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_FILE_VFG_SELECTION</source>
+      <extracomment>Invalid file frame interpolation setting.</extracomment>
+      <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
     </message>
   </context>
   <context>
@@ -2847,8 +2843,8 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     </message>
     <message>
       <source>E_CAPTURE_OUTPUT_RECURSION</source>
-      <extracomment>An SBS output window cannot be used as input. Select the original game or video window.</extracomment>
-      <translation>SBS 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.</translation>
+      <extracomment>A live 3D output window cannot be used as input. Select the original game or video window.</extracomment>
+      <translation>3D 출력 창은 입력으로 사용할 수 없습니다. 원본 게임이나 영상 창을 선택하세요.</translation>
     </message>
     <message>
       <source>E_CAPTURE_SOURCE_CLOSED</source>
@@ -3047,8 +3043,8 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     </message>
     <message>
       <source>E_OUTPUT_CAPTURE_POLICY</source>
-      <extracomment>Cannot set the SBS output capture policy. The output window will remain closed.</extracomment>
-      <translation>SBS 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다.</translation>
+      <extracomment>Cannot set the live 3D output capture policy. The output window will remain closed.</extracomment>
+      <translation>3D 출력 창의 캡처 정책 설정에 실패했습니다. 출력 창을 열지 않습니다.</translation>
     </message>
     <message>
       <source>E_OUTPUT_CAPTURE_POLICY_STOP</source>
@@ -3057,18 +3053,18 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     </message>
     <message>
       <source>E_OUTPUT_DISPLAY_CHANGED</source>
-      <extracomment>Stopped because the display configuration changed. Restart SBS.</extracomment>
-      <translation>디스플레이 구성이 변경되어 중지했습니다. SBS를 다시 시작하세요.</translation>
+      <extracomment>Stopped because the display configuration changed. Restart live 3D.</extracomment>
+      <translation>디스플레이 구성이 변경되어 중지했습니다. 3D를 다시 시작하세요.</translation>
     </message>
     <message>
       <source>E_LIVE_ALREADY_RUNNING</source>
-      <extracomment>SBS is already running. Stop it before restarting.</extracomment>
-      <translation>SBS가 이미 실행 중입니다. 중지 후 다시 시작하세요.</translation>
+      <extracomment>Live 3D is already running. Stop it before restarting.</extracomment>
+      <translation>3D가 이미 실행 중입니다. 중지 후 다시 시작하세요.</translation>
     </message>
     <message>
       <source>E_LIVE_TASK_BUSY</source>
-      <extracomment>Another task is running. Finish or stop it before starting SBS.</extracomment>
-      <translation>다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 SBS를 시작하세요.</translation>
+      <extracomment>Another task is running. Finish or stop it before starting live 3D.</extracomment>
+      <translation>다른 작업이 진행 중입니다. 완료하거나 중지한 뒤 3D를 시작하세요.</translation>
     </message>
     <message>
       <source>E_LIVE_SOURCE_REQUIRED</source>
@@ -3112,8 +3108,8 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     </message>
     <message>
       <source>E_OUTPUT_WINDOW_FAILED</source>
-      <extracomment>SBS stopped because the output window could not be opened.</extracomment>
-      <translation>출력 창을 열지 못해 SBS를 중단했습니다.</translation>
+      <extracomment>Live 3D stopped because the output window could not be opened.</extracomment>
+      <translation>출력 창을 열지 못해 3D를 중단했습니다.</translation>
     </message>
     <message>
       <source>E_OUTPUT_FRAME_DELIVERY</source>
@@ -3282,8 +3278,8 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     </message>
     <message>
       <source>E_VFG_TRANSITION</source>
-      <extracomment>SBS stopped because the VFG transition failed.</extracomment>
-      <translation>VFG 전환을 완료하지 못해 SBS를 중지했습니다.</translation>
+      <extracomment>Live 3D stopped because the VFG transition failed.</extracomment>
+      <translation>VFG 전환을 완료하지 못해 3D를 중지했습니다.</translation>
     </message>
     <message>
       <source>E_CAPTURE_TIMEOUT</source>
@@ -3426,29 +3422,19 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <translation>ScreenTo3D가 오류로 종료되었습니다.</translation>
     </message>
     <message>
-      <source>E_BATCH_OUTPUT_CHANGED</source>
-      <extracomment>An output file appeared after the queue was prepared. Check the save location and restart conversion.</extracomment>
-      <translation>대기열 준비 후 출력 경로에 파일이 생겼습니다. 저장 위치를 확인하고 변환을 다시 시작해 주세요.</translation>
-    </message>
-    <message>
       <source>E_BATCH_OUTPUT_COLLISION</source>
       <extracomment>Queue outputs must be different files and must not overwrite any input video.</extracomment>
       <translation>대기열의 출력 파일 경로는 서로 달라야 하며 입력 영상을 덮어쓸 수 없습니다.</translation>
     </message>
     <message>
-      <source>E_FILE_VFG_FAILED</source>
-      <extracomment>File frame interpolation failed. Check the VFG installation and GPU compatibility.</extracomment>
-      <translation>파일 프레임 보간에 실패했습니다. VFG 설치 상태와 GPU 호환성을 확인해 주세요.</translation>
+      <source>E_BATCH_OUTPUT_CHANGED</source>
+      <extracomment>An output file appeared after the queue was prepared. Check the save location and restart conversion.</extracomment>
+      <translation>대기열 준비 후 출력 경로에 파일이 생겼습니다. 저장 위치를 확인하고 변환을 다시 시작해 주세요.</translation>
     </message>
     <message>
-      <source>E_FILE_VFG_GEOMETRY</source>
-      <extracomment>VFG requires a source video no larger than 4096×2160.</extracomment>
-      <translation>VFG는 원본 영상 크기가 4096×2160 이하여야 합니다.</translation>
-    </message>
-    <message>
-      <source>E_FILE_VFG_SELECTION</source>
-      <extracomment>Invalid file frame interpolation setting.</extracomment>
-      <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
+      <source>E_SHUTDOWN_UNSUPPORTED</source>
+      <extracomment>Automatic shutdown is available on Windows only.</extracomment>
+      <translation>자동 종료는 Windows에서만 사용할 수 있습니다.</translation>
     </message>
     <message>
       <source>E_SHUTDOWN_FAILED</source>
@@ -3456,9 +3442,19 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <translation>Windows 종료를 요청할 수 없습니다. 변환된 파일은 보존됩니다.</translation>
     </message>
     <message>
-      <source>E_SHUTDOWN_UNSUPPORTED</source>
-      <extracomment>Automatic shutdown is available on Windows only.</extracomment>
-      <translation>자동 종료는 Windows에서만 사용할 수 있습니다.</translation>
+      <source>E_FILE_VFG_GEOMETRY</source>
+      <extracomment>VFG requires a source video no larger than 4096×2160.</extracomment>
+      <translation>VFG는 원본 영상 크기가 4096×2160 이하여야 합니다.</translation>
+    </message>
+    <message>
+      <source>E_FILE_VFG_FAILED</source>
+      <extracomment>File frame interpolation failed. Check the VFG installation and GPU compatibility.</extracomment>
+      <translation>파일 프레임 보간에 실패했습니다. VFG 설치 상태와 GPU 호환성을 확인해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_FILE_VFG_SELECTION</source>
+      <extracomment>Invalid file frame interpolation setting.</extracomment>
+      <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
     </message>
   </context>
 </TS>

@@ -191,7 +191,7 @@ ApplicationWindow {
                         }
                         HelpButton {
                             objectName: "fileVfgHelp"; Accessible.name: qsTr("File VFG frame interpolation help")
-                            helpText: qsTr("Off by default. Uses NVIDIA VFG to double the file's output FPS while preserving playback duration and audio. No interpolation crosses detected scene cuts. This uses additional GPU resources and may increase conversion time. The VFG runtime must be installed. File settings apply to the next conversion queue and are independent of live SBS.")
+                            helpText: qsTr("Off by default. Uses NVIDIA VFG to double the file's output FPS while preserving playback duration and audio. No interpolation crosses detected scene cuts. This uses additional GPU resources and may increase conversion time. The VFG runtime must be installed. File settings apply to the next conversion queue and are independent of live 3D.")
                         }
                         Item { Layout.fillWidth: true }
                     }
@@ -270,7 +270,7 @@ ApplicationWindow {
                     Copy { text: desktop.completionShutdown.status; color: root.ink }
                     Action { objectName: "cancelShutdown"; text: qsTr("Cancel shutdown"); onClicked: desktop.completionShutdown.cancel() }
                 }
-                Copy { objectName: "jobStatus"; text: (desktop.queueStatus ? desktop.queueStatus + " · " : "") + (live.active ? qsTr("Stop live SBS to convert a file.") : desktop.status); color: root.ink; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                Copy { objectName: "jobStatus"; text: (desktop.queueStatus ? desktop.queueStatus + " · " : "") + (live.active ? qsTr("Stop live 3D to convert a file.") : desktop.status); color: root.ink; Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 RowLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.bottomMargin: 20
                     Copy { text: desktop.licenseNotice; font.pixelSize: 12 }
@@ -313,13 +313,13 @@ ApplicationWindow {
                         Accessible.name: qsTr("Language")
                     }
                     Label { text: qsTr("Check installation"); color: root.ink; font.bold: true }
-                    Picker { id: setupTarget; objectName: "setupTarget"; enabled: !desktop.busy; model: [qsTr("Live SBS"), qsTr("File conversion")]; Accessible.name: qsTr("Installation check target") }
+                    Picker { id: setupTarget; objectName: "setupTarget"; enabled: !desktop.busy; model: [qsTr("Live 3D"), qsTr("File conversion")]; Accessible.name: qsTr("Installation check target") }
                     Copy { objectName: "setupModel"; text: qsTr("Model to check · ") + (setupTarget.currentIndex === 0 ? live.liveModelLabel : desktop.models.filter(function(m) { return m.key === desktop.settings.model })[0].label); font.pixelSize: 14 }
                     RowLayout {
                         Action { objectName: "checkSetup"; text: qsTr("Check selected setup"); enabled: !desktop.busy; onClicked: desktop.checkSetupFor(setupTarget.currentIndex === 0 ? "live" : "file") }
                     }
                     Copy { objectName: "setupStatus"; text: desktop.setup; font.pixelSize: 12 }
-                    Label { text: qsTr("Live SBS · Diagnostics"); color: root.ink; font.bold: true }
+                    Label { text: qsTr("Live 3D · Diagnostics"); color: root.ink; font.bold: true }
                     Picker { objectName: "liveProcessingPath"; enabled: !live.active; model: live.nativeCapable ? [qsTr("GPU host output · Diagnostic"), qsTr("Legacy processing · Diagnostic"), qsTr("Direct GPU output · Default")] : [qsTr("GPU host output · Diagnostic"), qsTr("Legacy processing · Diagnostic")]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]); Accessible.name: qsTr("Output processing path") }
                     CheckOption { id: diagnostics; text: qsTr("Show detailed status") }
                     Copy { visible: diagnostics.checked; text: live.policyDescription + "\n" + live.supportStatus + "\n" + live.metrics; font.pixelSize: 12 }
@@ -386,7 +386,7 @@ ApplicationWindow {
                 Menu {
                     id: outputMenu
                     MenuItem { text: sbsOutput.visibility === Window.FullScreen ? qsTr("Windowed · Esc") : qsTr("Fullscreen · F11"); onTriggered: { live.rememberOutput(); sbsOutput.visibility === Window.FullScreen ? sbsOutput.showNormal() : sbsOutput.showFullScreen() } }
-                    MenuItem { text: qsTr("Stop SBS"); onTriggered: live.stop() }
+                    MenuItem { text: qsTr("Stop 3D"); onTriggered: live.stop() }
                     MenuItem { text: qsTr("Frame interpolation (VFG) · Ctrl+Alt+S"); visible: live.vfgConfigurable; checkable: true; checked: live.vfgEnabled; enabled: !live.stoppingNow && !live.vfgSwitching && (live.vfgEnabled || live.vfgUnavailableReason.length === 0); onTriggered: live.setVfg(checked) }
                     MenuItem { text: qsTr("Fullscreen performance information"); checkable: true; checked: outputPreferences.fullscreenStats; onTriggered: outputPreferences.fullscreenStats = checked }
                 }

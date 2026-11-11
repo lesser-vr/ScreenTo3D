@@ -317,7 +317,7 @@ class LivePreview(QObject):
             return M('Locally validated on RTX 5090 · Other GPUs need validation · No automatic scaling or model replacement · 60 fps is not guaranteed')
 
         if not self.sbs:
-            return M('Source preview · Separate from SBS performance measurements.')
+            return M('Source preview · Separate from live 3D performance measurements.')
         if self.active and self.meta[WIDTH]:
             return guidance(self.meta[WIDTH] // 2, self.meta[HEIGHT])
         if 0 <= self.selected < len(self.items):
@@ -810,7 +810,7 @@ class LivePreview(QObject):
             self.reportError(E('E_OUTPUT_DISPLAY_REQUIRED'))
             return
         self.setSbs(True)
-        self.message = M('Preparing SBS… Checking the capture source and output display.')
+        self.message = M('Preparing live 3D… Checking the capture source and output display.')
         self.changed.emit()
         self.start()
         try:
@@ -1026,7 +1026,7 @@ class LivePreview(QObject):
                 )
                 failure = self.message
             elif self.stop_message_pending:
-                self.message = M('SBS stopped.')
+                self.message = M('Live 3D stopped.')
             self.stop_message_pending = False
             self.process.join(timeout=0)
             self.process.close()

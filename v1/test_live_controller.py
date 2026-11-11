@@ -113,7 +113,7 @@ class LiveControllerTests(unittest.TestCase):
             self.desktop.checkSetupFor("live")
             args = spawn.call_args.args[1]
             self.assertEqual(args[0], "da2-small")
-            self.assertIn("실시간 SBS", self.desktop.setup)
+            self.assertIn("실시간 3D", self.desktop.setup)
             self.assertEqual(self.desktop.values, original)
         self.desktop._cleanup()
         with patch.object(self.desktop, "_spawn") as spawn:

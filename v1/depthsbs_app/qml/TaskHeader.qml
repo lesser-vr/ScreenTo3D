@@ -31,7 +31,7 @@ RowLayout {
         currentIndex: header.files ? 1 : 0
         padding: 3
         background: Rectangle { radius: 8; color: header.theme.hover }
-        Segment { objectName: header.files ? "returnLive" : "liveTab"; text: qsTr("Live SBS"); onClicked: header.taskSelected(0) }
+        Segment { objectName: header.files ? "returnLive" : "liveTab"; text: qsTr("Live 3D"); onClicked: header.taskSelected(0) }
         Segment { objectName: header.files ? "filesTab" : "openFiles"; text: qsTr("File conversion"); onClicked: header.taskSelected(1) }
         // Each header belongs to one workspace. Reflect keyboard tab changes too.
         Keys.onLeftPressed: header.taskSelected(0)

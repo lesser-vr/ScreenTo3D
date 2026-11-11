@@ -1,5 +1,17 @@
 # Current implementation status
 
+Live feature terminology updated (2026-11-11). The desktop uses 실시간 3D /
+Live 3D for its tab, installation target, help and live status; start/stop actions
+and error guidance use 3D consistently. Full SBS and Half SBS remain packing
+format names. Translation validation (765 units, 142 error IDs), 41 Qt contracts,
+the translated installation-target controller check, bilingual rendered GUI and
+desktop UX checks pass; QML review reports no findings. Reports are
+`out/live-3d-{qt.json,localization/report.json,ux/report.json}`. No capture,
+inference or output-format behavior changed. The legacy standalone controller
+suite still has 13 failures when run without its expected Korean translation
+setup, including an outdated opaque-error expectation; it is not counted as a
+passing suite here.
+
 File depth strength and NVIDIA VFG added (2026-11-11). Independent file controls
 use strength 0.25–2.0 (default/reset 0.5) and default-off VFG 2x; queue snapshots
 carry both and busy work locks them. A bounded post-synthesis interpolator doubles
@@ -689,9 +701,9 @@ ownership and normal stop/close cleanup. Actual Owl3D 2.4.2 / screen 0.0.31 logs
 recognize the revised fullscreen output, switch to whole-source localization,
 confirm FullSBS and enable weaving; this is stronger integration evidence than
 our own frame counters. On 2026-11-06 the user confirmed that stereo now works,
-but reported uncomfortable near/far gaze changes compared with Owl3D Live SBS.
+but reported uncomfortable near/far gaze changes compared with Owl3D Live 3D.
 Reducing strength to 0.50x helped somewhat, but the user still found it
-uncomfortable while Owl3D Live SBS appeared deeper and comfortable. Investigation
+uncomfortable while Owl3D Live 3D appeared deeper and comfortable. Investigation
 then reproduced a physical eye-order error: near inverse depth moved left in
 the left eye, giving the opposite of standard LR stereo. CPU, CUDA host/native
 and VFG projection now use the corrected sign; optional RowFlow no longer swaps
@@ -703,9 +715,9 @@ are retained separately; a full app restart loads the new pinned binaries.
 That geometry correction left strength and convergence defaults unchanged; the
 earlier user-requested strength default was 0.5; the current default is recorded above. The user subsequently
 reported substantial improvement, but residual wobble/focus discomfort and lower
-quality than Owl3D Live SBS; full comfort acceptance remains open. See
+quality than Owl3D Live 3D; full comfort acceptance remains open. See
 [stereo geometry correction](evidence/stereo-eye-order-20261106.md).
-The [Owl3D Live SBS investigation](evidence/owl3d-live3d-analysis-20261106.md)
+The [Owl3D Live 3D investigation](evidence/owl3d-live3d-analysis-20261106.md)
 confirmed shipped content-weighted convergence, disparity budgeting/edge fade and
 weighted subpixel reconstruction, with stored runtime logs corroborating the
 view-synthesis family. Exact runtime flags and Owl3D temporal state remain unknown.
@@ -724,7 +736,7 @@ promoted: its central disparity reduction increases whole-frame P95 disparity by
 up to 33.4% in these clips. Defaults for strength/convergence remain unchanged.
 See [stereo stability validation](evidence/stereo-stability-20261106.md) for
 timing, live lifecycle evidence and remaining physical-viewing limits.
-The user subsequently reports that strength 0.5 feels similar to Owl3D Live SBS;
+The user subsequently reports that strength 0.5 feels similar to Owl3D Live 3D;
 this is the next comparison baseline, not a change to the global default or full
 quality acceptance. A follow-up review reproduces a remaining 1 px silhouette
 transition across a 0.1 px projected motion at both strengths 1.0 and 0.5, with

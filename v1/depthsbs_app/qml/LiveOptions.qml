@@ -16,7 +16,7 @@ FocusScrollView {
         Label { text: qsTr("Live output settings"); color: options.theme.ink; font.pixelSize: 22; font.bold: true; Layout.margins: 24 }
         ColumnLayout {
             Layout.fillWidth: true; Layout.leftMargin: 24; Layout.rightMargin: 24; spacing: 12
-            Copy { text: live.active ? qsTr("Stop SBS to change the depth model or FPS limit.") : qsTr("The depth model and FPS limit apply to the next SBS session.") }
+            Copy { text: live.active ? qsTr("Stop 3D to change the depth model or FPS limit.") : qsTr("The depth model and FPS limit apply to the next live 3D session.") }
             RowLayout {
                 spacing: 6
                 Label { text: qsTr("Depth model"); color: options.theme.ink }

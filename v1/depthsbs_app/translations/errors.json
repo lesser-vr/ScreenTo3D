@@ -97,8 +97,8 @@
       "category": "conversion"
     },
     "E_CAPTURE_OUTPUT_RECURSION": {
-      "source": "An SBS output window cannot be used as input. Select the original game or video window.",
-      "public": "An SBS output window cannot be used as input. Select the original game or video window.",
+      "source": "A live 3D output window cannot be used as input. Select the original game or video window.",
+      "public": "A live 3D output window cannot be used as input. Select the original game or video window.",
       "category": "conversion"
     },
     "E_CAPTURE_SOURCE_CLOSED": {
@@ -297,8 +297,8 @@
       "category": "conversion"
     },
     "E_OUTPUT_CAPTURE_POLICY": {
-      "source": "Cannot set the SBS output capture policy. The output window will remain closed.",
-      "public": "Cannot set the SBS output capture policy. The output window will remain closed.",
+      "source": "Cannot set the live 3D output capture policy. The output window will remain closed.",
+      "public": "Cannot set the live 3D output capture policy. The output window will remain closed.",
       "category": "conversion"
     },
     "E_OUTPUT_CAPTURE_POLICY_STOP": {
@@ -307,18 +307,18 @@
       "category": "conversion"
     },
     "E_OUTPUT_DISPLAY_CHANGED": {
-      "source": "Stopped because the display configuration changed. Restart SBS.",
-      "public": "Stopped because the display configuration changed. Restart SBS.",
+      "source": "Stopped because the display configuration changed. Restart live 3D.",
+      "public": "Stopped because the display configuration changed. Restart live 3D.",
       "category": "conversion"
     },
     "E_LIVE_ALREADY_RUNNING": {
-      "source": "SBS is already running. Stop it before restarting.",
-      "public": "SBS is already running. Stop it before restarting.",
+      "source": "Live 3D is already running. Stop it before restarting.",
+      "public": "Live 3D is already running. Stop it before restarting.",
       "category": "conversion"
     },
     "E_LIVE_TASK_BUSY": {
-      "source": "Another task is running. Finish or stop it before starting SBS.",
-      "public": "Another task is running. Finish or stop it before starting SBS.",
+      "source": "Another task is running. Finish or stop it before starting live 3D.",
+      "public": "Another task is running. Finish or stop it before starting live 3D.",
       "category": "conversion"
     },
     "E_LIVE_SOURCE_REQUIRED": {
@@ -352,7 +352,7 @@
       "category": "conversion"
     },
     "E_OUTPUT_PREPARATION_FAILED": {
-      "source": "SBS stopped because output preparation failed: {v0}",
+      "source": "Live 3D stopped because output preparation failed: {v0}",
       "public": "An operation failed. Check the selected source, model and output settings.",
       "category": "conversion"
     },
@@ -362,8 +362,8 @@
       "category": "conversion"
     },
     "E_OUTPUT_WINDOW_FAILED": {
-      "source": "SBS stopped because the output window could not be opened.",
-      "public": "SBS stopped because the output window could not be opened.",
+      "source": "Live 3D stopped because the output window could not be opened.",
+      "public": "Live 3D stopped because the output window could not be opened.",
       "category": "conversion"
     },
     "E_OUTPUT_FRAME_DELIVERY": {
@@ -532,8 +532,8 @@
       "category": "conversion"
     },
     "E_VFG_TRANSITION": {
-      "source": "SBS stopped because the VFG transition failed.",
-      "public": "SBS stopped because the VFG transition failed.",
+      "source": "Live 3D stopped because the VFG transition failed.",
+      "public": "Live 3D stopped because the VFG transition failed.",
       "category": "conversion"
     },
     "E_CAPTURE_TIMEOUT": {

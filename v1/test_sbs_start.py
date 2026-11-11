@@ -271,7 +271,7 @@ def main():
         assert window.property("page") == 0 and live.active
         assert not live.output_excluded
         assert not live.preview_visible
-        assert window.findChild(QObject, 'captureStart').property('text') == 'SBS 중지'
+        assert window.findChild(QObject, 'captureStart').property('text') == '3D 중지'
         assert live.output_window.grabWindow().save(str(args.output/'sbs.png'))
         assert window.grabWindow().save(str(args.output/'controller.png'))
         # Moving and resizing the real output is preserved across stop/restart.

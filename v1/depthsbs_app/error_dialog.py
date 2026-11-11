@@ -11,7 +11,7 @@ class LiveErrorDialog(QDialog):
     def __init__(self, owner):
         super().__init__()
         self.setObjectName("liveErrorDialog")
-        self.title_source = M('SBS error')
+        self.title_source = M('3D error')
         self.message_source = ''
         self.setWindowTitle(render(self.title_source))
         self.setFont(QFont("Segoe UI", 10))
@@ -47,7 +47,7 @@ class LiveErrorDialog(QDialog):
         for target in (self, self.text, self.text.viewport(), self.close_button):
             target.installEventFilter(self)
 
-    def showError(self, message, title=M('SBS error')):
+    def showError(self, message, title=M('3D error')):
         from .capture_sources import exclude_preview
 
         self.title_source = title
