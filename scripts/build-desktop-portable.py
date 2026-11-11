@@ -21,23 +21,53 @@ def digest(path):
         return hashlib.file_digest(src, 'sha256').hexdigest()
 
 
-def copy(src, dst):
+def copy(src, dst, *, package_root=None, excluded=None):
     dst.parent.mkdir(parents=True, exist_ok=True)
     if src.is_dir():
-        shutil.copytree(src, dst, ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+        def ignore(directory,names):
+            from depthsbs_app.portable_package import exclusion
+            rejected=[]
+            for name in names:
+                source=Path(directory)/name
+                target=dst/source.relative_to(src)
+                reason=exclusion(target.relative_to(package_root),is_dir=source.is_dir()) if package_root else ('bytecode' if name=='__pycache__' or name.endswith('.pyc') else '')
+                if reason:
+                    rejected.append(name)
+                    if excluded is not None:
+                        files=list(p for p in source.rglob('*') if p.is_file()) if source.is_dir() else [source]
+                        record=excluded.setdefault(reason,dict(files=0,bytes=0))
+                        record['files']+=len(files);record['bytes']+=sum(p.stat().st_size for p in files)
+            return rejected
+        shutil.copytree(src,dst,ignore=ignore)
     else:
         shutil.copy2(src, dst)
 
 
-def build(dest, python_zip, origin):
+CUDA_RUNTIME_SHA='352ba4ebe61e9a3b171f357a3daf5dd15b6af4a9857673ff893bd6fd2964c075'
+
+
+def build(dest, python_zip, origin, *, full_runtime=False,cuda_runtime=None,bundled_components=False):
     sys.path.insert(0, str(ROOT/'v1'))
     from depthsbs_app.portable_cuda import PINS
     from depthsbs_app import __version__
+    from depthsbs_app.portable_package import validate_qt_source,QT_PROFILE,runtime_exclusion
+    validate_qt_source(ROOT/'out/gui-python-deps/PySide6')
     import importlib.util
     spec=importlib.util.spec_from_file_location('depthsbs_translations',ROOT/'scripts/build-translations.py')
     translations=importlib.util.module_from_spec(spec)
     spec.loader.exec_module(translations)
     translations.build()
+    media_spec=importlib.util.spec_from_file_location('desktop_shared_ffmpeg',ROOT/'scripts/prepare-ffmpeg-shared.py')
+    media_module=importlib.util.module_from_spec(media_spec);media_spec.loader.exec_module(media_module)
+    media=ROOT/'out/ffmpeg-shared-9.0.1'
+    media_metadata=media_module.prepare(media)
+    bundled_components=bundled_components or full_runtime
+    cuda_runtime=Path(cuda_runtime) if cuda_runtime else Path('C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.1/bin/x64/cudart64_13.dll')
+    if digest(cuda_runtime)!=CUDA_RUNTIME_SHA:raise ValueError('CUDA 13.1 runtime identity mismatch')
+    if not bundled_components:
+        spec=importlib.util.spec_from_file_location('desktop_component_packs',ROOT/'scripts/build-component-packs.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        module.build(dest.parent/'runtime-packs',media,cuda_runtime)
     if dest.exists():
         raise ValueError('Choose a new output directory.')
     if origin and (urlsplit(origin).scheme != 'https' or not urlsplit(origin).hostname):
@@ -52,6 +82,7 @@ def build(dest, python_zip, origin):
                     '-File', str(ROOT/'scripts/build-desktop-launcher.ps1')], check=True)
     dest.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=dest.parent) as scratch:
+        excluded={}
         stage = Path(scratch)/'app'
         with ZipFile(python_zip) as archive:
             archive.extractall(stage/'python')
@@ -66,23 +97,47 @@ def build(dest, python_zip, origin):
             if digest(ROOT/rel) != pin:
                 raise ValueError(f'Portable CUDA release pin mismatch: {name}')
             copy(ROOT/rel, stage/rel)
+        runtime=ROOT/PREVIEW/'_internal/runtime'
+        target=stage/PREVIEW/'_internal/runtime';target.mkdir(parents=True)
+        if not full_runtime:
+            from depthsbs_app.builder_resources import LAYOUT,CATALOG,verify
+            pack_spec=importlib.util.spec_from_file_location('desktop_runtime_packs',ROOT/'scripts/build-runtime-packs.py')
+            pack_module=importlib.util.module_from_spec(pack_spec);pack_spec.loader.exec_module(pack_module)
+            verify(runtime,CATALOG['common'])
+            pack_module.build(dest.parent/'runtime-packs')
+        for path in runtime.iterdir():
+            reason=runtime_exclusion(path.name)
+            if reason:
+                record=excluded.setdefault(reason,dict(files=0,bytes=0))
+                record['files']+=1;record['bytes']+=path.stat().st_size
+                continue
+            if not full_runtime and path.name.startswith('nvinfer_builder_resource_sm'):continue
+            if bundled_components:copy(path,target/path.name)
+        if not full_runtime:
+            (target/'builder-layout.json').write_text(json.dumps(LAYOUT),encoding='utf-8')
+        if bundled_components:copy(cuda_runtime,stage/PREVIEW/'_internal/runtime/cudart64_13.dll')
+        else:
+            (target/'component-layout.json').write_text(json.dumps(dict(schema=1,component='trt-core')),encoding='utf-8')
+            media_target=stage/PREVIEW/'_internal/ffmpeg';media_target.mkdir()
+            (media_target/'component-layout.json').write_text(json.dumps(dict(schema=1,component='media-tools')),encoding='utf-8')
         for rel in [Path('v1/depthsbs_app'), Path('v1/cuda_projection_experiment.py'), small,
-                    PREVIEW/'_internal/runtime', PREVIEW/'_internal/ffmpeg',
                     Path('out/gpu-capture/gpu_capture.dll'), Path('out/qt-native-delivery/qt_native_delivery.dll'),
                     Path('out/base-input/OPENCV-NOTICE.txt'), Path('out/static-sbs/OPENCV-NOTICE.txt')]:
             copy(ROOT/rel, stage/rel)
+        if bundled_components:copy(media,stage/PREVIEW/'_internal/ffmpeg')
+        else:copy(media/'licenses',stage/'licenses/FFmpeg')
         for name in ('THIRD_PARTY_NOTICES.txt', 'TENSORRT-LICENSE.txt', 'CUDA-EULA.txt'):
             copy(ROOT/PREVIEW/name, stage/'licenses'/name)
         copy(ROOT/'distribution/THIRD_PARTY_NOTICES.txt',stage/'licenses/THIRD_PARTY_NOTICES.txt')
         copy(ROOT/'out/da2-base-source/LICENSE', stage/'licenses/Apache-2.0.txt')
         copy(ROOT/'models/da2-small/model-manifest.json',stage/'licenses/da2-small-model-manifest.json')
+        copy(ROOT/'out/vda-oracle-env/Lib/site-packages/torch-2.7.1+cu128.dist-info/LICENSE',stage/'licenses/PyTorch-LICENSE.txt')
         copy(ROOT/'distribution/DESKTOP-README.txt',stage/'README.txt')
         packages = {
             'out/gui-python-deps': ('PySide6*', 'shiboken6*'),
             'out/capture-python-deps': ('windows_capture*',),
             'out/v1-python-deps': ('cuda*', 'cv2', 'opencv*dist-info', 'numpy*', 'tensorrt*', 'packaging*'),
-            'out/vda-oracle-env/Lib/site-packages': ('torch', 'torchgen', 'torch-*.dist-info', 'typing_extensions*',
-                'filelock*', 'fsspec*', 'networkx*', 'jinja2*', 'markupsafe*', 'sympy*', 'mpmath*', 'functorch'),
+            'out/vda-oracle-env/Lib/site-packages': ('typing_extensions*',),
         }
         for folder, patterns in packages.items():
             for pattern in patterns:
@@ -90,14 +145,22 @@ def build(dest, python_zip, origin):
                 if not matches:
                     raise FileNotFoundError(f'{folder}/{pattern}')
                 for src in matches:
-                    copy(src, stage/'packages'/src.name)
+                    copy(src, stage/'packages'/src.name,package_root=stage,excluded=excluded)
         metadata=dict(product='ScreenTo3D',product_version=__version__,
             source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
             source_dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),
+            packaging_exclusions=excluded,
+            qt_deployment_profile=dict(version=QT_PROFILE['pyside_version'],bindings=QT_PROFILE['bindings'],libraries=QT_PROFILE['libraries']),
+            tensorrt_builder_resources='full' if full_runtime else 'GPU-selected pinned sidecar packs',
+            desktop_components='bundled' if bundled_components else 'on-demand pinned packs',
+            ffmpeg=media_metadata,
+            gpu_buffers='native CUDA; no Torch runtime',cuda_runtime_sha256=CUDA_RUNTIME_SHA,
             built_at_utc=datetime.now(timezone.utc).isoformat(),
             python='CPython 3.13.9 Windows x64 embeddable',python_zip_sha256=PYTHON_SHA,
             small_onnx_sha256=manifest['onnx_sha256'],portable_cuda_sha256=PINS,
             optional_models='DA2 Base and VDA Small local packs; NVIDIA VFG official download, default off')
+        metadata['application_source_sha256']={p.relative_to(stage).as_posix():digest(p)
+            for p in (stage/'v1/depthsbs_app').rglob('*') if p.is_file()}
         (stage/'build-manifest.json').write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf-8')
         stage.rename(dest)
 
@@ -107,5 +170,8 @@ if __name__ == '__main__':
     parser.add_argument('output', type=Path)
     parser.add_argument('--python-zip', required=True, type=Path)
     parser.add_argument('--model-origin', help='HTTPS directory hosting the two pinned ONNX packs')
+    parser.add_argument('--full-runtime',action='store_true',help='Include every GPU builder resource for a self-contained offline bundle')
+    parser.add_argument('--cuda-runtime',type=Path,help='Pinned CUDA 13.1 cudart64_13.dll (build input only)')
+    parser.add_argument('--bundled-components',action='store_true',help='Keep common TensorRT and media tools in the app for offline delivery')
     args = parser.parse_args()
-    build(args.output, args.python_zip, args.model_origin)
+    build(args.output, args.python_zip, args.model_origin,full_runtime=args.full_runtime,cuda_runtime=args.cuda_runtime,bundled_components=args.bundled_components)

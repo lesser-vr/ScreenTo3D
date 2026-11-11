@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import tempfile
@@ -15,7 +16,7 @@ def digest(path):
     with path.open('rb') as source:return hashlib.file_digest(source,'sha256').hexdigest()
 
 
-def package(app,output,packs):
+def package(app,output,packs,runtime_packs=None):
     app=app.resolve();output=output.resolve()
     info=json.loads((app/'build-manifest.json').read_text(encoding='utf-8'))
     version=info['product_version'];name=f'ScreenTo3D-{version}'
@@ -57,6 +58,31 @@ def package(app,output,packs):
                     if source.stat().st_size!=spec.size or digest(source)!=spec.sha:raise ValueError(f'Optional model pin mismatch: {key}')
                     archive.write(source,arcname='packs/'+spec.filename)
             assets.append(dict(name=path.name,kind='optional-models',root='packs',bytes=path.stat().st_size,sha256=digest(path)))
+        if info.get('tensorrt_builder_resources')=='GPU-selected pinned sidecar packs':
+            import sys
+            sys.path.insert(0,str(ROOT/'v1'))
+            from depthsbs_app.builder_resources import PACKS as resources
+            runtime_packs=Path(runtime_packs) if runtime_packs else app.parent/'runtime-packs'
+            for resource in resources.values():
+                source=runtime_packs/resource['filename']
+                if source.stat().st_size!=resource['size'] or digest(source)!=resource['sha']:raise ValueError('GPU runtime pack pin mismatch')
+                path=stage/source.name
+                # Pinned sidecars are immutable; sharing local storage avoids
+                # duplicating all alternative GPU resources during staging.
+                try:os.link(source,path)
+                except OSError:shutil.copy2(source,path)
+                assets.append(dict(name=path.name,kind='gpu-runtime',root='runtime-packs',bytes=resource['size'],sha256=resource['sha']))
+        if info.get('desktop_components')=='on-demand pinned packs':
+            import sys
+            sys.path.insert(0,str(ROOT/'v1'))
+            from depthsbs_app.desktop_runtimes import PACKS as components
+            directory=Path(runtime_packs) if runtime_packs else app.parent/'runtime-packs'
+            for item in components.values():
+                source=directory/item['filename']
+                if source.stat().st_size!=item['size'] or digest(source)!=item['sha']:raise ValueError('Component pack pin mismatch')
+                try:os.link(source,stage/source.name)
+                except OSError:shutil.copy2(source,stage/source.name)
+                assets.append(dict(name=source.name,kind='component-runtime',root='runtime-packs',bytes=item['size'],sha256=item['sha']))
         manifest=dict(product='ScreenTo3D',product_version=version,source_commit=info['source_commit'],
             app_bytes=sum(p.stat().st_size for p in files),app_files=len(files),assets=assets,
             extraction='All application ZIPs have disjoint entries; extract into the same new directory. Optional packs are siblings of the app.')
@@ -72,4 +98,5 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('app',type=Path);parser.add_argument('output',type=Path)
     parser.add_argument('--packs',type=Path)
-    args=parser.parse_args();package(args.app,args.output,args.packs)
+    parser.add_argument('--runtime-packs',type=Path)
+    args=parser.parse_args();package(args.app,args.output,args.packs,args.runtime_packs)

@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GROUPS = {'core': ['test_cleanup.py',
           'test_desktop_runtimes.py',
           'test_native_memory_contract.py',
+          'test_portable_package.py',
           'test_file_interpolation.py',
           'test_messages.py',
           'test_depth_backend.py',
