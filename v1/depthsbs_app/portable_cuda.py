@@ -3,6 +3,7 @@ from .desktop_jobs import ROOT
 
 DIRECTORY = ROOT/'out/portable-cuda'
 PINS = {
+    'native_memory.dll': '0e88e2737b34793d12977ffbbb75e811c6dbafacbb728d1a730edb6eaf3e1708',
     'flat_background.dll': 'a3b630bf03b0975647a39965896dcb5e407fed0a1de6ec07dbe92d40da0140ad',
     'vda_input.dll': '491a5cc294920e7e1bc55a30bb1362ea3b6f9079861d2356cfeb3d70c8b1d2ea',
     'live_depth.dll': '205bfa0df9ed5c1969e4c6759f680f94d426fdcd46a3730179965102bc044b8c',

@@ -25,6 +25,7 @@ try {
     Build-Dll 'flat_background' @("$src/flat_background.cu")
     Build-Dll 'vda_input' @("$src/base_input.cu",'-DDEPTHSBS_VDA_INPUT=1')
     Build-Dll 'projection' @("$src/projection.cu",'-DDEPTHSBS_GPU_PREVIEW=1')
+    Build-Dll 'native_memory' @("$src/native_memory.cu")
     Build-Dll 'live_motion' @("$root/experiments/optical_flow/live_motion.cu",'-Xcompiler','/EHsc','-I',"$root/out/nvof-sdk-headers",'-lcuda','-Xlinker','/NODEFAULTLIB:LIBCMT')
     Build-Dll 'vfg_native_bridge' @("$root/experiments/vfg/native_bridge.cu",'-I',"$sdk/nvvfx/include",'-I',"$sdk/features/nvvfxvideoframegeneration/include","$sdk/nvvfx/src/nvVideoEffectsProxy.cpp","$sdk/nvvfx/src/nvCVImageProxy.cpp",'-ld3d11','-ldxgi')
 } finally { Pop-Location }
