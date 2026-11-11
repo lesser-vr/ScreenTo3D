@@ -30,6 +30,8 @@ FocusScrollView {
                 Accessible.name: qsTr("Depth model")
             }
             CheckOption { objectName: "ovdaConsent"; visible: live.liveModel === "ovda-small-c16"; enabled: !live.active; text: qsTr("I confirm personal, non-commercial use and the license terms"); checked: live.ovdaConfirmed; onClicked: live.setOvdaConfirmed(checked) }
+            ModelInstall { feature: "trt-core" }
+            ModelInstall { objectName: "liveGpuRuntimeInstall"; feature: desktop.gpuRuntimeKey }
             ModelInstall { feature: live.liveModel }
             RowLayout {
                 Label { text: qsTr("Depth strength"); color: options.theme.ink; Layout.fillWidth: true }

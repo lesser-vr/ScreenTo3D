@@ -86,6 +86,7 @@ ApplicationWindow {
     component Picker: ChoicePicker {}
 
     LivePage { id: livePage; anchors.fill: parent; visible: root.page !== 1 }
+    RuntimeSetup { mainWindow: root }
         Item {
             objectName: "filesPage"; anchors.fill: parent; visible: root.page === 1
             ColumnLayout {
@@ -212,6 +213,9 @@ ApplicationWindow {
                 }
                 ColumnLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true
+                    ModelInstall { feature: "trt-core" }
+                    ModelInstall { objectName: "fileGpuRuntimeInstall"; feature: desktop.gpuRuntimeKey }
+                    ModelInstall { feature: "media-tools" }
                     ModelInstall { feature: desktop.settings.model }
                     RowLayout {
                         visible: desktop.settings.model === "ovda-small-c16"

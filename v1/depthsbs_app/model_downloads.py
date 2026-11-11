@@ -27,8 +27,46 @@ class ModelDownloads(QObject):
         self.message = ''
         self.percent = -1
         self.stop_event = threading.Event()
+        self.setup_visible=False
+        self.setup_key=''
+        self.sequence=[]
+        self.resume=None
         self.updateProgress.connect(self._progress)
         self.finished.connect(self._finished)
+
+    @Property(bool,notify=changed)
+    def setupVisible(self):return self.setup_visible
+
+    @Property(str,notify=changed)
+    def setupKey(self):return self.setup_key
+
+    @Property(bool,notify=changed)
+    def willResume(self):return self.resume is not None
+
+    def ensure(self,keys,resume):
+        """An explicit Start/Install action authorizes this ordered setup only."""
+        missing=[key for key in dict.fromkeys(keys) if key and self.needed(key)]
+        if not missing:return True
+        if self.desktop.busy:return False
+        self.sequence=missing;self.resume=resume;self.setup_visible=True
+        self._advance()
+        return False
+
+    def _advance(self):
+        while self.sequence and not self.needed(self.sequence[0]):self.sequence.pop(0)
+        if self.sequence:
+            self.setup_key=self.sequence[0];self.changed.emit()
+            self.begin(self.setup_key,False)
+        else:
+            resume=self.resume;self.resume=None;self.setup_visible=False;self.setup_key=''
+            self.changed.emit()
+            if resume is not None and not self.desktop.closing:resume()
+
+    @Slot()
+    def dismissSetup(self):
+        self.sequence=[];self.resume=None;self.setup_visible=False
+        if self.active_key:self.cancel()
+        self.changed.emit()
 
     @Property(str, notify=changed)
     @localized
@@ -51,6 +89,14 @@ class ModelDownloads(QObject):
 
     @Slot(str, result=bool)
     def needed(self, key):
+        from .desktop_runtimes import PACKS as components,deferred
+        if key in components:
+            from .desktop_jobs import BUNDLE
+            directory=BUNDLE/('runtime' if key=='trt-core' else 'ffmpeg')
+            return deferred(directory,key) and not available(key,installed_path(key))
+        from .builder_resources import PACKS as resources,ready
+        if key in resources:
+            return key==self.desktop.gpuRuntimeKey and not ready(key)
         return key in PACKS and not available(key, runtime_path() if key == 'vfg'
                                                else self.desktop.engine_paths.get(key))
 
@@ -60,7 +106,7 @@ class ModelDownloads(QObject):
         if key not in PACKS:
             return ''
         pack = PACKS[key]
-        return M('{name} · {size:.0f} MB\n{terms}', name=pack.name, size=pack.size / 1e6, terms=pack.terms)
+        return M('{name} · {size:.0f} MB\n{terms}', name=pack.name, size=pack.size / 1e6, terms=render(pack.terms))
 
     @Slot(str, result=str)
     @localized
@@ -79,6 +125,10 @@ class ModelDownloads(QObject):
     def begin(self, key, choose_file):
         if self.desktop.busy or not self.needed(key):
             return
+        from .optional_models import GRAPH_HASHES
+        if key in GRAPH_HASHES:
+            keys=['trt-core',self.desktop.gpuRuntimeKey]
+            if not self.ensure(keys,lambda:self.begin(key,choose_file)):return
         if key == 'vfg' and not BRIDGE.is_file():
             self.desktop.showModelError(E('E_VFG_MODULE_MISSING'))
             return
@@ -93,6 +143,7 @@ class ModelDownloads(QObject):
                 source = source_for(key)
             self.desktop.lease.acquire('model-install')
         except Exception as exc:
+            self.sequence=[];self.resume=None;self.changed.emit()
             self.desktop.showModelError(exc)
             return
         self.active_key, self.message, self.percent = key, M('Connecting…'), -1
@@ -124,6 +175,7 @@ class ModelDownloads(QObject):
 
     @Slot()
     def cancel(self):
+        self.sequence=[];self.resume=None
         self.stop_event.set()
         self.message = M('Cancelling installation…')
         self.changed.emit()
@@ -136,7 +188,8 @@ class ModelDownloads(QObject):
 
     @Slot(str, object, bool)
     def _finished(self, key, message, failed):
-        if not message and key != 'vfg':
+        from .optional_models import GRAPH_HASHES
+        if not message and key in GRAPH_HASHES:
             path = str(installed_path(key))
             self.desktop.engine_paths[key] = path
             if self.desktop.values['model'] == key:
@@ -153,3 +206,12 @@ class ModelDownloads(QObject):
             self.desktop.exitReady.emit()
         elif failed:
             self.desktop.showModelError(message)
+            # Retry from Start or the explicit installer; failure never auto-starts.
+            self.sequence=[];self.resume=None
+            self.changed.emit()
+        elif message:
+            self.sequence=[];self.resume=None;self.setup_visible=False;self.changed.emit()
+        elif self.sequence:
+            self._advance()
+        elif self.setup_visible and key==self.setup_key:
+            self.setup_visible=False;self.changed.emit()

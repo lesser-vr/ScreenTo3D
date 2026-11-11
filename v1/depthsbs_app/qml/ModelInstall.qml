@@ -10,13 +10,15 @@ ColumnLayout {
     readonly property bool missing: desktop.missingModels[feature] === true
     readonly property bool working: feature !== "" && installer.activeKey === feature
     readonly property bool recent: feature !== "" && installer.lastKey === feature
-    readonly property string installAction: installer.installAction(feature)
+    // Python invokable results need an explicit dependency on the UI language.
+    readonly property string installAction: { i18n.effectiveLanguage; return installer.installAction(feature) }
+    readonly property string description: { i18n.effectiveLanguage; return installer.description(feature) }
     visible: missing || working || recent
     Layout.fillWidth: true
     spacing: 6
     Label {
         visible: box.missing
-        text: box.installer.description(box.feature)
+        text: box.description
         color: box.theme.ink; wrapMode: Text.WordWrap; Layout.fillWidth: true
     }
     Label {

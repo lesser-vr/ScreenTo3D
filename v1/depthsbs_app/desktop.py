@@ -134,6 +134,22 @@ class DesktopController(QObject):
     def missingModels(self):
         return {key: self.downloads.needed(key) for key in PACKS}
 
+    @Property(str,notify=changed)
+    def gpuRuntimeKey(self):
+        from .builder_resources import required_key
+        try:return required_key()
+        except (OSError,RuntimeError):return ''  # Existing GPU diagnostics explain missing drivers on use.
+
+    def ensureRuntime(self,task,resume):
+        keys=['trt-core',self.gpuRuntimeKey]
+        if task=='file':keys.append('media-tools')
+        return self.downloads.ensure(keys,resume)
+
+    def syncRuntimes(self):
+        from .desktop_runtimes import resolve
+        self.values['runtime']=str(resolve(self.values['runtime'],'trt-core'))
+        self.values['media']=str(resolve(self.values['media'],'media-tools')) if not self.downloads.needed('media-tools') else self.values['media']
+
     @Property("QVariantList", notify=changed)
     @localized
     def jobs(self):
@@ -399,6 +415,9 @@ class DesktopController(QObject):
     def start(self):
         if self.busy:
             return
+        if self.selected<0:
+            self.showLiveError(E('E_FILE_INPUT_REQUIRED'))
+            return
         if self.downloads.needed(self.values['model']):
             self.showLiveError(E('E_MODEL_INSTALL_REQUIRED'))
             return
@@ -406,6 +425,8 @@ class DesktopController(QObject):
             self.showLiveError(E('E_VFG_NOT_READY'))
             return
         try:
+            if not self.ensureRuntime('file',self.start):return
+            self.syncRuntimes()
             if self.selected<0:raise ValueError(E('E_FILE_INPUT_REQUIRED'))
             indices=[i for i,row in enumerate(self.rows) if row['state'] in ('queued','failed','cancelled')]
             if not indices:

@@ -634,6 +634,21 @@ class LivePreview(QObject):
 
     @Slot()
     def startMinimal(self):
+        if self.active or self.desktop.busy:return
+        if self.selected<0:
+            self.errorOccurred.emit(E('E_CAPTURE_SOURCE_REQUIRED'));return
+        source=dict(self.items[self.selected])
+        selection=(self.mode,self.live_model,self.stereo_layout,self.vfg_enabled,self.strength)
+        def resume():
+            current=dict(self.items[self.selected]) if self.selected>=0 else None
+            if current!=source or selection!=(self.mode,self.live_model,self.stereo_layout,self.vfg_enabled,self.strength):
+                self.errorOccurred.emit(E('E_SETUP_SELECTION_CHANGED'));return
+            self.startMinimal()
+        try:
+            if not self.desktop.ensureRuntime('live',resume):return
+            self.desktop.syncRuntimes()
+        except Exception as exc:
+            self.errorOccurred.emit(as_error(exc));return
         screens = QGuiApplication.screens()
         main = getattr(self.desktop, "main_window", None)
         preferred = main.screen() if main is not None else QGuiApplication.primaryScreen()
@@ -830,6 +845,8 @@ class LivePreview(QObject):
         if self.active or self.desktop.busy:
             return
         try:
+            if self.desktop.gpuRuntimeKey and self.desktop.downloads.needed(self.desktop.gpuRuntimeKey):
+                raise ValueError(E('E_GPU_RUNTIME_REQUIRED'))
             if self.selected < 0:
                 raise ValueError(E('E_CAPTURE_SOURCE_REQUIRED'))
             source = dict(self.items[self.selected])

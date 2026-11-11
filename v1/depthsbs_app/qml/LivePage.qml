@@ -41,7 +41,7 @@ Item {
         ChoicePicker {
             id: sourcePicker; objectName: "captureSource"
             implicitHeight: 72
-            enabled: !live.active; model: live.sources; textRole: "label"
+            enabled: !live.active && !desktop.busy; model: live.sources; textRole: "label"
             currentIndex: live.selectedIndex
             displayText: currentIndex < 0 ? (count ? qsTr("Select a source") : qsTr("No sources available")) : currentText
             onActivated: live.select(currentIndex)
