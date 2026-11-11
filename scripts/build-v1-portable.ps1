@@ -73,7 +73,7 @@ Copy-Item $license (Join-Path $portable 'TENSORRT-LICENSE.txt') -Force
 
 $manifest = [ordered]@{
     schema_version = 1
-    product_version = '1.0.0-rc1'
+    product_version = '1.0.0'
     gpu_preview = [bool]$GpuPreview
     model_sha256 = (Get-FileHash $model -Algorithm SHA256).Hash.ToLowerInvariant()
     tensorrt_version = '11.2.1.2'
