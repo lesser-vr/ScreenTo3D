@@ -20,8 +20,9 @@ class LiveSmallGpuInput(LiveGpuCandidate):
         try:
             gpu = self.engine.gpu_input.execution
             with gpu.scope():
-                self.coefficients = gpu.torch.from_numpy(
-                    cubic_coefficients(self.width, self.height)).to(gpu.device)
+                coefficients=cubic_coefficients(self.width,self.height)
+                self.coefficients=(self.engine.memory.from_numpy(coefficients) if gpu.native else
+                                   gpu.torch.from_numpy(coefficients).to(gpu.device))
         except BaseException as primary:
             try:
                 self.close()

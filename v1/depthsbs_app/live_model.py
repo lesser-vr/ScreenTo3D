@@ -27,8 +27,8 @@ def _source_renderer(native, gpu_capture):
 
 
 def _small_gpu_engine(progress):
-    from .small_gpu_input import SmallGpuCaptureEngine
-    return SmallGpuCaptureEngine(progress)
+    from .native_small import NativeSmallEngine
+    return NativeSmallEngine(progress)
 
 
 def _small_host_io(engine, frame, depth):

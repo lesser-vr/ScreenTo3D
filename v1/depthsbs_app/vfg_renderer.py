@@ -54,13 +54,17 @@ class VfgOutputMixin:
             self.bridge.vfg_project.argtypes = [ct.c_void_p] * 2 + [ct.c_float] * 2 + [ct.c_int, ct.c_void_p]
             self.bridge.vfg_publish.argtypes = [ct.c_void_p] * 2 + [ct.c_int] * 3 + [ct.c_void_p]
             self.pool = BridgePool(width, height, diagnostic=diagnostic, layout=policy.stereo_layout)
-            torch = engine.torch
-            self.execution_stream = getattr(engine, 'torch_stream', None)
-            if self.execution_stream is None:
-                self.execution_stream = engine.stream
+            self.execution_stream = (engine.gpu_input.execution.stream if getattr(engine,'native',False)
+                                     else getattr(engine,'torch_stream',None) or engine.stream)
             if self.execution_stream.cuda_stream != self._stream(engine):
                 raise ValueError('VFG allocation stream differs from the model stream')
-            with torch.cuda.stream(self.execution_stream):
+            if getattr(engine,'native',False):
+                import numpy as np
+                self.current,self.previous,self.middle=[engine.memory.empty((height,width*2,4),np.uint8) for _ in range(3)]
+                self.current_window,self.previous_window=[engine.memory.empty((2,)).zero() for _ in range(2)]
+            else:
+              torch=engine.torch
+              with torch.cuda.stream(self.execution_stream):
                 self.current, self.previous, self.middle = [torch.empty((height, width*2, 4), dtype=torch.uint8,
                     device=f"cuda:{engine.device}") for _ in range(3)]
                 self.current_window, self.previous_window = [torch.zeros(2,dtype=torch.float32,

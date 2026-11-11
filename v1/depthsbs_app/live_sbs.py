@@ -261,6 +261,10 @@ def sbs_worker(
                  and coalesced_history and selected_model in ('da2-small','da2-base')
                  and renderer == 'cuda' and stereo_quality == 'detail' else None)
         if renderer=='rowflow-sym':
+            from .da2_base import binding as legacy_base_binding
+            backend=legacy_base_binding(backend_snapshot['engine'],backend_snapshot['runtime'],
+                                        device_depth=True,legacy_torch=True)
+            backend.input_validator(dict(width=source['width'],height=source['height']))
             from .rowflow import bridge as rowflow_bridge, check
             compiler_bridge = rowflow_bridge()
             check(compiler_bridge,compiler_bridge.rowflow_protect_worker())

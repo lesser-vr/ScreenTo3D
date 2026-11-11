@@ -59,9 +59,12 @@ class Session:
         self.raw_depth=None
     def frame(self,rgb,index,*,cut=False):
         owner,post=self.owner,self.post;h,w=rgb.shape[:2]
-        stream=getattr(owner,'torch_stream',owner.stream)
-        with torch.cuda.stream(stream):
-            frame=GpuFrame(torch.from_numpy(cv2.cvtColor(rgb,cv2.COLOR_RGB2BGRA)).to(owner.device),owner)
+        if getattr(owner,'native',False):
+            bgra=owner.memory.from_numpy(cv2.cvtColor(rgb,cv2.COLOR_RGB2BGRA));frame=GpuFrame(bgra,owner)
+        else:
+            stream=getattr(owner,'torch_stream',owner.stream)
+            with torch.cuda.stream(stream):
+                frame=GpuFrame(torch.from_numpy(cv2.cvtColor(rgb,cv2.COLOR_RGB2BGRA)).to(owner.device),owner)
         scene=post.inspect_scene(frame)
         stamp=1_000_000_000+round(index*1e9/self.hz)
         reason=reset_reason(self.previous_sequence,index,(w,h),(w,h),cut or scene.cut,

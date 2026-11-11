@@ -11,7 +11,7 @@ class FileVfg:
     def __init__(self,width,height,*,device=0):
         if not (32<=width<=8192 and 16<=height<=2160):raise ValueError(E('E_FILE_VFG_GEOMETRY'))
         self.owner=threading.get_ident();self.width,self.height=width,height
-        self.handle=None;self.stream=None;self.device_buffers=[];self.host_buffers=[]
+        self.handle=None;self.stream=self.memory=None;self.device_buffers=[];self.host_buffers=[]
         self.dll_dirs=[];self.modules=[];self.bridge=None
         self.old_path=os.environ.get('NV_VIDEO_EFFECTS_PATH');self.calls=0;self.elapsed=0.
         try:
@@ -23,16 +23,15 @@ class FileVfg:
             for name in ('bin/NVVideoEffects.dll','bin/NVCVImage.dll',
                          'features/nvvfxvideoframegeneration/bin/nvVFXVideoFrameGeneration.dll'):
                 self.modules.append(ct.WinDLL(str(sdk/name)))
-            import torch
-            self.torch=torch;self.stream=torch.cuda.Stream(device=device)
-            with torch.cuda.device(device),torch.cuda.stream(self.stream):
-                self.device_buffers=[torch.empty((height,width,4),dtype=torch.uint8,device=f'cuda:{device}') for _ in range(3)]
-                self.host_buffers=[torch.empty((height,width,4),dtype=torch.uint8,pin_memory=True) for _ in range(3)]
-                for value in self.host_buffers:value.numpy()[:,:,3]=255
-                self.bridge=ct.CDLL(str(bridge));self.bridge.live_texture_error.restype=ct.c_char_p
-                self.bridge.vfg_create.argtypes=[ct.c_int,ct.c_int,ct.c_void_p];self.bridge.vfg_create.restype=ct.c_void_p
-                self.bridge.vfg_destroy.argtypes=[ct.c_void_p];self.bridge.vfg_run.argtypes=[ct.c_void_p]*4
-                self.handle=self.bridge.vfg_create(width,height,self.stream.cuda_stream);self._check(self.handle)
+            from .cuda_memory import Stream,Arena
+            self.stream=Stream(device);self.memory=Arena(self.stream)
+            self.device_buffers=[self.memory.empty((height,width,4),np.uint8) for _ in range(3)]
+            self.host_buffers=[self.memory.empty((height,width,4),np.uint8,pinned=True) for _ in range(3)]
+            for value in self.host_buffers:value.numpy()[:,:,3]=255
+            self.bridge=ct.CDLL(str(bridge));self.bridge.live_texture_error.restype=ct.c_char_p
+            self.bridge.vfg_create.argtypes=[ct.c_int,ct.c_int,ct.c_void_p];self.bridge.vfg_create.restype=ct.c_void_p
+            self.bridge.vfg_destroy.argtypes=[ct.c_void_p];self.bridge.vfg_run.argtypes=[ct.c_void_p]*4
+            self.handle=self.bridge.vfg_create(width,height,self.stream.cuda_stream);self._check(self.handle)
         except BaseException as error:
             try:self.close()
             except Exception:error.add_note('File VFG initialization cleanup failed')
@@ -48,12 +47,14 @@ class FileVfg:
         for frame in (previous,current):
             if frame.shape!=(self.height,self.width,3) or frame.dtype!=np.uint8:raise ValueError('Invalid file VFG input frame')
         began=time.perf_counter()
-        with self.torch.cuda.stream(self.stream):
-            for index,frame in enumerate((previous,current)):
-                self.host_buffers[index].numpy()[:,:,:3]=frame
-                self.device_buffers[index].copy_(self.host_buffers[index],non_blocking=True)
-            self._check(self.bridge.vfg_run(self.handle,*(value.data_ptr() for value in self.device_buffers)))
-            self.host_buffers[2].copy_(self.device_buffers[2],non_blocking=True)
+        from .cuda_memory import cudart,_cuda
+        for index,frame in enumerate((previous,current)):
+            self.host_buffers[index].numpy()[:,:,:3]=frame
+            _cuda(cudart.cudaMemcpyAsync(self.device_buffers[index].data_ptr(),self.host_buffers[index].data_ptr(),self.device_buffers[index].nbytes,
+                cudart.cudaMemcpyKind.cudaMemcpyHostToDevice,int(self.stream)))
+        self._check(self.bridge.vfg_run(self.handle,*(value.data_ptr() for value in self.device_buffers)))
+        _cuda(cudart.cudaMemcpyAsync(self.host_buffers[2].data_ptr(),self.device_buffers[2].data_ptr(),self.device_buffers[2].nbytes,
+            cudart.cudaMemcpyKind.cudaMemcpyDeviceToHost,int(self.stream)))
         self.stream.synchronize()
         result=self.host_buffers[2].numpy()[:,:,:3].copy()
         self.calls+=1;self.elapsed+=time.perf_counter()-began
@@ -73,7 +74,13 @@ class FileVfg:
         if self.stream is not None:
             try:self.stream.synchronize()
             except Exception as error:errors.append(error)
-        self.device_buffers=[];self.host_buffers=[];self.stream=None
+        if self.memory is not None:
+            try:self.memory.close()
+            except Exception as error:errors.append(error)
+        if self.stream is not None:
+            try:self.stream.close()
+            except Exception as error:errors.append(error)
+        self.device_buffers=[];self.host_buffers=[];self.stream=None;self.memory=None
         for directory in reversed(self.dll_dirs):
             try:directory.close()
             except Exception as error:errors.append(error)
