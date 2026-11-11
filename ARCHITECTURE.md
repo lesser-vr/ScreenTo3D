@@ -86,12 +86,24 @@ arrangement; text stays at the same logical size in the output window.
 
 - `desktop_jobs.py` and isolated workers own job/session lifecycle; the GUI does
   not run inference. Live and file work share an exclusive processing lease.
-  File workers accept depth strength and optional VFG. `pipeline.py` applies
+  `DesktopController` preflights and snapshots the bounded file queue, validates
+  destinations across all inputs/jobs and retains the file lease between worker
+  exits. File completion is still completion event + clean exit + published path.
+  Failure/cancel stops further submissions; old QProcess callbacks are guarded by
+  process identity. Automatic output naming is layout-aware in `desktop_jobs.py`.
+  File snapshots also carry depth strength and optional VFG. `pipeline.py` applies
   strength to divergence before synthesis; `file_interpolation.py` owns the bounded
   original/midpoint/cut/tail 2x cadence, before stereo packing. `file_vfg.py` owns
   the worker's independent CUDA stream, three pinned host/device RGBA buffers,
   trusted SDK handles and pinned existing bridge. Its cleanup completes before
   atomic publication. No QML/GUI object loads Torch or creates a VFG session.
+- `desktop_shutdown.py` owns the optional, unsaved completion-shutdown choice,
+  monotonic countdown and its separate asynchronous OS-command QProcess. It
+  acquires the shared lease only after the whole file queue succeeds. Cancellation
+  clears the countdown before any OS request. The trusted system shutdown command
+  uses `/t 0` without `/f`; the cancelable delay stays in the app because a positive
+  Windows command timeout implies forced application closure. GUI tests inject
+  command/process factories and never execute a real shutdown.
 - `desktop_preferences.py` owns validated mode/model/layout selections in the
   existing DepthSBS QSettings namespace, separated by live/file scope. Explicit
   UI activation saves them; diagnostic setters and fixed comparisons do not.

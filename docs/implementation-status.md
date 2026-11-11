@@ -1,12 +1,43 @@
 # Current implementation status
 
+File depth strength and NVIDIA VFG added (2026-11-11). Independent file controls
+use strength 0.25–2.0 (default/reset 0.5) and default-off VFG 2x; queue snapshots
+carry both and busy work locks them. A bounded post-synthesis interpolator doubles
+output FPS while keeping duration/audio, repeats rather than blends detected
+cuts, then packs into the selected layout. The same pinned Medium VFG bridge is
+used without live texture delivery. 456 CPU/Qt and 31 additional controller/
+preference checks pass. Actual Small/Base/VDA and five-frame VDA workers convert
+24fps inputs to decoded 48fps outputs with matching duration/audio; Base telemetry
+confirms real SDK calls. Bilingual 150%/200% GUI checks pass. VFG-off real CPU media
+contracts also pass. See [file VFG evidence](evidence/file-vfg-20261111.md).
+
+File workspace and sequential conversion updated (2026-11-11). All file settings
+are expanded, the file settings icon is hidden, and fresh file selection defaults
+to DA2 Base while live still defaults to Small and explicit saved selections stay
+valid. Automatic names reflect Full/Half SBS or TB. A preflighted immutable queue
+retains its processing lease across workers and stops on error/cancel. Optional,
+unsaved Windows shutdown stays off by default, with a cancelable 30-second
+countdown only after full queue success. 439 CPU/Qt contracts and 31 additional
+controller/preference checks pass. Actual Base/Half TB workers convert two owned
+videos in sequence with decoded frames/audio verified; actual cancellation and
+invalid-media failure stop before the second file. Bilingual 150%/200% rendered
+checks cover settings and countdown/cancel; real OS shutdown was never executed.
+See [evidence and reproduction](evidence/file-queue-20261111.md).
+
+File black-bar refinement label and help clarified (2026-11-11). Actual rendered
+Korean/English checks at 150%/200% scaling verify the requested label, adjacent
+layered help on mouse hover and keyboard focus, dismissal, and unchanged default
+off/checkbox binding. The 29 Qt contracts, translation validation and QML/qmllint
+review pass. Local rendered reports are `out/letterbox-help-{150,200}/`.
+Only UI text/help changed; no image-processing behavior or performance was altered.
+
 Korean/English localization with shared language registration and stable error
 IDs implemented (2026-11-10). One bundled registry drives language choices,
 locale/catalog loading, catalog builds and native launcher tables. A synthetic
 third-language fixture verifies extension without per-language source changes.
-135 semantic error IDs map to translated descriptions and parameter-free public
+142 semantic error IDs map to translated descriptions and parameter-free public
 worker guidance; original diagnostics remain separate. Error windows retain ID,
-Ctrl+C, Close/Esc and live retranslation. 728 Korean entries validate; 431 CPU/Qt,
+Ctrl+C, Close/Esc and live retranslation. 765 Korean entries validate; 431 CPU/Qt,
 26 runtime and 24 additional desktop/preference checks pass, as do real CPU media
 publication/cancel/failure checks. The Qt-free CI core subset passes independently
 (97 tests). Rendered 125%/150%/200% checks cover both languages and error copying.
@@ -649,9 +680,9 @@ ownership and normal stop/close cleanup. Actual Owl3D 2.4.2 / screen 0.0.31 logs
 recognize the revised fullscreen output, switch to whole-source localization,
 confirm FullSBS and enable weaving; this is stronger integration evidence than
 our own frame counters. On 2026-11-06 the user confirmed that stereo now works,
-but reported uncomfortable near/far gaze changes compared with Owl3D Live 3D.
+but reported uncomfortable near/far gaze changes compared with Owl3D Live SBS.
 Reducing strength to 0.50x helped somewhat, but the user still found it
-uncomfortable while Owl3D Live 3D appeared deeper and comfortable. Investigation
+uncomfortable while Owl3D Live SBS appeared deeper and comfortable. Investigation
 then reproduced a physical eye-order error: near inverse depth moved left in
 the left eye, giving the opposite of standard LR stereo. CPU, CUDA host/native
 and VFG projection now use the corrected sign; optional RowFlow no longer swaps
@@ -663,9 +694,9 @@ are retained separately; a full app restart loads the new pinned binaries.
 That geometry correction left strength and convergence defaults unchanged; the
 earlier user-requested strength default was 0.5; the current default is recorded above. The user subsequently
 reported substantial improvement, but residual wobble/focus discomfort and lower
-quality than Owl3D Live 3D; full comfort acceptance remains open. See
+quality than Owl3D Live SBS; full comfort acceptance remains open. See
 [stereo geometry correction](evidence/stereo-eye-order-20261106.md).
-The [Owl3D Live 3D investigation](evidence/owl3d-live3d-analysis-20261106.md)
+The [Owl3D Live SBS investigation](evidence/owl3d-live3d-analysis-20261106.md)
 confirmed shipped content-weighted convergence, disparity budgeting/edge fade and
 weighted subpixel reconstruction, with stored runtime logs corroborating the
 view-synthesis family. Exact runtime flags and Owl3D temporal state remain unknown.
@@ -684,7 +715,7 @@ promoted: its central disparity reduction increases whole-frame P95 disparity by
 up to 33.4% in these clips. Defaults for strength/convergence remain unchanged.
 See [stereo stability validation](evidence/stereo-stability-20261106.md) for
 timing, live lifecycle evidence and remaining physical-viewing limits.
-The user subsequently reports that strength 0.5 feels similar to Owl3D Live 3D;
+The user subsequently reports that strength 0.5 feels similar to Owl3D Live SBS;
 this is the next comparison baseline, not a change to the global default or full
 quality acceptance. A follow-up review reproduces a remaining 1 px silhouette
 transition across a 0.1 px projected motion at both strengths 1.0 and 0.5, with

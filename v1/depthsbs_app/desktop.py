@@ -38,9 +38,11 @@ from .desktop_jobs import (
     Job,
     ProcessingLease,
     unused_output,
+    validate_batch_outputs,
 )
 from .model_downloads import ModelDownloads
 from .desktop_preferences import DesktopPreferences
+from .desktop_shutdown import CompletionShutdown
 from .engine_cache import device_identity
 from .optional_models import PACKS, available, installed_path, model_root
 
@@ -62,6 +64,12 @@ class DesktopController(QObject):
         self.rows = []
         self.selected = -1
         self.lease = ProcessingLease()
+        self.shutdown=CompletionShutdown(self.lease,self)
+        self.shutdown.changed.connect(self.changed)
+        self.batch_jobs=[]
+        self.batch_position=0
+        self.batch_cancelled=False
+        self.batch_overwrites=set()
         self.process = None
         self.temp = None
         self.cancel_path = None
@@ -88,6 +96,8 @@ class DesktopController(QObject):
             noncommercial=False,
             letterbox=False,
             stereo_layout="half-tb",
+            depth_strength=.5,
+            vfg=False,
         )
         self.engine_paths = {
             key: str(ROOT / "out" / info[1]) for key, info in MODELS.items() if info[1]
@@ -111,6 +121,14 @@ class DesktopController(QObject):
     @Property(QObject, constant=True)
     def modelDownloads(self):
         return self.downloads
+
+    @Property(QObject,constant=True)
+    def completionShutdown(self):return self.shutdown
+
+    @Property(str,notify=changed)
+    @localized
+    def queueStatus(self):
+        return M('File {current} of {total}',current=self.batch_position+1,total=len(self.batch_jobs)) if self.batch_jobs else ''
 
     @Property("QVariantMap", notify=changed)
     def missingModels(self):
@@ -153,13 +171,13 @@ class DesktopController(QObject):
     @localized
     def depthChoices(self):
         from .model_presentation import selection_choices
-        return selection_choices(MODES, self.engine_paths, portable=PORTABLE_DESKTOP)
+        return selection_choices(MODES, self.engine_paths, portable=PORTABLE_DESKTOP,default_mode='balanced')
 
     @Property(str, notify=changed)
     @localized
     def depthModelHelp(self):
         from .model_presentation import selection_info
-        return selection_info(self.values['mode'], self.values['model'], self.engine_paths)['help']
+        return selection_info(self.values['mode'], self.values['model'], self.engine_paths,default_mode='balanced')['help']
 
     @Slot(str)
     def selectDepthModel(self, key):
@@ -174,7 +192,7 @@ class DesktopController(QObject):
     @localized
     def modes(self):
         from .model_presentation import selection_info
-        return [dict(key=mode, label=selection_info(mode, DEFAULT_MODE_MODELS[mode], self.engine_paths)['label'])
+        return [dict(key=mode, label=selection_info(mode, DEFAULT_MODE_MODELS[mode], self.engine_paths,default_mode='balanced')['label'])
                 for mode in MODES]
 
     @Property(str, notify=changed)
@@ -247,8 +265,12 @@ class DesktopController(QObject):
         }
         if name in allowed and value not in allowed[name]:
             return
-        if name in ("letterbox", "noncommercial"):
+        if name in ("letterbox", "noncommercial",'vfg'):
             value = bool(value)
+        if name=='depth_strength':
+            import math
+            if isinstance(value,bool) or not isinstance(value,(float,int)) or not math.isfinite(value) or not .25<=value<=2:return
+            value=float(value)
         if name == "mode":
             allowed_models = MODE_MODEL_CHOICES[value]
             if self.values["model"] not in allowed_models:
@@ -264,7 +286,17 @@ class DesktopController(QObject):
         if name == "engine" and self.values["model"] != "da2-small":
             self.engine_paths[self.values["model"]] = str(value)
         self.values[name] = value
+        if name=='stereo_layout':
+            self._refresh_auto_outputs()
         self.changed.emit()
+
+    def _refresh_auto_outputs(self):
+        reserved=[r['source'] for r in self.rows]
+        reserved += [r['output'] for r in self.rows if not r.get('auto_output',False) or r['state']=='completed']
+        for row in self.rows:
+            if row.get('auto_output',False) and row['state']!='completed':
+                row['output']=unused_output(row['source'],reserved,self.values['stereo_layout'])
+                reserved.append(row['output'])
 
     @Slot()
     def rememberSelection(self):
@@ -286,6 +318,7 @@ class DesktopController(QObject):
         self.add_paths([QUrl(u).toLocalFile() for u in urls if QUrl(u).isLocalFile()])
 
     def add_paths(self, names):
+        if self.busy:return
         accepted = 0
         for name in names:
             path = Path(name)
@@ -299,9 +332,9 @@ class DesktopController(QObject):
             key = str(path.resolve())
             if any(r["source"].casefold() == key.casefold() for r in self.rows):
                 continue
-            output = unused_output(path, (r["output"] for r in self.rows))
+            output = unused_output(path, (p for r in self.rows for p in (r['output'],r['source'])),self.values['stereo_layout'])
             self.rows.append(
-                dict(name=path.name, source=key, output=output, state="queued")
+                dict(name=path.name, source=key, output=output, state="queued",auto_output=True)
             )
             accepted += 1
         if self.selected == -1 and self.rows:
@@ -336,10 +369,11 @@ class DesktopController(QObject):
         if self.busy or self.selected < 0:
             return
         value, _ = QFileDialog.getSaveFileName(
-            None, render(M('Save SBS video')), self.destination, "MP4 (*.mp4)"
+            None, render(M('Save stereo video')), self.destination, "MP4 (*.mp4)"
         )
         if value:
             self.rows[self.selected]["output"] = value
+            self.rows[self.selected]['auto_output']=False
             self.rows[self.selected]["state"] = "queued"
             self.changed.emit()
 
@@ -368,26 +402,54 @@ class DesktopController(QObject):
         if self.downloads.needed(self.values['model']):
             self.showLiveError(E('E_MODEL_INSTALL_REQUIRED'))
             return
+        if self.values['vfg'] and self.downloads.needed('vfg'):
+            self.showLiveError(E('E_VFG_NOT_READY'))
+            return
         try:
-            job = self.snapshot()
-            job.validate()
-            if Path(job.output).exists():
+            if self.selected<0:raise ValueError(E('E_FILE_INPUT_REQUIRED'))
+            indices=[i for i,row in enumerate(self.rows) if row['state'] in ('queued','failed','cancelled')]
+            if not indices:
+                indices=[self.selected]
+                row=self.rows[self.selected]
+                if row.get('auto_output',False):
+                    row['output']=unused_output(row['source'],[r['output'] for r in self.rows],self.values['stereo_layout'])
+            plan=[(i,Job(source=self.rows[i]['source'],output=self.rows[i]['output'],**self.values)) for i in indices]
+            for _,job in plan:job.validate()
+            validate_batch_outputs([job for _,job in plan],[r['source'] for r in self.rows])
+            overwrites={str(Path(job.output).resolve()).casefold() for _,job in plan if Path(job.output).exists()}
+            if overwrites:
                 answer = QMessageBox.question(
                     None,
                     render(M('Replace output file')),
-                    render(M('This output file already exists. Replace it after a successful conversion?')),
+                    render(M('Replace {count} existing output files only after their conversions succeed?',count=len(overwrites))),
                     QMessageBox.Yes | QMessageBox.No,
                     QMessageBox.No,
                 )
                 if answer != QMessageBox.Yes:
                     return
-            self.launch(job)
+            self.batch_jobs=plan;self.batch_position=0;self.batch_cancelled=False;self.batch_overwrites=overwrites
+            self._launch_batch_job()
         except Exception as error:
+            self._clear_batch()
+            self.shutdown.cancel()
             self.inform(error)
 
-    def launch(self, job):
+    def _clear_batch(self):
+        self.batch_jobs=[];self.batch_position=0;self.batch_overwrites=set()
+
+    def _launch_batch_job(self,retained=False):
+        index,job=self.batch_jobs[self.batch_position]
+        self.selected=index
+        if Path(job.output).exists() and str(Path(job.output).resolve()).casefold() not in self.batch_overwrites:
+            raise ValueError(E('E_BATCH_OUTPUT_CHANGED'))
+        self.launch(job,retained=retained)
+
+    def launch(self, job, *, retained=False):
         job.validate()
-        self.lease.acquire("file")
+        if retained:
+            if self.lease.owner!='file' or self.process is not None:raise ValueError(E('E_TASK_BUSY'))
+        else:
+            self.lease.acquire("file")
         try:
             self.temp = tempfile.TemporaryDirectory(prefix="depthsbs-desktop-")
             self.cancel_path = Path(self.temp.name) / "cancel"
@@ -402,6 +464,7 @@ class DesktopController(QObject):
             self.rows[self.selected]["state"] = "running"
             self._spawn("depthsbs_app.desktop_worker", job.arguments(self.cancel_path))
         except Exception:
+            self.rows[self.selected]['state']='failed'
             self._cleanup()
             raise
         self.changed.emit()
@@ -420,11 +483,11 @@ class DesktopController(QObject):
         env = QProcessEnvironment.systemEnvironment()
         env.insert("PYTHONIOENCODING", "utf-8")
         process.setProcessEnvironment(env)
-        process.readyReadStandardOutput.connect(self._read)
+        process.readyReadStandardOutput.connect(lambda:self._read() if self.process is process else None)
         # Drain stderr without storing private paths or unlimited native logs.
         process.readyReadStandardError.connect(lambda: process.readAllStandardError())
-        process.finished.connect(self._finished)
-        process.errorOccurred.connect(self._process_error)
+        process.finished.connect(lambda code,status:self._finished(code,status) if self.process is process else None)
+        process.errorOccurred.connect(lambda error:self._process_error(error) if self.process is process else None)
         process.start()
 
     def _read(self):
@@ -500,6 +563,8 @@ class DesktopController(QObject):
         if self.process is None:
             return
         self._read()
+        success=False
+        was_checking=self.checking
         if self.checking:
             try:
                 report = json.loads(self.check_buffer)
@@ -520,6 +585,7 @@ class DesktopController(QObject):
                 code == 0
                 and exit_status == QProcess.NormalExit
                 and self.complete
+                and not self.error_text
                 and Path(self.active.output).is_file()
             )
             if success:
@@ -538,12 +604,32 @@ class DesktopController(QObject):
                     or E('E_WORKER_EXIT', v0=code)
                 )
             self.rows[self.selected]["state"] = state
-        self._cleanup()
+        continue_batch=bool(success and self.batch_jobs and self.batch_position+1<len(self.batch_jobs)
+                            and not self.batch_cancelled and not self.closing and not self.cancelling)
+        self._cleanup(release_lease=not continue_batch)
+        if continue_batch:
+            self.batch_position+=1
+            try:
+                self._launch_batch_job(retained=True)
+                return
+            except Exception as error:
+                self.rows[self.selected]['state']='failed'
+                self._cleanup()
+                self.inform(error)
+                success=False
+        if not was_checking:
+            completed_batch=bool(success and self.batch_jobs and not self.batch_cancelled and not self.closing)
+            self._clear_batch()
+            if completed_batch:
+                self.status_text=M('All queued conversions completed · Open the results to review them.')
+                self.shutdown.begin()
+            else:
+                self.shutdown.cancel()
         self.changed.emit()
         if self.closing:
             self.exitReady.emit()
 
-    def _cleanup(self):
+    def _cleanup(self,*,release_lease=True):
         if self.process is not None:
             self.process.deleteLater()
         self.process = None
@@ -551,12 +637,14 @@ class DesktopController(QObject):
             self.temp.cleanup()
         self.temp = self.cancel_path = None
         owner = self.lease.owner
-        if owner is not None:
+        if owner is not None and release_lease:
             self.lease.release(owner)
         self.checking = self.cancelling = False
 
     @Slot()
     def cancel(self):
+        self.batch_cancelled=True
+        self.shutdown.cancel()
         if self.cancel_path is not None:
             try:
                 self.cancel_path.write_text("cancel", encoding="ascii")
@@ -624,6 +712,10 @@ class DesktopController(QObject):
 
     @Slot(result=bool)
     def requestClose(self):
+        if self.shutdown.pending:
+            self.shutdown.cancel()
+            return True
+        if self.lease.owner=='shutdown':return False
         if not self.busy:
             return True
         if self.closing:
@@ -741,6 +833,8 @@ def create_app(preferences=None):
                    controller.error_dialog.windowHandle()):
         attach(target)
     controller.live.errorOccurred.connect(controller.showLiveError)
+    controller.shutdown.errorOccurred.connect(controller.showLiveError)
+    app.aboutToQuit.connect(controller.shutdown.cancel)
     controller.live.output_window = window.findChild(QQuickWindow, "sbsOutput")
     controller.live.output_window.setTransientParent(None)
     # Hiding the only output on Stop must retire native scene-graph nodes even

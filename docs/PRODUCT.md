@@ -52,8 +52,16 @@ expands the window and shows the queue and conversion action. Navigation
 preserves the current job and the shared processing lease.
 The live settings button opens 실시간 출력 설정 for depth model, strength, cursor,
 frame interpolation and output FPS limit. Diagnostics are accessible from
-that window. File settings expose the depth model, codec and file-specific
-processing controls in the file workspace.
+that window. The file workspace shows depth model, codec, stereo layout and all
+file-specific processing controls by default in a scrollable view. It has no
+settings icon or collapsed settings menu.
+File conversion has its own **입체감** slider (0.25–2.0, default/reset 0.5) and
+**프레임 보간 (VFG 2×)** checkbox (off on launch). They are independent of live
+settings and snapshotted with the next file queue; both are locked during work.
+File VFG requires the existing NVIDIA runtime/model pack and a compatible GPU;
+missing components expose the existing installer instead of silently bypassing
+interpolation. Help explains that output FPS doubles while playback duration and
+audio timing remain unchanged, and conversion cost may increase.
 The visual direction is a restrained, macOS-inspired light utility: warm light
 gray, white input surfaces, blue primary action, thin borders and compact type.
 Windows title-bar controls remain native and in their usual positions. The selected source shows
@@ -61,7 +69,7 @@ its application icon when available, otherwise a neutral window symbol. Icon
 lookup reads only OS icon metadata, is bounded and never captures a thumbnail.
 The quality, file, settings and separate error windows share the light treatment;
 the SBS video surface itself remains black. QML color tokens live in Theme.qml.
-The single **깊이 모델** picker names DA2 Small (default), DA2 Base and VDA Small,
+The single **깊이 모델** picker names DA2 Small, DA2 Base and VDA Small,
 with computation precision beside each name. Base is marked **FP16 혼합**;
 VDA shows **FP16 혼합** for the managed mixed-precision pack or **FP32** for an
 installed legacy engine. Uninstalled VDA shows the downloadable pack's precision,
@@ -78,9 +86,46 @@ screen on restart. No source titles or captured pixels enter that preference.
 Live output settings and file conversion settings offer one stereo format picker:
 Full SBS, Half SBS, Full Top-and-Bottom and Half Top-and-Bottom (default).
 Live and file tasks each remember the user's mode/model and stereo format across
-app launches. Fresh selections use DA2 Small and Half Top-and-Bottom. Only
+app launches. Fresh live selections use DA2 Small; fresh file selections use DA2
+Base. Both default to Half Top-and-Bottom. Existing explicit selections remain
+saved. Only
 explicit user selection writes these preferences; diagnostic/comparison setters
 do not overwrite them. Stored values are validated against each task's choices.
+
+File conversion starts all queued, failed or cancelled entries in list order,
+skipping completed entries. When none remain, an explicit Start reconverts the
+selected entry. Settings are snapshotted for the entire queue, and the exclusive
+file lease is retained between workers. Error, cancellation or app close stops
+further submissions; remaining entries stay queued for an explicit retry.
+Only completed events plus clean worker exit and final-file publication count as
+success. Output paths cannot collide with another job or any input. Existing
+destinations require one explicit replacement confirmation before starting;
+an unapproved destination appearing later stops the queue.
+
+Automatically chosen names use `_Full_SBS`, `_Half_SBS`, `_Full_TB` or `_Half_TB`
+before `.mp4`, adding a number to avoid collisions. Changing the stereo format
+updates pending automatic names. Explicitly chosen names and completed output
+paths are preserved. Re-running a completed automatic entry chooses a fresh name.
+
+File VFG processes completed Full SBS stereo frames before packing into any of
+the four layouts. Original frames retain their source timestamps on the doubled
+output timeline. A generated midpoint is inserted between ordinary adjacent
+frames; a detected cut repeats the previous frame at that midpoint, and one final
+repeat completes the original duration. Generated frames never enter depth-model
+history. The file adapter uses the same pinned Medium 2x NVIDIA VFG bridge with
+bounded host/device buffers; SDK/geometry errors stop the job and preserve any
+previous output. Source-processing rate and output file FPS are distinct metrics.
+The file API/CLI keep strength 1.0 and VFG off by default for existing diagnostics;
+the desktop passes its explicit default 0.5. This does not change live VFG policy.
+
+**모든 변환 완료 후 Windows 종료** starts unchecked on every launch and is never
+saved. Only a wholly successful queue can start an app-owned 30-second countdown.
+The file workspace is brought forward with a visible **종료 취소** action. The
+processing lease prevents new work during the countdown. Cancel, any failed job,
+or closing the app cancels/disarms the action. At expiry, the app requests an
+ordinary Windows shutdown without forced application closure; errors are shown
+and converted files remain intact. Successful request delivery is not proof the
+OS has finished shutting down; other applications may block shutdown.
 The left eye is on the left or top. Half SBS averages adjacent horizontal pixels
 after full-resolution stereo synthesis. Native CUDA Half Top-and-Bottom with VFG
 off uses half-height stereo synthesis: RGB/depth/shift rows are reduced after
@@ -181,17 +226,6 @@ do not gain this new option automatically. See the [comparison instructions](../
 Utility navigation remains available during work; closing a utility does not
 cancel a job. Closing the main app during live SBS stops and waits for owned
 worker cleanup before exit. File-work cancellation still asks before quitting.
-
-File VFG processes completed Full SBS stereo frames before packing into any of
-the four layouts. Original frames retain their source timestamps on the doubled
-output timeline. A generated midpoint is inserted between ordinary adjacent
-frames; a detected cut repeats the previous frame at that midpoint, and one final
-repeat completes the original duration. Generated frames never enter depth-model
-history. The file adapter uses the same pinned Medium 2x NVIDIA VFG bridge with
-bounded host/device buffers; SDK/geometry errors stop the job and preserve any
-previous output. Source-processing rate and output file FPS are distinct metrics.
-The file API/CLI keep strength 1.0 and VFG off by default for existing diagnostics;
-Desktop controls are integrated separately. This does not change live VFG policy.
 
 ## Live capture and output
 
@@ -451,7 +485,11 @@ This does not alter the file defaults or add a user-facing setting.
 - [VDA Small local setup](models/vda.md)
 - [oVDA local setup and license scope](models/ovda.md)
 
-The optional black-bar backdrop refinement is off by default. It neither crops
+The optional black-bar backdrop refinement is labeled **검은 여백 영상의 단색 배경 깊이 보정**
+in file settings. Its adjacent **?** icon shows a layered explanation on hover or
+keyboard focus, including experimental/default-off status and the distinction
+from ordinary, already-enabled uniform-background refinement.
+It is off by default. It neither crops
 nor adds bars: three stable eligible regions activate restoration; captions,
 changed bounds, ineligibility or cuts clear it. Zero applied frames is not job
 failure. General-content/VR effectiveness remains unestablished.

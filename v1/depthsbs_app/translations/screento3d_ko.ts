@@ -435,6 +435,74 @@ VFG 전환 중…</translation>
       <source>Language</source>
       <translation>언어</translation>
     </message>
+    <message>
+      <source>Black-bar depth refinement help</source>
+      <translation>검은 여백 영상의 깊이 보정 도움말</translation>
+    </message>
+    <message>
+      <source>Cancel shutdown</source>
+      <translation>종료 취소</translation>
+    </message>
+    <message>
+      <source>Depth strength</source>
+      <translation>입체감</translation>
+    </message>
+    <message>
+      <source>Experimental · File conversion only · Default: off
+
+Extends the existing uniform-background depth refinement to the image inside detected black bars. The bars are preserved; the video is not cropped or stretched.
+
+Applied only when stable bar boundaries and a suitable uniform background are detected. General background refinement remains enabled when this option is off.</source>
+      <translation>실험적 기능 · 파일 변환 전용 · 기본 꺼짐
+
+검은 여백 안쪽의 실제 영상까지 단색 배경 깊이 보정을 확장합니다. 검은 여백은 보존하며 영상을 자르거나 늘리지 않습니다.
+
+여백 경계와 단색 배경 조건이 안정적일 때만 적용됩니다. 이 옵션을 꺼도 일반 단색 배경 보정은 기본 동작합니다.</translation>
+    </message>
+    <message>
+      <source>File VFG frame interpolation help</source>
+      <translation>파일 VFG 프레임 보간 도움말</translation>
+    </message>
+    <message>
+      <source>File depth strength</source>
+      <translation>파일 변환 입체감</translation>
+    </message>
+    <message>
+      <source>Frame interpolation (VFG 2×)</source>
+      <translation>프레임 보간 (VFG 2×)</translation>
+    </message>
+    <message>
+      <source>MP4 · MKV · MOV · M4V / Files convert automatically in queue order</source>
+      <translation>MP4 · MKV · MOV · M4V / 추가된 순서대로 자동 변환</translation>
+    </message>
+    <message>
+      <source>Off by default and not saved. After every queued file converts successfully, a 30-second countdown lets you cancel shutdown. Errors or cancellation stop the queue and prevent shutdown. Other applications are not forcibly closed.</source>
+      <translation>기본은 미선택이며 저장되지 않습니다. 대기열의 모든 파일 변환이 성공하면 30초 카운트다운 후 Windows를 종료합니다. 카운트다운 중 종료를 취소할 수 있습니다. 오류나 취소 시 대기열을 중단하고 종료하지 않습니다. 다른 앱을 강제로 닫지 않습니다.</translation>
+    </message>
+    <message>
+      <source>Off by default. Uses NVIDIA VFG to double the file's output FPS while preserving playback duration and audio. No interpolation crosses detected scene cuts. This uses additional GPU resources and may increase conversion time. The VFG runtime must be installed. File settings apply to the next conversion queue and are independent of live SBS.</source>
+      <translation>기본은 꺼짐입니다. NVIDIA VFG로 출력 파일의 FPS를 2배로 높이며 재생 길이와 오디오는 유지합니다. 감지된 장면 전환 사이에서는 보간하지 않습니다. GPU 자원을 추가로 사용하며 변환 시간이 늘어날 수 있습니다. VFG 런타임 설치가 필요합니다. 파일 설정은 다음 변환 대기열에 적용되며 실시간 SBS 설정과 별개입니다.</translation>
+    </message>
+    <message>
+      <source>Reset</source>
+      <translation>초기화</translation>
+    </message>
+    <message>
+      <source>Shut down Windows after all conversions finish</source>
+      <translation>모든 변환 완료 후 Windows 종료</translation>
+    </message>
+    <message>
+      <source>Shutdown after conversion help</source>
+      <translation>변환 완료 후 Windows 종료 도움말</translation>
+    </message>
+    <message>
+      <source>Start conversion</source>
+      <translation>변환 시작</translation>
+    </message>
+    <message>
+      <source>Uniform-background depth refinement for videos with black bars</source>
+      <translation>검은 여백 영상의 단색 배경 깊이 보정</translation>
+    </message>
   </context>
   <context>
     <name>ModelInstall</name>
@@ -1890,6 +1958,46 @@ Recent preprocessing/inference/SBS {v4:.1f}/{v5:.1f}/{v6:.1f} ms · Includes CPU
       <source>ScreenTo3D launch error</source>
       <translation>ScreenTo3D 실행 오류</translation>
     </message>
+    <message>
+      <source>All conversions succeeded. Windows will shut down in {seconds} seconds.</source>
+      <translation>모든 변환이 완료되었습니다. {seconds}초 후 Windows가 종료됩니다.</translation>
+    </message>
+    <message>
+      <source>All queued conversions completed · Open the results to review them.</source>
+      <translation>대기열 변환 완료 · 결과를 열어 확인하세요.</translation>
+    </message>
+    <message>
+      <source>File {current} of {total}</source>
+      <translation>파일 {current} / {total}</translation>
+    </message>
+    <message>
+      <source>Prioritizes speed and responsiveness.
+
+Model operations use FP16; input, output and some processing use FP32.</source>
+      <translation>처리 속도와 반응성을 우선합니다.
+
+모델 연산은 FP16을 사용하며 입력·출력과 일부 처리는 FP32를 사용합니다.</translation>
+    </message>
+    <message>
+      <source>Replace {count} existing output files only after their conversions succeed?</source>
+      <translation>출력 파일 {count}개가 이미 존재합니다. 각 변환이 성공한 뒤 해당 파일을 교체할까요?</translation>
+    </message>
+    <message>
+      <source>Requesting Windows shutdown…</source>
+      <translation>Windows 종료 요청 중…</translation>
+    </message>
+    <message>
+      <source>Save stereo video</source>
+      <translation>입체 영상 저장</translation>
+    </message>
+    <message>
+      <source>Windows shutdown cancelled.</source>
+      <translation>Windows 종료를 취소했습니다.</translation>
+    </message>
+    <message>
+      <source>Windows shutdown requested.</source>
+      <translation>Windows 종료를 요청했습니다.</translation>
+    </message>
   </context>
   <context>
     <name>StereoLayoutPicker</name>
@@ -2605,6 +2713,16 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <translation>ScreenTo3D가 오류로 종료되었습니다.</translation>
     </message>
     <message>
+      <source>E_BATCH_OUTPUT_CHANGED</source>
+      <extracomment>An output file appeared after the queue was prepared. Check the save location and restart conversion.</extracomment>
+      <translation>대기열 준비 후 출력 경로에 파일이 생겼습니다. 저장 위치를 확인하고 변환을 다시 시작해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_BATCH_OUTPUT_COLLISION</source>
+      <extracomment>Queue outputs must be different files and must not overwrite any input video.</extracomment>
+      <translation>대기열의 출력 파일 경로는 서로 달라야 하며 입력 영상을 덮어쓸 수 없습니다.</translation>
+    </message>
+    <message>
       <source>E_FILE_VFG_FAILED</source>
       <extracomment>File frame interpolation failed. Check the VFG installation and GPU compatibility.</extracomment>
       <translation>파일 프레임 보간에 실패했습니다. VFG 설치 상태와 GPU 호환성을 확인해 주세요.</translation>
@@ -2618,6 +2736,16 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <source>E_FILE_VFG_SELECTION</source>
       <extracomment>Invalid file frame interpolation setting.</extracomment>
       <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_SHUTDOWN_FAILED</source>
+      <extracomment>Cannot request Windows shutdown. Your converted files are preserved.</extracomment>
+      <translation>Windows 종료를 요청할 수 없습니다. 변환된 파일은 보존됩니다.</translation>
+    </message>
+    <message>
+      <source>E_SHUTDOWN_UNSUPPORTED</source>
+      <extracomment>Automatic shutdown is available on Windows only.</extracomment>
+      <translation>자동 종료는 Windows에서만 사용할 수 있습니다.</translation>
     </message>
   </context>
   <context>
@@ -3298,6 +3426,16 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <translation>ScreenTo3D가 오류로 종료되었습니다.</translation>
     </message>
     <message>
+      <source>E_BATCH_OUTPUT_CHANGED</source>
+      <extracomment>An output file appeared after the queue was prepared. Check the save location and restart conversion.</extracomment>
+      <translation>대기열 준비 후 출력 경로에 파일이 생겼습니다. 저장 위치를 확인하고 변환을 다시 시작해 주세요.</translation>
+    </message>
+    <message>
+      <source>E_BATCH_OUTPUT_COLLISION</source>
+      <extracomment>Queue outputs must be different files and must not overwrite any input video.</extracomment>
+      <translation>대기열의 출력 파일 경로는 서로 달라야 하며 입력 영상을 덮어쓸 수 없습니다.</translation>
+    </message>
+    <message>
       <source>E_FILE_VFG_FAILED</source>
       <extracomment>File frame interpolation failed. Check the VFG installation and GPU compatibility.</extracomment>
       <translation>파일 프레임 보간에 실패했습니다. VFG 설치 상태와 GPU 호환성을 확인해 주세요.</translation>
@@ -3311,6 +3449,16 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <source>E_FILE_VFG_SELECTION</source>
       <extracomment>Invalid file frame interpolation setting.</extracomment>
       <translation>파일 프레임 보간 설정이 올바르지 않습니다.</translation>
+    </message>
+    <message>
+      <source>E_SHUTDOWN_FAILED</source>
+      <extracomment>Cannot request Windows shutdown. Your converted files are preserved.</extracomment>
+      <translation>Windows 종료를 요청할 수 없습니다. 변환된 파일은 보존됩니다.</translation>
+    </message>
+    <message>
+      <source>E_SHUTDOWN_UNSUPPORTED</source>
+      <extracomment>Automatic shutdown is available on Windows only.</extracomment>
+      <translation>자동 종료는 Windows에서만 사용할 수 있습니다.</translation>
     </message>
   </context>
 </TS>

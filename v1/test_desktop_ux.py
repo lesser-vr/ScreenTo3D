@@ -91,7 +91,8 @@ def main():
             # Exercise the visible menu by keyboard, not a direct page assignment.
             click('openFiles')
             assert window.property('page') == 1 and not tools.isVisible()
-            click('fileOptions'); assert control('modePicker').isVisible()
+            assert not control('fileOptions').isVisible()
+            assert control('modePicker').isVisible() and control('fileStereoLayout').isVisible()
             screenshot(window, 'files')
             click('returnLive')
             click('openLiveOptions')

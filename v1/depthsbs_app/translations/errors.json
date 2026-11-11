@@ -719,6 +719,26 @@
       "category": "launcher",
       "native": true
     },
+    "E_BATCH_OUTPUT_COLLISION": {
+      "source": "Queue outputs must be different files and must not overwrite any input video.",
+      "public": "Queue outputs must be different files and must not overwrite any input video.",
+      "category": "paths"
+    },
+    "E_BATCH_OUTPUT_CHANGED": {
+      "source": "An output file appeared after the queue was prepared. Check the save location and restart conversion.",
+      "public": "An output file appeared after the queue was prepared. Check the save location and restart conversion.",
+      "category": "paths"
+    },
+    "E_SHUTDOWN_UNSUPPORTED": {
+      "source": "Automatic shutdown is available on Windows only.",
+      "public": "Automatic shutdown is available on Windows only.",
+      "category": "system"
+    },
+    "E_SHUTDOWN_FAILED": {
+      "source": "Cannot request Windows shutdown. Your converted files are preserved.",
+      "public": "Cannot request Windows shutdown. Your converted files are preserved.",
+      "category": "system"
+    },
     "E_FILE_VFG_GEOMETRY": {
       "source": "VFG requires a source video no larger than 4096×2160.",
       "public": "VFG requires a source video no larger than 4096×2160.",

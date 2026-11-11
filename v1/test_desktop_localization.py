@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 import time
-from unittest.mock import patch
+from unittest.mock import patch,Mock
 
 import shiboken6
 from PySide6.QtCore import QObject,QPointF,QSettings,Qt,QMimeData
@@ -29,6 +29,8 @@ def main():
     sources.start()
     app,engine,desktop=create_app(prefs)
     live=desktop.live;window=desktop.main_window;language=desktop.language
+    forbidden_shutdown=Mock(side_effect=AssertionError('OS shutdown is forbidden in GUI tests'))
+    desktop.shutdown.command=forbidden_shutdown
     live.output_placement.save=lambda:None
     live.output_placement.path=args.output/'placement.json'
     warnings=[];engine.warnings.connect(lambda errors:warnings.extend(e.toString() for e in errors))
@@ -80,6 +82,54 @@ def main():
             window.setProperty('page',1);pump()
             window.resize(760,620)
             capture(window,code+'-file-workspace')
+            assert not control('fileOptions').isVisible()
+            assert control('modePicker').isVisible() and control('fileStereoLayout').isVisible()
+            file_strength=control('fileStrength');file_strength.forceActiveFocus();pump()
+            assert file_strength.property('value')==.5 and not desktop.settings['vfg']
+            QTest.keyClick(window,Qt.Key_Right);pump()
+            assert desktop.settings['depth_strength']==.75 and live.depthStrength==.5
+            file_vfg=control('fileVfg');file_vfg.forceActiveFocus();QTest.keyClick(window,Qt.Key_Space);pump()
+            assert desktop.settings['vfg'] and not live.vfgEnabled
+            control('fileVfgHelp').forceActiveFocus();pump(.4)
+            capture(window,code+'-file-depth-vfg')
+            file_vfg.forceActiveFocus();QTest.keyClick(window,Qt.Key_Space);pump()
+            assert not desktop.settings['vfg']
+            control('resetFileStrength').forceActiveFocus();QTest.keyClick(window,Qt.Key_Space);pump()
+            assert desktop.settings['depth_strength']==.5
+            desktop.lease.acquire('file');desktop.changed.emit();pump()
+            assert not file_vfg.property('enabled') and not file_strength.property('enabled')
+            desktop.lease.release('file');desktop.changed.emit();pump()
+            checkbox=control('fileLetterboxRefinement');help_button=control('fileLetterboxHelp')
+            assert checkbox.property('text')==('검은 여백 영상의 단색 배경 깊이 보정' if code=='ko'
+                else 'Uniform-background depth refinement for videos with black bars')
+            assert not checkbox.property('checked') and not desktop.settings['letterbox']
+            help_button.forceActiveFocus();pump(.5)
+            popup=help_button.findChild(QObject,'helpPopup')
+            assert popup is not None and popup.property('visible')
+            assert ('기본 꺼짐' if code=='ko' else 'Default: off') in help_button.property('helpText')
+            # Move focus away, then open the same overlay by actual mouse hover.
+            checkbox.forceActiveFocus();QTest.mouseMove(window,QPointF(2,2).toPoint());pump(.4)
+            assert not popup.property('visible')
+            point=help_button.mapToScene(QPointF(help_button.width()/2,help_button.height()/2))
+            QTest.mouseMove(window,point.toPoint());pump(.5)
+            assert help_button.property('hovered') and popup.property('visible')
+            capture(window,code+'-black-bar-help')
+            QTest.mouseMove(window,QPointF(2,2).toPoint());pump(.4)
+            assert not popup.property('visible')
+            checkbox.forceActiveFocus();QTest.keyClick(window,Qt.Key_Space);pump()
+            assert checkbox.property('checked') and desktop.settings['letterbox']
+            QTest.keyClick(window,Qt.Key_Space);pump()
+            assert not checkbox.property('checked') and not desktop.settings['letterbox']
+            power=control('shutdownAfterConversion');power.forceActiveFocus();pump()
+            assert not power.property('checked') and not desktop.shutdown.selected
+            QTest.keyClick(window,Qt.Key_Space);pump()
+            assert desktop.shutdown.selected
+            desktop.shutdown.begin();pump()
+            assert control('cancelShutdown').isVisible() and window.property('page')==1
+            capture(window,code+'-shutdown-countdown')
+            cancel=control('cancelShutdown');point=cancel.mapToScene(QPointF(cancel.width()/2,cancel.height()/2))
+            QTest.mouseClick(window,Qt.LeftButton,Qt.NoModifier,point.toPoint());pump()
+            assert not desktop.shutdown.pending and not desktop.shutdown.selected
             window.setProperty('page',0);pump()
 
         live.selectDepthModel('video-quality/ovda-small-c16')
@@ -163,7 +213,10 @@ def main():
             live.stop();wait(lambda:not live.active,15)
             assert desktop.lease.owner is None and live.native.report()['live_pools']==0
         assert not warnings,warnings
-        report.update(passed=True,qt_warnings=warnings,error_copy_and_retranslation=True,picker_keyboard_and_persistence=True)
+        forbidden_shutdown.assert_not_called()
+        report.update(passed=True,qt_warnings=warnings,error_copy_and_retranslation=True,picker_keyboard_and_persistence=True,
+                      black_bar_help_hover_and_focus=True,black_bar_checkbox_binding=True,
+                      file_strength_and_vfg_binding=True,file_controls_busy_lock=True)
     finally:
         if live.active:
             live.stop()

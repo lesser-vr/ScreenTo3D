@@ -4,7 +4,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from depthsbs_app.config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES
-from depthsbs_app.desktop_jobs import Job, ProcessingLease, unused_output
+from depthsbs_app.desktop_jobs import Job, ProcessingLease, unused_output,validate_batch_outputs
 
 
 class DesktopJobTests(unittest.TestCase):
@@ -88,6 +88,20 @@ class DesktopJobTests(unittest.TestCase):
         third = unused_output(self.job.source, [second])
         self.assertEqual(len({first, second, third}), 3)
 
+    def test_output_name_tracks_each_stereo_format(self):
+        for layout,suffix in [('full-sbs','Full_SBS'),('half-sbs','Half_SBS'),('full-tb','Full_TB'),('half-tb','Half_TB')]:
+            path=Path(unused_output(self.job.source,layout=layout))
+            self.assertTrue(path.name.endswith('_'+suffix+'.mp4'))
+            reserved=unused_output(self.job.source,[str(path)],layout)
+            self.assertNotEqual(str(path),reserved)
+
+    def test_batch_rejects_duplicate_outputs_and_other_inputs(self):
+        second=replace(self.job,source=str(self.root/'second.mp4'),output=str(self.root/'second-out.mp4'))
+        Path(second.source).touch()
+        validate_batch_outputs([self.job,second])
+        for other in (replace(second,output=self.job.output),replace(second,output=self.job.source)):
+            with self.assertRaises(ValueError):validate_batch_outputs([self.job,other])
+
     def test_exclusive_live_file_lease(self):
         lease = ProcessingLease()
         lease.acquire("live")
@@ -106,6 +120,14 @@ class DesktopJobTests(unittest.TestCase):
     def test_snapshot_is_immutable(self):
         with self.assertRaises(AttributeError):
             self.job.mode = "performance"
+
+    def test_file_strength_and_vfg_are_validated_and_forwarded(self):
+        job=replace(self.job,depth_strength=.75,vfg=True);job.validate()
+        args=job.arguments('cancel');self.assertIn('--vfg',args)
+        self.assertEqual(args[args.index('--depth-strength')+1],'0.75')
+        for strength in (float('nan'),float('inf'),True,.1,3):
+            with self.assertRaises(ValueError):replace(self.job,depth_strength=strength).validate()
+        with self.assertRaises(ValueError):replace(self.job,vfg='false').validate()
 
 
 if __name__ == "__main__":

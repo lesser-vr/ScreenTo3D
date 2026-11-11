@@ -41,6 +41,7 @@ RowLayout {
     Item { Layout.fillWidth: true }
     ToolButton {
         id: settings
+        visible: !header.files
         objectName: header.files ? "fileOptions" : "openLiveOptions"
         implicitWidth: 40; implicitHeight: 36
         background: Rectangle {

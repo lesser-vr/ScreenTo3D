@@ -13,9 +13,10 @@ class DesktopPreferences:
         self.portable = portable
 
     def selection(self, scope, modes):
-        mode = self.store.value(f'{scope}/mode', 'performance')
+        default_mode='balanced' if scope=='file' else 'performance'
+        mode = self.store.value(f'{scope}/mode', default_mode)
         if not isinstance(mode, str) or mode not in modes:
-            mode = 'performance'
+            mode = default_mode
         model = self.store.value(f'{scope}/model', DEFAULT_MODE_MODELS[mode])
         if (not isinstance(model, str) or model not in MODE_MODEL_CHOICES[mode]
                 or self.portable and model == 'ovda-small-c16'):

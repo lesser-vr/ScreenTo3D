@@ -51,8 +51,14 @@ class Job:
     noncommercial: bool = False
     letterbox: bool = False
     stereo_layout: str = "full-sbs"
+    depth_strength: float = .5
+    vfg: bool = False
 
     def validate(self):
+        import math
+        if isinstance(self.depth_strength,bool) or not isinstance(self.depth_strength,(int,float)) or not math.isfinite(self.depth_strength) or not .25<=self.depth_strength<=2:
+            raise ValueError(E('E_DEPTH_STRENGTH_INVALID'))
+        if type(self.vfg) is not bool:raise ValueError(E('E_FILE_VFG_SELECTION'))
         from .stereo_layout import LAYOUTS
         if self.stereo_layout not in LAYOUTS:
             raise ValueError(E('E_OUTPUT_LAYOUT_INVALID'))
@@ -114,6 +120,7 @@ class Job:
             self.media,
             "--cancel-file",
             str(cancel_file),
+            '--depth-strength',str(self.depth_strength),
         ]
         flag = MODELS[self.model][2]
         if flag:
@@ -122,6 +129,7 @@ class Job:
             args += ["--ovda-noncommercial"]
         if self.letterbox:
             args += ["--letterbox-refinement"]
+        if self.vfg:args+=['--vfg']
         return args
 
 
@@ -142,14 +150,32 @@ class ProcessingLease:
         self.owner = None
 
 
-def unused_output(source, reserved=()):
+def unused_output(source, reserved=(), layout='full-sbs'):
+    from .stereo_layout import LAYOUTS
+    if layout not in LAYOUTS:
+        raise ValueError(E('E_OUTPUT_LAYOUT_INVALID'))
+    layout_suffix={'full-sbs':'Full_SBS','half-sbs':'Half_SBS','full-tb':'Full_TB','half-tb':'Half_TB'}[layout]
     source = Path(source)
     reserved = {str(Path(p).resolve()).casefold() for p in reserved}
     for index in range(10000):
         suffix = "" if index == 0 else f"_{index}"
-        target = source.with_name(source.stem + "_SBS" + suffix + ".mp4")
+        target = source.with_name(source.stem + '_' + layout_suffix + suffix + ".mp4")
         if not target.exists() and str(target.resolve()).casefold() not in reserved:
             return str(target)
     raise ValueError(
         E('E_OUTPUT_NAME_UNAVAILABLE')
     )
+
+
+def validate_batch_outputs(jobs, sources=()):
+    """A batch must never overwrite another input or publish two jobs to one path."""
+    inputs=[Path(p) for p in sources]+[Path(job.source) for job in jobs]
+    outputs=[]
+    def same(a,b):
+        return str(a.resolve()).casefold()==str(b.resolve()).casefold() or (
+            a.exists() and b.exists() and os.path.samefile(a,b))
+    for job in jobs:
+        target=Path(job.output)
+        if any(same(target,p) for p in inputs+outputs):
+            raise ValueError(E('E_BATCH_OUTPUT_COLLISION'))
+        outputs.append(target)

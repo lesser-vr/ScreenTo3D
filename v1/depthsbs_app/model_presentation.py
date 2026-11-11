@@ -21,7 +21,7 @@ def vda_precision(engine):
 def model_info(model, engine=''):
     if model == 'da2-small':
         return 'DA2 Small', 'FP16', (
-            M('The default model prioritizes speed and responsiveness.\n\nModel operations use FP16; input, output and some processing use FP32.'))
+            M('Prioritizes speed and responsiveness.\n\nModel operations use FP16; input, output and some processing use FP32.'))
     if model == 'da2-base':
         return 'DA2 Base', M('Mixed FP16'), (
             M('A larger model than DA2 Small. It costs more to process, and depth detail varies by scene.\n\nMixed FP16 and FP32 precision. Most model operations use FP16; sensitive normalization, Softmax, Resize, input and output remain FP32.'))
@@ -35,16 +35,16 @@ def model_info(model, engine=''):
     raise ValueError(E('E_MODEL_UNKNOWN'))
 
 
-def selection_info(mode, model, engines):
+def selection_info(mode, model, engines, *, default_mode='performance'):
     name, precision, description = model_info(model, engines.get(model, ''))
     if mode == 'offline-quality':
         name = M('{name} · 5-frame', name=name)
         description = (M('For file conversion only. VDA Small uses a centered five-frame context per scene, reading two frames ahead.\n\n') + vda_precision(engines.get(model, ''))[1])
-    label = M('{name} · {precision} · Default', name=name, precision=precision) if mode == 'performance' else M('{name} · {precision}', name=name, precision=precision)
+    label = M('{name} · {precision} · Default', name=name, precision=precision) if mode == default_mode else M('{name} · {precision}', name=name, precision=precision)
     return dict(key=f'{mode}/{model}', mode=mode, model=model, label=label, help=description)
 
 
-def selection_choices(modes, engines, *, portable):
-    return [selection_info(mode, model, engines)
+def selection_choices(modes, engines, *, portable, default_mode='performance'):
+    return [selection_info(mode, model, engines, default_mode=default_mode)
             for mode in modes for model in sorted(MODE_MODEL_CHOICES[mode], key=lambda m: m != DEFAULT_MODE_MODELS[mode])
             if not (portable and model == 'ovda-small-c16')]

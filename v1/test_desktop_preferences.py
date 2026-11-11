@@ -26,11 +26,11 @@ class PreferenceTests(unittest.TestCase):
         desktop.live = LivePreview(desktop)
         return desktop, desktop.live
 
-    def test_fresh_source_uses_small_half_tb_even_with_base_installed(self):
+    def test_fresh_file_uses_base_and_live_uses_small_with_half_tb(self):
         desktop, live = self.controllers()
         self.assertEqual((live.liveMode, live.liveModel, live.stereoLayout), ('performance', 'da2-small', 'half-tb'))
         self.assertEqual((desktop.settings['mode'], desktop.settings['model'], desktop.settings['stereo_layout']),
-                         ('performance', 'da2-small', 'half-tb'))
+                         ('balanced', 'da2-base', 'half-tb'))
 
     def test_user_choices_survive_new_store_and_controller_independently(self):
         desktop, live = self.controllers()
@@ -77,7 +77,7 @@ class PreferenceTests(unittest.TestCase):
         self.assertEqual(self.prefs.selection('live', LIVE_MODES),
                          dict(mode='performance', model='da2-small', stereo_layout='half-tb'))
         self.prefs.store.setValue('file/mode', 12)
-        self.assertEqual(self.prefs.selection('file', MODES)['mode'], 'performance')
+        self.assertEqual(self.prefs.selection('file', MODES)['mode'], 'balanced')
 
     def test_selected_video_model_is_kept_without_restoring_consent(self):
         self.prefs.remember('live', 'video-quality', 'ovda-small-c16', 'half-tb')

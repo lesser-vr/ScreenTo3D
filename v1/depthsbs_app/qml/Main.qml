@@ -16,12 +16,18 @@ ApplicationWindow {
     color: theme.window
     font.family: theme.family
     font.pixelSize: 14
-    property bool fileSettings: false
     Settings { id: outputPreferences; category: "SbsOutput"; property bool fullscreenStats: false }
     property bool fileWorkspace: false
     property size liveSize: Qt.size(420, 260)
     property size fileSize: Qt.size(860, 740)
     property int page: 0
+    Connections {
+        target: desktop.completionShutdown
+        function onCountdownStarted() {
+            root.openPage(1)
+            root.showNormal(); root.raise(); root.requestActivate()
+        }
+    }
     function openPage(index) {
         if (page === index && index > 1) { tools.showNormal(); tools.raise(); tools.requestActivate() }
         else page = index
@@ -84,7 +90,7 @@ ApplicationWindow {
             objectName: "filesPage"; anchors.fill: parent; visible: root.page === 1
             ColumnLayout {
                 anchors.fill: parent; spacing: 8
-                TaskHeader { files: true; Layout.fillWidth: true; Layout.topMargin: 16; Layout.leftMargin: 32; Layout.rightMargin: 32; onTaskSelected: index => root.openPage(index); onSettingsRequested: root.fileSettings = !root.fileSettings }
+                TaskHeader { files: true; Layout.fillWidth: true; Layout.topMargin: 16; Layout.leftMargin: 32; Layout.rightMargin: 32; onTaskSelected: index => root.openPage(index) }
                 FocusScrollView {
                     Layout.fillWidth: true; Layout.fillHeight: true
                     contentWidth: availableWidth
@@ -96,11 +102,11 @@ ApplicationWindow {
                     Layout.leftMargin: 32; Layout.rightMargin: 32
                     implicitHeight: 94
                     border.color: drop.containsDrag ? root.accent : root.theme.border
-                    DropArea { id: drop; anchors.fill: parent; onDropped: function(event) { if (event.hasUrls) { desktop.dropFiles(event.urls); event.acceptProposedAction() } } }
+                    DropArea { id: drop; enabled: !desktop.busy; anchors.fill: parent; onDropped: function(event) { if (event.hasUrls) { desktop.dropFiles(event.urls); event.acceptProposedAction() } } }
                     RowLayout {
                         anchors.fill: parent; anchors.margins: 20
-                        ColumnLayout { Layout.fillWidth: true; Label { text: qsTr("Drop videos here"); color: root.ink; font.bold: true; font.pixelSize: 17 } Copy { text: qsTr("MP4 · MKV · MOV · M4V / Convert one selected video at a time"); font.pixelSize: 12 } }
-                        Action { objectName: "addFiles"; text: qsTr("Add files"); onClicked: desktop.chooseFiles() }
+                        ColumnLayout { Layout.fillWidth: true; Label { text: qsTr("Drop videos here"); color: root.ink; font.bold: true; font.pixelSize: 17 } Copy { text: qsTr("MP4 · MKV · MOV · M4V / Files convert automatically in queue order"); font.pixelSize: 12 } }
+                        Action { objectName: "addFiles"; text: qsTr("Add files"); enabled: !desktop.busy; onClicked: desktop.chooseFiles() }
                     }
                 }
                 Card {
@@ -129,7 +135,7 @@ ApplicationWindow {
                     }
                 }
                 RowLayout {
-                    visible: root.fileSettings; Layout.leftMargin: 32; Layout.rightMargin: 32
+                    Layout.leftMargin: 32; Layout.rightMargin: 32
                     ColumnLayout {
                         Layout.fillWidth: true
                         RowLayout {
@@ -148,13 +154,59 @@ ApplicationWindow {
                     ColumnLayout { Layout.fillWidth: true; Copy { text: qsTr("Video codec") } Picker { enabled: !desktop.busy; model: [qsTr("H.264 · Broad compatibility"), qsTr("HEVC · Supports 4K / Check your player")]; currentIndex: desktop.settings.codec === "hevc" ? 1 : 0; onActivated: desktop.setOption("codec", currentIndex === 1 ? "hevc" : "h264") } }
                 }
                 ColumnLayout {
-                    visible: root.fileSettings; Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true
+                    Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true
                     Copy { text: qsTr("Stereo layout") }
                     StereoLayoutPicker { objectName: "fileStereoLayout"; enabled: !desktop.busy; currentIndex: keys.indexOf(desktop.settings.stereo_layout); onActivated: { desktop.setOption("stereo_layout", keys[currentIndex]); desktop.rememberSelection() } }
                 }
+                ColumnLayout {
+                    Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true; spacing: 8
+                    RowLayout {
+                        Label { text: qsTr("Depth strength"); color: root.ink; Layout.fillWidth: true }
+                        Label { text: desktop.settings.depth_strength.toLocaleString(Qt.locale(i18n.localeName),"f",2)+"×"; color: root.muted }
+                        Action { objectName: "resetFileStrength"; text: qsTr("Reset"); enabled: !desktop.busy; onClicked: desktop.setOption("depth_strength",0.5) }
+                    }
+                    Slider {
+                        id: fileStrength; objectName: "fileStrength"; Layout.fillWidth: true
+                        from: 0.25; to: 2; stepSize: 0.25; enabled: !desktop.busy
+                        value: desktop.settings.depth_strength; onMoved: desktop.setOption("depth_strength",value)
+                        Accessible.name: qsTr("File depth strength")
+                        background: Rectangle {
+                            x: fileStrength.leftPadding; y: fileStrength.topPadding+fileStrength.availableHeight/2-height/2
+                            implicitWidth: 200; implicitHeight: 4; width: fileStrength.availableWidth; height: 4; radius: 2; color: root.theme.disabled
+                            Rectangle { width: fileStrength.visualPosition*parent.width; height: parent.height; radius: 2; color: fileStrength.enabled ? root.accent : root.theme.disabledInk }
+                        }
+                        handle: Rectangle {
+                            x: fileStrength.leftPadding+fileStrength.visualPosition*(fileStrength.availableWidth-width)
+                            y: fileStrength.topPadding+fileStrength.availableHeight/2-height/2
+                            implicitWidth: 20; implicitHeight: 20; radius: 10; color: root.theme.surface
+                            border.color: fileStrength.activeFocus ? root.accent : root.theme.border; border.width: fileStrength.activeFocus ? 2 : 1
+                        }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 6
+                        CheckOption {
+                            objectName: "fileVfg"; Layout.fillWidth: false
+                            text: qsTr("Frame interpolation (VFG 2×)"); enabled: !desktop.busy
+                            checked: desktop.settings.vfg; onClicked: desktop.setOption("vfg",checked)
+                        }
+                        HelpButton {
+                            objectName: "fileVfgHelp"; Accessible.name: qsTr("File VFG frame interpolation help")
+                            helpText: qsTr("Off by default. Uses NVIDIA VFG to double the file's output FPS while preserving playback duration and audio. No interpolation crosses detected scene cuts. This uses additional GPU resources and may increase conversion time. The VFG runtime must be installed. File settings apply to the next conversion queue and are independent of live SBS.")
+                        }
+                        Item { Layout.fillWidth: true }
+                    }
+                    ModelInstall { feature: desktop.settings.vfg ? "vfg" : "" }
+                }
                 RowLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32
-                    Label { text: desktop.destination || qsTr("Save location is set automatically when you add a file"); color: root.muted; elide: Text.ElideMiddle; Layout.fillWidth: true; ToolTip.visible: outputHover.hovered; ToolTip.text: desktop.destination; HoverHandler { id: outputHover } }
+                    Label {
+                        id: outputPathLabel; objectName: "fileOutputPath"
+                        text: desktop.destination || qsTr("Save location is set automatically when you add a file")
+                        color: root.muted; elide: Text.ElideMiddle; Layout.fillWidth: true
+                        ToolTip.visible: outputHover.hovered
+                        ToolTip.text: desktop.destination
+                        HoverHandler { id: outputHover }
+                    }
                     Action { text: qsTr("Save location"); enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.chooseOutput() }
                     Action { text: qsTr("Remove"); enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.removeSelected() }
                 }
@@ -168,12 +220,41 @@ ApplicationWindow {
                     }
                 }
                 ColumnLayout {
-                    visible: root.fileSettings; Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true
+                    Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.fillWidth: true
                         Copy { text: qsTr("Stereo processing") }
                         Picker { enabled: !desktop.busy; model: [qsTr("CUDA · Default"), qsTr("CPU · Diagnostic comparison (slow)")]; currentIndex: desktop.settings.renderer === "cuda" ? 0 : 1; onActivated: desktop.setOption("renderer", currentIndex === 0 ? "cuda" : "cpu") }
-                        CheckOption { text: qsTr("File conversion · Experimental black-bar background refinement"); enabled: !desktop.busy; checked: desktop.settings.letterbox; onClicked: desktop.setOption("letterbox", checked) }
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 6
+                            CheckOption {
+                                objectName: "fileLetterboxRefinement"
+                                Layout.fillWidth: false
+                                text: qsTr("Uniform-background depth refinement for videos with black bars")
+                                enabled: !desktop.busy; checked: desktop.settings.letterbox
+                                onClicked: desktop.setOption("letterbox", checked)
+                            }
+                            HelpButton {
+                                objectName: "fileLetterboxHelp"
+                                Accessible.name: qsTr("Black-bar depth refinement help")
+                                helpText: qsTr("Experimental · File conversion only · Default: off\n\nExtends the existing uniform-background depth refinement to the image inside detected black bars. The bars are preserved; the video is not cropped or stretched.\n\nApplied only when stable bar boundaries and a suitable uniform background are detected. General background refinement remains enabled when this option is off.")
+                            }
+                            Item { Layout.fillWidth: true }
+                        }
                 }
                 Copy { text: desktop.details; font.pixelSize: 12; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                RowLayout {
+                    Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32; spacing: 6
+                    CheckOption {
+                        objectName: "shutdownAfterConversion"; Layout.fillWidth: false
+                        text: qsTr("Shut down Windows after all conversions finish")
+                        enabled: !desktop.busy; checked: desktop.completionShutdown.selected
+                        onClicked: desktop.completionShutdown.setSelected(checked)
+                    }
+                    HelpButton {
+                        objectName: "shutdownHelp"; Accessible.name: qsTr("Shutdown after conversion help")
+                        helpText: qsTr("Off by default and not saved. After every queued file converts successfully, a 30-second countdown lets you cancel shutdown. Errors or cancellation stop the queue and prevent shutdown. Other applications are not forcibly closed.")
+                    }
+                    Item { Layout.fillWidth: true }
+                }
             }
                 }
                 ProgressBar {
@@ -183,14 +264,20 @@ ApplicationWindow {
                     background: Rectangle { implicitHeight: 6; radius: 3; color: root.theme.disabled }
                     contentItem: Item { implicitHeight: 6; Rectangle { width: conversionProgress.visualPosition * parent.width; height: parent.height; radius: 3; color: root.accent } }
                 }
-                Copy { objectName: "jobStatus"; text: live.active ? qsTr("Stop live SBS to convert a file.") : desktop.status; color: root.ink; Layout.leftMargin: 32; Layout.rightMargin: 32 }
+                RowLayout {
+                    visible: desktop.completionShutdown.pending
+                    Layout.fillWidth: true; Layout.leftMargin: 32; Layout.rightMargin: 32
+                    Copy { text: desktop.completionShutdown.status; color: root.ink }
+                    Action { objectName: "cancelShutdown"; text: qsTr("Cancel shutdown"); onClicked: desktop.completionShutdown.cancel() }
+                }
+                Copy { objectName: "jobStatus"; text: (desktop.queueStatus ? desktop.queueStatus + " · " : "") + (live.active ? qsTr("Stop live SBS to convert a file.") : desktop.status); color: root.ink; Layout.leftMargin: 32; Layout.rightMargin: 32 }
                 RowLayout {
                     Layout.leftMargin: 32; Layout.rightMargin: 32; Layout.bottomMargin: 20
                     Copy { text: desktop.licenseNotice; font.pixelSize: 12 }
                     Action { text: qsTr("Open video"); visible: desktop.canOpen; onClicked: desktop.openResult() }
                     Action { text: qsTr("Open folder"); visible: desktop.canOpen; onClicked: desktop.openResultFolder() }
                     Action { text: desktop.cancellingNow ? qsTr("Cleaning up…") : qsTr("Cancel"); enabled: desktop.canCancel; onClicked: desktop.cancel() }
-                    Action { objectName: "convertButton"; text: qsTr("Convert selected video"); primary: true; enabled: !desktop.busy && desktop.selectedIndex >= 0 && !desktop.missingModels[desktop.settings.model]; onClicked: desktop.start() }
+                    Action { objectName: "convertButton"; text: qsTr("Start conversion"); primary: true; enabled: !desktop.busy && desktop.selectedIndex >= 0 && !desktop.missingModels[desktop.settings.model] && (!desktop.settings.vfg || !desktop.missingModels.vfg); onClicked: desktop.start() }
                 }
             }
         }
