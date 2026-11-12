@@ -785,8 +785,38 @@
       "category": "installation"
     },
     "E_SETUP_SELECTION_CHANGED": {
-      "source": "The selected source or settings changed during setup. Start 3D again.",
-      "public": "The selected source or settings changed during setup. Start 3D again.",
+      "source": "The selected input or settings changed during setup. Start your task again.",
+      "public": "The selected input or settings changed during setup. Start your task again.",
+      "category": "installation"
+    },
+    "E_ENGINE_REFERENCE_MISMATCH": {
+      "source": "Model verification failed: {profile}, {tensor}, {mismatched}/{total} values differ (maximum difference {maximum:.6f}). Retry model preparation.",
+      "public": "Model numerical verification failed. Retry model preparation.",
+      "category": "model"
+    },
+    "E_ENGINE_REFERENCE_SCHEMA": {
+      "source": "Model verification returned invalid tensors for {profile}. Prepare the model again.",
+      "public": "Model verification returned invalid tensors. Prepare the model again.",
+      "category": "model"
+    },
+    "E_DOWNLOAD_BUSY": {
+      "source": "Another installation is using this download. Wait for it to finish, then retry.",
+      "public": "Another installation is using this download. Wait for it to finish, then retry.",
+      "category": "installation"
+    },
+    "E_DOWNLOAD_RANGE": {
+      "source": "The download server returned an unexpected response. Retry the download.",
+      "public": "The download server returned an unexpected response. Retry the download.",
+      "category": "installation"
+    },
+    "E_MEDIA_PROCESS": {
+      "source": "A media tool failed or stopped responding. Check the input and retry.",
+      "public": "A media tool failed or stopped responding. Check the input and retry.",
+      "category": "processing"
+    },
+    "E_DOWNLOAD_BROWSER": {
+      "source": "Could not open the download in your browser. Download the pack from the ScreenTo3D release page, then use Install from file.",
+      "public": "Could not open the download in your browser. Download the pack from the ScreenTo3D release page, then use Install from file.",
       "category": "installation"
     }
   }

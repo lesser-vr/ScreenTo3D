@@ -24,19 +24,23 @@
         },
         "nvinfer_11.dll": {
           "bytes": 393636464,
-          "sha256": "19a836028d37b9dfe3171b88678c7c3b5abdba94ac79bee81c3be963569c5cd3"
+          "sha256": "19a836028d37b9dfe3171b88678c7c3b5abdba94ac79bee81c3be963569c5cd3",
+          "upstream_sha256": "40edb54f68342c593ea70af7f8a87838e20da00c573b14cb7ca1663ce9a23f9e"
         },
         "nvinfer_builder_resource_ptx_11.dll": {
           "bytes": 244992624,
-          "sha256": "26b9fa4fbe4076f4dd462e55419442e9ce39d5f07549a68cb7bd27ad548688a2"
+          "sha256": "26b9fa4fbe4076f4dd462e55419442e9ce39d5f07549a68cb7bd27ad548688a2",
+          "upstream_sha256": "e75cc3dd72ffe798be2e8e2b3f9c49bbfbb4fb1f3fcc2e5c2caff8b869cb93f9"
         },
         "nvinfer_plugin_11.dll": {
           "bytes": 45514352,
-          "sha256": "6a79561025a8d81d4f9d7bfd3527c4443d57a652456073825ecfeb716627480b"
+          "sha256": "6a79561025a8d81d4f9d7bfd3527c4443d57a652456073825ecfeb716627480b",
+          "upstream_sha256": "dc21d05e55cc32e239c137c5b1ea11908aac101ccb978117ada6c0971a2b47c1"
         },
         "nvonnxparser_11.dll": {
           "bytes": 2276464,
-          "sha256": "9d15046ade1740a0f53d2d707e632de6b44525a6a5e02d1e78c5b39bb7b1000c"
+          "sha256": "9d15046ade1740a0f53d2d707e632de6b44525a6a5e02d1e78c5b39bb7b1000c",
+          "upstream_sha256": "ddc020fa8380a94748fc76eeb72cda7c74be7bd8551245bfc76ecbafea3490f5"
         }
       }
     },

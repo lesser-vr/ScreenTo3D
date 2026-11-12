@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "artifacts": {
+    "tensorrt": {
+      "filename": "tensorrt_cu13_libs-11.2.1.2-py3-none-win_amd64.whl",
+      "version": "11.2.1.2",
+      "url": "https://pypi.nvidia.com/tensorrt-cu13-libs/tensorrt_cu13_libs-11.2.1.2-py3-none-win_amd64.whl",
+      "size": 1957705017,
+      "sha256": "6e4b8b5ef990f4de4ba15eef79281f2acaca04186ed18ea5ab3f79d1379c21a0"
+    },
+    "cuda": {
+      "filename": "nvidia_cuda_runtime-13.1.80-py3-none-win_amd64.whl",
+      "version": "13.1.80",
+      "url": "https://files.pythonhosted.org/packages/d7/c2/737165823dd0c7717d02faf892bd697f517dd017b9044e5d663f4e03b979/nvidia_cuda_runtime-13.1.80-py3-none-win_amd64.whl",
+      "size": 3093656,
+      "sha256": "00db7158108d3ec7fe213fa78e2640d664b5b1b6b85485007dde29ccaa6abef6"
+    },
+    "ffmpeg": {
+      "filename": "ffmpeg-9.0.1-full_build-shared.zip",
+      "version": "9.0.1",
+      "url": "https://github.com/GyanD/codexffmpeg/releases/download/9.0.1/ffmpeg-9.0.1-full_build-shared.zip",
+      "size": 97261187,
+      "sha256": "6fd54b3b4f49117a307877b570f5e1659090f178973298658b41f5c559b5b5ab"
+    },
+    "vfg": {
+      "filename": "nvidia_vfx-0.2.0.0-cp311-cp311-win_amd64.whl",
+      "version": "0.2.0.0",
+      "url": "https://pypi.nvidia.com/nvidia-vfx/nvidia_vfx-0.2.0.0-cp311-cp311-win_amd64.whl",
+      "size": 435809365,
+      "sha256": "5aaf6a42bc6b6dbbf52fcb714194c994a6893cbbf7ada38bc2165a1f83e4a6fc"
+    }
+  }
+}

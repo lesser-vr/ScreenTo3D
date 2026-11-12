@@ -55,7 +55,7 @@ def verify(directory,files):
         if path.name!=name or not path.is_file() or path.stat().st_size!=identity['bytes']:
             raise ValueError(E('E_GPU_RUNTIME_INTEGRITY'))
         with path.open('rb') as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()
-        if actual!=identity['sha256']:raise ValueError(E('E_GPU_RUNTIME_INTEGRITY'))
+        if actual not in (identity['sha256'],identity.get('upstream_sha256')):raise ValueError(E('E_GPU_RUNTIME_INTEGRITY'))
 
 
 def validate_payload(key,directory):

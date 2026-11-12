@@ -4,7 +4,8 @@
   "common": {
     "nvinfer_builder_resource_ptx_11.dll": {
       "bytes": 244992624,
-      "sha256": "26b9fa4fbe4076f4dd462e55419442e9ce39d5f07549a68cb7bd27ad548688a2"
+      "sha256": "26b9fa4fbe4076f4dd462e55419442e9ce39d5f07549a68cb7bd27ad548688a2",
+      "upstream_sha256": "e75cc3dd72ffe798be2e8e2b3f9c49bbfbb4fb1f3fcc2e5c2caff8b869cb93f9"
     }
   },
   "packs": {
@@ -15,7 +16,8 @@
       "files": {
         "nvinfer_builder_resource_sm100_11.dll": {
           "bytes": 293237360,
-          "sha256": "d773c31c24201891291271888f7ac96f5308d4fb0777b416f010f0016c8eb743"
+          "sha256": "d773c31c24201891291271888f7ac96f5308d4fb0777b416f010f0016c8eb743",
+          "upstream_sha256": "d92303df4f8894ced8e9f8b82beea19fca7c475228809b0e5edf1434a7c74ca5"
         },
         "TENSORRT-LICENSE.txt": {
           "bytes": 47141,
@@ -30,7 +32,8 @@
       "files": {
         "nvinfer_builder_resource_sm120_11.dll": {
           "bytes": 271969392,
-          "sha256": "25300dbb9e8a50d93d67375315c02f1d4d400bcdb25e9e63eabf19bb9eed51d6"
+          "sha256": "25300dbb9e8a50d93d67375315c02f1d4d400bcdb25e9e63eabf19bb9eed51d6",
+          "upstream_sha256": "36e00f43170e1b259ab06ea13dc97131c6ae6e1a3d4e9078f1af4d33fe81d56d"
         },
         "TENSORRT-LICENSE.txt": {
           "bytes": 47141,
@@ -45,7 +48,8 @@
       "files": {
         "nvinfer_builder_resource_sm75_11.dll": {
           "bytes": 118463088,
-          "sha256": "b64d331aeca813b2ad852fd78d9d9d4496a2c4672560bc904111946dfae22789"
+          "sha256": "b64d331aeca813b2ad852fd78d9d9d4496a2c4672560bc904111946dfae22789",
+          "upstream_sha256": "0432ee909984c5a8c4f73c938df525dff629e02b6fdfbd06b0c96deff71e62fc"
         },
         "TENSORRT-LICENSE.txt": {
           "bytes": 47141,
@@ -60,7 +64,8 @@
       "files": {
         "nvinfer_builder_resource_sm80_11.dll": {
           "bytes": 190694000,
-          "sha256": "53bb25cc71acf2f0b38853c354fde587dabfa7b09e4480ec6c7d5aa00038a308"
+          "sha256": "53bb25cc71acf2f0b38853c354fde587dabfa7b09e4480ec6c7d5aa00038a308",
+          "upstream_sha256": "40915cc1381134d5908558d505428b99ee07390fbdebc31673e4bb4001ef64fa"
         },
         "TENSORRT-LICENSE.txt": {
           "bytes": 47141,
@@ -75,7 +80,8 @@
       "files": {
         "nvinfer_builder_resource_sm86_11.dll": {
           "bytes": 179996272,
-          "sha256": "ec873a2f98254f780ac20838aebd5c46e6c729ff89aa7476e3ae605c2f2b5a97"
+          "sha256": "ec873a2f98254f780ac20838aebd5c46e6c729ff89aa7476e3ae605c2f2b5a97",
+          "upstream_sha256": "c3c9c1c2c9988197581fce6eda0ef7a0a3bcfadc6871e1654970fdbd9666ac01"
         },
         "TENSORRT-LICENSE.txt": {
           "bytes": 47141,
@@ -90,7 +96,8 @@
       "files": {
         "nvinfer_builder_resource_sm89_11.dll": {
           "bytes": 189044848,
-          "sha256": "f40b200da982599e8ddbfb372c8ca7788f6c16518d952492f7264d2037cbce1b"
+          "sha256": "f40b200da982599e8ddbfb372c8ca7788f6c16518d952492f7264d2037cbce1b",
+          "upstream_sha256": "c156ba39a4ae1583d3da9b1ca4b8b60fa9396ddc8671d496716fc7c8de3a2f11"
         },
         "TENSORRT-LICENSE.txt": {
           "bytes": 47141,
@@ -105,7 +112,8 @@
       "files": {
         "nvinfer_builder_resource_sm90_11.dll": {
           "bytes": 459812976,
-          "sha256": "5193ba8ba2c3d568397b8aca187ab3078e3dd131d5da38e7a3c9ab028b2c8b82"
+          "sha256": "5193ba8ba2c3d568397b8aca187ab3078e3dd131d5da38e7a3c9ab028b2c8b82",
+          "upstream_sha256": "5eee99914ef015faafc6b2c10e8bf67c2d4476053e1dbc24b6680fa15fc30675"
         },
         "TENSORRT-LICENSE.txt": {
           "bytes": 47141,
@@ -120,31 +128,38 @@
       "files": {
         "nvinfer_builder_resource_sm100_11.dll": {
           "bytes": 293237360,
-          "sha256": "d773c31c24201891291271888f7ac96f5308d4fb0777b416f010f0016c8eb743"
+          "sha256": "d773c31c24201891291271888f7ac96f5308d4fb0777b416f010f0016c8eb743",
+          "upstream_sha256": "d92303df4f8894ced8e9f8b82beea19fca7c475228809b0e5edf1434a7c74ca5"
         },
         "nvinfer_builder_resource_sm120_11.dll": {
           "bytes": 271969392,
-          "sha256": "25300dbb9e8a50d93d67375315c02f1d4d400bcdb25e9e63eabf19bb9eed51d6"
+          "sha256": "25300dbb9e8a50d93d67375315c02f1d4d400bcdb25e9e63eabf19bb9eed51d6",
+          "upstream_sha256": "36e00f43170e1b259ab06ea13dc97131c6ae6e1a3d4e9078f1af4d33fe81d56d"
         },
         "nvinfer_builder_resource_sm75_11.dll": {
           "bytes": 118463088,
-          "sha256": "b64d331aeca813b2ad852fd78d9d9d4496a2c4672560bc904111946dfae22789"
+          "sha256": "b64d331aeca813b2ad852fd78d9d9d4496a2c4672560bc904111946dfae22789",
+          "upstream_sha256": "0432ee909984c5a8c4f73c938df525dff629e02b6fdfbd06b0c96deff71e62fc"
         },
         "nvinfer_builder_resource_sm80_11.dll": {
           "bytes": 190694000,
-          "sha256": "53bb25cc71acf2f0b38853c354fde587dabfa7b09e4480ec6c7d5aa00038a308"
+          "sha256": "53bb25cc71acf2f0b38853c354fde587dabfa7b09e4480ec6c7d5aa00038a308",
+          "upstream_sha256": "40915cc1381134d5908558d505428b99ee07390fbdebc31673e4bb4001ef64fa"
         },
         "nvinfer_builder_resource_sm86_11.dll": {
           "bytes": 179996272,
-          "sha256": "ec873a2f98254f780ac20838aebd5c46e6c729ff89aa7476e3ae605c2f2b5a97"
+          "sha256": "ec873a2f98254f780ac20838aebd5c46e6c729ff89aa7476e3ae605c2f2b5a97",
+          "upstream_sha256": "c3c9c1c2c9988197581fce6eda0ef7a0a3bcfadc6871e1654970fdbd9666ac01"
         },
         "nvinfer_builder_resource_sm89_11.dll": {
           "bytes": 189044848,
-          "sha256": "f40b200da982599e8ddbfb372c8ca7788f6c16518d952492f7264d2037cbce1b"
+          "sha256": "f40b200da982599e8ddbfb372c8ca7788f6c16518d952492f7264d2037cbce1b",
+          "upstream_sha256": "c156ba39a4ae1583d3da9b1ca4b8b60fa9396ddc8671d496716fc7c8de3a2f11"
         },
         "nvinfer_builder_resource_sm90_11.dll": {
           "bytes": 459812976,
-          "sha256": "5193ba8ba2c3d568397b8aca187ab3078e3dd131d5da38e7a3c9ab028b2c8b82"
+          "sha256": "5193ba8ba2c3d568397b8aca187ab3078e3dd131d5da38e7a3c9ab028b2c8b82",
+          "upstream_sha256": "5eee99914ef015faafc6b2c10e8bf67c2d4476053e1dbc24b6680fa15fc30675"
         },
         "TENSORRT-LICENSE.txt": {
           "bytes": 47141,

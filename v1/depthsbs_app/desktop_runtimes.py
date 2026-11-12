@@ -28,7 +28,7 @@ def validate_payload(key,directory):
         if path.is_symlink() or path.stat().st_size!=pin['bytes']:
             raise ValueError(E('E_COMPONENT_INTEGRITY'))
         with path.open('rb') as stream:sha=hashlib.file_digest(stream,'sha256').hexdigest()
-        if sha!=pin['sha256']:raise ValueError(E('E_COMPONENT_INTEGRITY'))
+        if sha not in (pin['sha256'],pin.get('upstream_sha256')):raise ValueError(E('E_COMPONENT_INTEGRITY'))
 
 
 def resolve(directory,key):

@@ -514,6 +514,10 @@ Applied only when stable bar boundaries and a suitable uniform background are de
       <source>Model installation progress</source>
       <translation>모델 설치 진행률</translation>
     </message>
+    <message>
+      <source>Cancel setup</source>
+      <translation>준비 취소</translation>
+    </message>
   </context>
   <context>
     <name>NativeFrame</name>
@@ -2006,6 +2010,62 @@ Model operations use FP16; input, output and some processing use FP32.</source>
       <source>Required for live 3D and file conversion</source>
       <translation>실시간 3D 및 파일 변환에 필요</translation>
     </message>
+    <message>
+      <source>Choose the downloaded file with Install from file.</source>
+      <translation>파일에서 설치를 눌러 다운로드한 파일을 선택하세요.</translation>
+    </message>
+    <message>
+      <source>Download in browser</source>
+      <translation>브라우저에서 다운로드</translation>
+    </message>
+    <message>
+      <source>Download not detected. Use Install from file to choose it, then start your task again.</source>
+      <translation>다운로드한 파일을 찾지 못했습니다. 파일에서 설치로 선택한 뒤 작업을 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>Download {filename} in your browser. Sign in to GitHub if asked. Save it to Downloads; installation continues automatically. For another folder, use Install from file.</source>
+      <translation>브라우저에서 {filename} 파일을 다운로드하세요. 필요하면 GitHub에 로그인하세요. 다운로드 폴더에 저장하면 자동으로 설치합니다. 다른 폴더에 저장했다면 파일에서 설치를 누르세요.</translation>
+    </message>
+    <message>
+      <source>Setup cancelled. A browser download may still finish.</source>
+      <translation>준비를 취소했습니다. 브라우저의 다운로드는 계속될 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>Waiting for the download to finish. Keep this window open.</source>
+      <translation>다운로드 완료를 기다리고 있습니다. 이 창을 열어 두세요.</translation>
+    </message>
+    <message>
+      <source>Connection interrupted. Retrying download…</source>
+      <translation>연결이 끊어졌습니다. 다운로드를 다시 시도하는 중…</translation>
+    </message>
+    <message>
+      <source>Resuming download</source>
+      <translation>다운로드 이어받는 중</translation>
+    </message>
+    <message>
+      <source>Using verified download cache</source>
+      <translation>검증된 다운로드 파일 재사용 중</translation>
+    </message>
+    <message>
+      <source>Verifying installation file</source>
+      <translation>설치 파일 검증 중</translation>
+    </message>
+    <message>
+      <source>{name}
+Downloaded files will be verified and reused.
+{terms}</source>
+      <translation>{name}
+저장된 다운로드 파일을 검증한 뒤 재사용합니다.
+{terms}</translation>
+    </message>
+    <message>
+      <source>{name} · up to {size:.0f} MB
+{terms}
+Previously downloaded files are reused.</source>
+      <translation>{name} · 최대 {size:.0f} MB
+{terms}
+이미 다운로드한 파일은 재사용합니다.</translation>
+    </message>
   </context>
   <context>
     <name>StereoLayoutPicker</name>
@@ -2041,6 +2101,11 @@ Model operations use FP16; input, output and some processing use FP32.</source>
   </context>
   <context>
     <name>Errors</name>
+    <message>
+      <source>E_MEDIA_PROCESS</source>
+      <extracomment>A media tool failed or stopped responding. Check the input and retry.</extracomment>
+      <translation>미디어 도구 실행에 실패했거나 응답하지 않습니다. 입력 파일을 확인하고 다시 시도하세요.</translation>
+    </message>
     <message>
       <source>E_ENGINE_BUILD_FAILED</source>
       <extracomment>TensorRT engine build failed. Check the driver and available GPU memory.</extracomment>
@@ -2787,12 +2852,42 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     </message>
     <message>
       <source>E_SETUP_SELECTION_CHANGED</source>
-      <extracomment>The selected source or settings changed during setup. Start 3D again.</extracomment>
-      <translation>설치 중 선택한 입력이나 설정이 변경되었습니다. 3D를 다시 시작하세요.</translation>
+      <extracomment>The selected input or settings changed during setup. Start your task again.</extracomment>
+      <translation>설치 중 선택한 입력이나 설정이 변경되었습니다. 작업을 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_DOWNLOAD_BROWSER</source>
+      <extracomment>Could not open the download in your browser. Download the pack from the ScreenTo3D release page, then use Install from file.</extracomment>
+      <translation>브라우저에서 다운로드를 열지 못했습니다. ScreenTo3D 릴리스 페이지에서 팩을 받은 뒤 파일에서 설치를 누르세요.</translation>
+    </message>
+    <message>
+      <source>E_DOWNLOAD_BUSY</source>
+      <extracomment>Another installation is using this download. Wait for it to finish, then retry.</extracomment>
+      <translation>다른 설치에서 이 파일을 사용 중입니다. 완료된 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_DOWNLOAD_RANGE</source>
+      <extracomment>The download server returned an unexpected response. Retry the download.</extracomment>
+      <translation>다운로드 서버가 예상과 다른 응답을 보냈습니다. 다운로드를 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_REFERENCE_MISMATCH</source>
+      <extracomment>Model verification failed: {profile}, {tensor}, {mismatched}/{total} values differ (maximum difference {maximum:.6f}). Retry model preparation.</extracomment>
+      <translation>모델 검증에 실패했습니다: {profile}, {tensor}, {mismatched}/{total}개 값 차이(최대 오차 {maximum:.6f}). 모델 준비를 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_REFERENCE_SCHEMA</source>
+      <extracomment>Model verification returned invalid tensors for {profile}. Prepare the model again.</extracomment>
+      <translation>{profile} 모델 검증에서 올바르지 않은 출력이 감지되었습니다. 모델을 다시 준비하세요.</translation>
     </message>
   </context>
   <context>
     <name>PublicErrors</name>
+    <message>
+      <source>E_MEDIA_PROCESS</source>
+      <extracomment>A media tool failed or stopped responding. Check the input and retry.</extracomment>
+      <translation>미디어 도구 실행에 실패했거나 응답하지 않습니다. 입력 파일을 확인하고 다시 시도하세요.</translation>
+    </message>
     <message>
       <source>E_ENGINE_BUILD_FAILED</source>
       <extracomment>TensorRT engine build failed. Check the driver and available GPU memory.</extracomment>
@@ -3535,8 +3630,33 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     </message>
     <message>
       <source>E_SETUP_SELECTION_CHANGED</source>
-      <extracomment>The selected source or settings changed during setup. Start 3D again.</extracomment>
-      <translation>설치 중 선택한 입력이나 설정이 변경되었습니다. 3D를 다시 시작하세요.</translation>
+      <extracomment>The selected input or settings changed during setup. Start your task again.</extracomment>
+      <translation>설치 중 선택한 입력이나 설정이 변경되었습니다. 작업을 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>E_DOWNLOAD_BROWSER</source>
+      <extracomment>Could not open the download in your browser. Download the pack from the ScreenTo3D release page, then use Install from file.</extracomment>
+      <translation>브라우저에서 다운로드를 열지 못했습니다. ScreenTo3D 릴리스 페이지에서 팩을 받은 뒤 파일에서 설치를 누르세요.</translation>
+    </message>
+    <message>
+      <source>E_DOWNLOAD_BUSY</source>
+      <extracomment>Another installation is using this download. Wait for it to finish, then retry.</extracomment>
+      <translation>다른 설치에서 이 파일을 사용 중입니다. 완료된 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_DOWNLOAD_RANGE</source>
+      <extracomment>The download server returned an unexpected response. Retry the download.</extracomment>
+      <translation>다운로드 서버가 예상과 다른 응답을 보냈습니다. 다운로드를 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_REFERENCE_MISMATCH</source>
+      <extracomment>Model numerical verification failed. Retry model preparation.</extracomment>
+      <translation>모델 수치 검증에 실패했습니다. 모델 준비를 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_ENGINE_REFERENCE_SCHEMA</source>
+      <extracomment>Model verification returned invalid tensors. Prepare the model again.</extracomment>
+      <translation>모델 검증에서 올바르지 않은 출력이 감지되었습니다. 모델을 다시 준비하세요.</translation>
     </message>
   </context>
   <context>
@@ -3560,6 +3680,10 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     <message>
       <source>After installation, start your task again.</source>
       <translation>설치가 끝나면 작업을 다시 시작하세요.</translation>
+    </message>
+    <message>
+      <source>Prepare required files</source>
+      <translation>필수 파일 준비</translation>
     </message>
   </context>
 </TS>

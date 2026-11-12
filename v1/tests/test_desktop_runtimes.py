@@ -4,6 +4,7 @@ from unittest.mock import patch,Mock
 from io import BytesIO
 from zipfile import ZipFile
 from depthsbs_app import desktop_runtimes as runtimes,optional_models as models
+from depthsbs_app import download_cache
 
 
 class DesktopRuntimeTests(unittest.TestCase):
@@ -18,6 +19,7 @@ class DesktopRuntimeTests(unittest.TestCase):
         self.enterContext(patch.dict(runtimes.PACKS,{self.key:self.pack}))
         self.enterContext(patch.dict(models.PACKS,{self.key:models.Pack('Owned fixture',self.pack['filename'],self.pack['size'],self.pack['sha'],'')}))
         self.enterContext(patch.object(models,'installed_path',return_value=self.target))
+        self.enterContext(patch.object(download_cache,'cache_root',return_value=self.root/'downloads'))
         self.marker=self.root/'app/ffmpeg';self.marker.mkdir(parents=True)
         (self.marker/'component-layout.json').write_text(json.dumps(dict(schema=1,component=self.key)))
 
@@ -42,10 +44,13 @@ class DesktopRuntimeTests(unittest.TestCase):
 
     def test_https_download_uses_pinned_archive_and_rejects_redirect_downgrade(self):
         response=BytesIO(self.archive.read_bytes());response.geturl=lambda:'https://download.example/component.zip'
-        with patch.object(models,'urlopen',return_value=response):self.install(source='https://download.example/component.zip')
+        response.status=200;response.headers={'Content-Length':str(self.archive.stat().st_size)}
+        with patch.object(download_cache,'build_opener',return_value=Mock(open=Mock(return_value=response))):self.install(source='https://download.example/component.zip')
         self.assertTrue(models.available(self.key,self.target))
         other=self.root/'other';response=BytesIO(self.archive.read_bytes());response.geturl=lambda:'http://download.example/component.zip'
-        with patch.object(models,'urlopen',return_value=response),self.assertRaisesRegex(ValueError,'secure connection'):
+        # Use a new source hash directory so this check cannot be satisfied by cache.
+        with patch.object(download_cache,'cache_root',return_value=self.root/'other-downloads'),\
+             patch.object(download_cache,'build_opener',return_value=Mock(open=Mock(return_value=response))),self.assertRaisesRegex(ValueError,'secure connection'):
             models.install(self.key,'https://download.example/component.zip',other,lambda *_:None,lambda:False)
         self.assertFalse(other.exists())
 
