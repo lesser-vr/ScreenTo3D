@@ -1,12 +1,21 @@
 # Current implementation status
 
-Privacy path cleanup completed locally (2026-11-13). Known personal paths are
-replaced in current documents and the 109-commit reachable history; commit
+The 1.0.0 release was refreshed in place (2026-11-13), preserving release
+441937625 and its existing download names. App/source ZIPs, manifest and checksums
+were replaced; the other 13 assets retain their IDs and hashes. The source CI at
+f20e9d8 passes, as do 526 local CPU/Qt contracts. Actual app/source/helper downloads,
+full archive hashes, known-path/cache checks, source parity and checksum extraction
+pass; the downloaded EXE opens and closes normally with a Windows-only PATH.
+Runtime originals now download from publishers and Base/VDA from the fixed public
+model release without login. Repository access is still required for the private
+app release. See [release refresh evidence](evidence/release-refresh-20261113.md).
+
+Privacy path cleanup is included in that release. Known personal paths are
+replaced in current documents and the 109 pre-existing commits; commit
 emails, dates and messages are preserved. License-directory bytecode no longer
 survives packaging. A new 182,755,816-byte app ZIP passes 16 packaging contracts,
 known-path/cache scans, notice/source hash checks and extracted EXE launch/close.
-The source snapshot is refreshed locally. Publishing the sanitized main/tag
-history does not replace existing GitHub release ZIPs. See
+The refreshed source snapshot is also published. See
 [privacy fix evidence](evidence/privacy-path-fixes-20261113.md).
 
 All three OMA review findings are fixed locally (2026-11-12): mux retains the
@@ -19,7 +28,8 @@ Windows Qt fits the complete window/buttons at 960x522 and normal work areas.
 Local prepared EXE folders have the updated Python/QML/catalog files. Small,
 Base and VDA convert/decode short files using existing verified engine caches;
 no model graph/engine rebuild or physical stereo acceptance is implied. The new
-local privacy ZIP above includes these fixes; remote app/model releases are unchanged. See
+privacy ZIP and refreshed app release above include these fixes; the public
+model release's bytes are unchanged. See
 [fix evidence](evidence/oma-review-fixes-20261112.md) and the historical
 [review/reproductions](evidence/oma-qa-project-review-20261112.md).
 
