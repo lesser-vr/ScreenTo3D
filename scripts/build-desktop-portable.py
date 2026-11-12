@@ -46,7 +46,28 @@ def copy(src, dst, *, package_root=None, excluded=None):
 CUDA_RUNTIME_SHA='352ba4ebe61e9a3b171f357a3daf5dd15b6af4a9857673ff893bd6fd2964c075'
 
 
-def build(dest, python_zip, origin, *, full_runtime=False,cuda_runtime=None,bundled_components=False):
+def bundle_model_packs(stage,source=None):
+    from depthsbs_app.optional_models import PACKS
+    source=Path(source) if source else ROOT/'out/desktop-distribution/packs'
+    selected={key:PACKS[key] for key in ('da2-base','vda-small')}
+    for pack in selected.values():
+        path=source/pack.filename
+        if path.stat().st_size!=pack.size or digest(path)!=pack.sha:
+            raise ValueError('Bundled model pack differs from trusted pin: '+pack.filename)
+    for pack in selected.values():copy(source/pack.filename,stage/'packs'/pack.filename)
+    return {key:dict(filename=pack.filename,bytes=pack.size,sha256=pack.sha) for key,pack in selected.items()}
+
+
+def model_distribution(stage,origin=None,bundled=False,source=None):
+    from depthsbs_app.optional_models import MODEL_ORIGIN,model_downloads
+    downloads=model_downloads(origin if origin is not None else MODEL_ORIGIN)
+    base=downloads['da2-base']['url'].rsplit('/',1)[0]
+    (stage/'model-origin.txt').write_text(base+'\n',encoding='utf-8')
+    return dict(bundled_model_packs=bundle_model_packs(stage,source) if bundled else {},
+                model_pack_downloads={} if bundled else downloads)
+
+
+def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None,bundled_components=False,export_runtime_packs=False,bundled_models=False):
     sys.path.insert(0, str(ROOT/'v1'))
     from depthsbs_app.portable_cuda import PINS
     from depthsbs_app import __version__
@@ -64,7 +85,7 @@ def build(dest, python_zip, origin, *, full_runtime=False,cuda_runtime=None,bund
     bundled_components=bundled_components or full_runtime
     cuda_runtime=Path(cuda_runtime) if cuda_runtime else Path('C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.1/bin/x64/cudart64_13.dll')
     if digest(cuda_runtime)!=CUDA_RUNTIME_SHA:raise ValueError('CUDA 13.1 runtime identity mismatch')
-    if not bundled_components:
+    if not bundled_components and export_runtime_packs:
         spec=importlib.util.spec_from_file_location('desktop_component_packs',ROOT/'scripts/build-component-packs.py')
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         module.build(dest.parent/'runtime-packs',media,cuda_runtime)
@@ -90,8 +111,7 @@ def build(dest, python_zip, origin, *, full_runtime=False,cuda_runtime=None,bund
             'python313.zip\n.\n../v1\n../packages\nimport site\n', encoding='ascii')
         copy(ROOT/'out/desktop-launcher/ScreenTo3D.exe', stage/'ScreenTo3D.exe')
         (stage/'desktop-portable').touch()
-        if origin:
-            (stage/'model-origin.txt').write_text(origin, encoding='utf-8')
+        model_info=model_distribution(stage,origin,bundled_models)
         for name, pin in PINS.items():
             rel = Path('out/portable-cuda')/name
             if digest(ROOT/rel) != pin:
@@ -104,7 +124,7 @@ def build(dest, python_zip, origin, *, full_runtime=False,cuda_runtime=None,bund
             pack_spec=importlib.util.spec_from_file_location('desktop_runtime_packs',ROOT/'scripts/build-runtime-packs.py')
             pack_module=importlib.util.module_from_spec(pack_spec);pack_spec.loader.exec_module(pack_module)
             verify(runtime,CATALOG['common'])
-            pack_module.build(dest.parent/'runtime-packs')
+            if export_runtime_packs:pack_module.build(dest.parent/'runtime-packs')
         for path in runtime.iterdir():
             reason=runtime_exclusion(path.name)
             if reason:
@@ -151,14 +171,15 @@ def build(dest, python_zip, origin, *, full_runtime=False,cuda_runtime=None,bund
             source_dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),
             packaging_exclusions=excluded,
             qt_deployment_profile=dict(version=QT_PROFILE['pyside_version'],bindings=QT_PROFILE['bindings'],libraries=QT_PROFILE['libraries']),
-            tensorrt_builder_resources='full' if full_runtime else 'GPU-selected pinned sidecar packs',
-            desktop_components='bundled' if bundled_components else 'on-demand pinned packs',
+            tensorrt_builder_resources='full' if full_runtime else 'GPU-selected pinned sidecar packs' if export_runtime_packs else 'GPU-selected official downloads',
+            desktop_components='bundled' if bundled_components else 'on-demand pinned packs' if export_runtime_packs else 'on-demand official downloads',
             ffmpeg=media_metadata,
             gpu_buffers='native CUDA; no Torch runtime',cuda_runtime_sha256=CUDA_RUNTIME_SHA,
             built_at_utc=datetime.now(timezone.utc).isoformat(),
             python='CPython 3.13.9 Windows x64 embeddable',python_zip_sha256=PYTHON_SHA,
             small_onnx_sha256=manifest['onnx_sha256'],portable_cuda_sha256=PINS,
-            optional_models='DA2 Base and VDA Small local packs; NVIDIA VFG official download, default off')
+            optional_models='DA2 Base and VDA Small '+('bundled ONNX packs' if bundled_models else 'pinned public model downloads')+'; NVIDIA VFG official download, default off',
+            **model_info,upstream_downloads=['tensorrt','cuda','ffmpeg','vfg'])
         metadata['application_source_sha256']={p.relative_to(stage).as_posix():digest(p)
             for p in (stage/'v1/depthsbs_app').rglob('*') if p.is_file()}
         (stage/'build-manifest.json').write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf-8')
@@ -170,8 +191,10 @@ if __name__ == '__main__':
     parser.add_argument('output', type=Path)
     parser.add_argument('--python-zip', required=True, type=Path)
     parser.add_argument('--model-origin', help='HTTPS directory hosting the two pinned ONNX packs')
-    parser.add_argument('--full-runtime',action='store_true',help='Include every GPU builder resource for a self-contained offline bundle')
+    parser.add_argument('--bundle-models',action='store_true',help='Include Base/VDA ONNX packs for optional offline delivery; default downloads public packs')
+    parser.add_argument('--full-runtime',action='store_true',help='Include all runtime/GPU resources; add --bundle-models for fully offline delivery')
     parser.add_argument('--cuda-runtime',type=Path,help='Pinned CUDA 13.1 cudart64_13.dll (build input only)')
     parser.add_argument('--bundled-components',action='store_true',help='Keep common TensorRT and media tools in the app for offline delivery')
+    parser.add_argument('--export-runtime-packs',action='store_true',help='Also export optional legacy offline runtime sidecars')
     args = parser.parse_args()
-    build(args.output, args.python_zip, args.model_origin,full_runtime=args.full_runtime,cuda_runtime=args.cuda_runtime,bundled_components=args.bundled_components)
+    build(args.output, args.python_zip, args.model_origin,full_runtime=args.full_runtime,cuda_runtime=args.cuda_runtime,bundled_components=args.bundled_components,export_runtime_packs=args.export_runtime_packs,bundled_models=args.bundle_models)

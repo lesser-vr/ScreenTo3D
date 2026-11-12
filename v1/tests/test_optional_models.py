@@ -56,6 +56,16 @@ class OptionalInstallTests(unittest.TestCase):
         with patch('depthsbs_app.engine_cache.device_identity', return_value={'uuid': 'device-a'}):
             self.assertEqual(models.installed_path('da2-base'), path)
 
+    def test_public_default_and_distributor_override_keep_the_same_hash_identity(self):
+        with patch.object(models,'ROOT',self.root/'app'):
+            app=self.root/'app';app.mkdir()
+            self.assertEqual(models.source_for('da2-base'),models.MODEL_ORIGIN+'/'+self.pack.filename)
+            (app/'model-origin.txt').write_text('https://example.test/fixed-version/\n')
+            self.assertEqual(models.source_for('da2-base'),'https://example.test/fixed-version/'+self.pack.filename)
+            self.assertEqual(models.model_downloads('https://example.test/fixed-version')['da2-base']['sha256'],self.pack.sha)
+            (app/'model-origin.txt').write_text('http://example.test')
+            with self.assertRaises(ValueError):models.source_for('da2-base')
+
     def test_other_existing_directory_is_preserved(self):
         self.target.mkdir(parents=True)
         sentinel = self.target/'user-data'

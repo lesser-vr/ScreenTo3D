@@ -19,10 +19,32 @@ def digest(path):
 def package(app,output,packs,runtime_packs=None):
     app=app.resolve();output=output.resolve()
     info=json.loads((app/'build-manifest.json').read_text(encoding='utf-8'))
+    model_downloads=info.get('model_pack_downloads',{})
+    if model_downloads and packs:
+        raise ValueError('Publish model packs in their separate release; --packs is for legacy offline packages.')
+    if model_downloads and (app/'packs').exists() and any((app/'packs').iterdir()):
+        raise ValueError('A public-download application must not accidentally bundle model packs.')
+    upstream_checks=[]
+    model_checks=[]
+    if info.get('upstream_downloads'):
+        import sys
+        sys.path.insert(0,str(ROOT/'v1'))
+        from depthsbs_app.upstream_check import check
+        upstream=json.loads((app/'v1/depthsbs_app/upstream_sources.json').read_text(encoding='utf-8'))
+        upstream_checks=check(upstream['artifacts'],info['upstream_downloads'])
+    if model_downloads:
+        import sys
+        sys.path.insert(0,str(ROOT/'v1'))
+        from depthsbs_app.upstream_check import check
+        model_checks=check(model_downloads,model_downloads)
     version=info['product_version'];name=f'ScreenTo3D-{version}'
     if app.name!=name:raise ValueError(f'The portable folder must be named {name}.')
     if output.exists():raise ValueError('Choose a new archive output directory.')
-    files=sorted((p for p in app.rglob('*') if p.is_file()),key=lambda p:(-p.stat().st_size,p.as_posix()))
+    import sys
+    sys.path.insert(0,str(ROOT/'v1'))
+    from depthsbs_app.portable_package import exclusion
+    files=sorted((p for p in app.rglob('*') if p.is_file() and not exclusion(p.relative_to(app))),
+                 key=lambda p:(-p.stat().st_size,p.as_posix()))
     if not files or any(p.is_symlink() or p.stat().st_size>=MAX_ASSET-32*1024**2 for p in files):
         raise ValueError('Cannot safely package an empty, linked or oversized portable tree.')
     output.parent.mkdir(parents=True,exist_ok=True)
@@ -52,7 +74,7 @@ def package(app,output,packs,runtime_packs=None):
             single=f'{name}-windows-x64.zip'
             (stage/assets[0]['name']).rename(stage/single)
             assets[0]['name']=single
-        if packs:
+        if packs and not info.get('bundled_model_packs'):
             import sys
             sys.path.insert(0,str(ROOT/'v1'))
             from depthsbs_app.optional_models import PACKS
@@ -89,7 +111,7 @@ def package(app,output,packs,runtime_packs=None):
                 except OSError:shutil.copy2(source,stage/source.name)
                 assets.append(dict(name=source.name,kind='component-runtime',root='runtime-packs',bytes=item['size'],sha256=item['sha']))
         manifest=dict(product='ScreenTo3D',product_version=version,source_commit=info['source_commit'],
-            app_bytes=sum(p.stat().st_size for p in files),app_files=len(files),assets=assets,
+            app_bytes=sum(p.stat().st_size for p in files),app_files=len(files),assets=assets,upstream_download_checks=upstream_checks,model_download_checks=model_checks,
             extraction='All application ZIPs have disjoint entries; extract into the same new directory. Optional packs are siblings of the app.')
         (stage/'release-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
         for file in ('Extract-ScreenTo3D.cmd','Extract-ScreenTo3D.ps1'):

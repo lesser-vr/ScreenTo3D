@@ -12,10 +12,13 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
-from urllib.request import urlopen
 from zipfile import ZipFile
 
 from .desktop_jobs import ROOT
+
+MODEL_REPOSITORY = 'lesser-vr/ScreenTo3D-Models'
+MODEL_RELEASE = 'packs-2026.11.1'
+MODEL_ORIGIN = f'https://github.com/{MODEL_REPOSITORY}/releases/download/{MODEL_RELEASE}'
 
 
 @dataclass(frozen=True)
@@ -61,6 +64,15 @@ GRAPH_HASHES = {
 }
 
 
+def model_downloads(origin=MODEL_ORIGIN):
+    """Exact model identities; remote metadata never authorizes new bytes."""
+    base=origin.strip().rstrip('/')
+    if urlsplit(base).scheme != 'https' or not urlsplit(base).hostname:
+        raise ValueError(E('E_MODEL_URL_INVALID'))
+    return {key:dict(url=base+'/'+PACKS[key].filename,size=PACKS[key].size,sha256=PACKS[key].sha)
+            for key in GRAPH_HASHES}
+
+
 def model_root(key):
     local = Path(os.environ.get('LOCALAPPDATA', Path.home() / 'AppData/Local'))
     return local / 'DepthSBS' / 'models' / key / PACKS[key].sha[:16]
@@ -104,24 +116,18 @@ def source_for(key):
     if key == 'vfg':
         return 'https://pypi.nvidia.com/nvidia-vfx/' + pack.filename
     category='runtime-packs' if key in BUILDER_PACKS or key in COMPONENT_PACKS else 'packs'
-    folders=(ROOT.parent/category,ROOT/'out/desktop-distribution'/category)
-    # A supplied GPU sidecar must remain usable offline even when this build
-    # also carries an HTTPS origin. Model-download priority stays unchanged.
+    folders=(ROOT/category,ROOT.parent/category,ROOT/'out/desktop-distribution'/category)
+    # Bundled models and original offline packs require no network source.
+    for folder in folders:
+        if (folder/pack.filename).is_file():return folder/pack.filename
     if key in BUILDER_PACKS or key in COMPONENT_PACKS:
-        for folder in folders:
-            if (folder/pack.filename).is_file():return folder/pack.filename
+        from .official_sources import OfficialSource
+        return OfficialSource(key)
     # A distributor supplies the origin together with the desktop build. The
     # origin cannot change the digest or the engine version the app accepts.
     origin = ROOT / 'model-origin.txt'
-    if origin.is_file():
-        base = origin.read_text(encoding='utf-8').strip().rstrip('/')
-        if urlsplit(base).scheme != 'https' or not urlsplit(base).hostname:
-            raise ValueError(E('E_MODEL_URL_INVALID'))
-        return base + '/' + pack.filename
-    for folder in folders:
-        if (folder / pack.filename).is_file():
-            return folder / pack.filename
-    raise FileNotFoundError(E('E_MODEL_SERVER_UNCONFIGURED'))
+    base = origin.read_text(encoding='utf-8') if origin.is_file() else MODEL_ORIGIN
+    return model_downloads(base)[key]['url']
 
 
 def optimize(key, payload, cancelled):
@@ -147,6 +153,8 @@ def optimize(key, payload, cancelled):
 
 
 def install(key, source, target, progress, cancelled):
+    from .official_sources import OfficialSource,populate
+    from .download_cache import fetch
     pack = PACKS[key]
     target = Path(target)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -159,45 +167,19 @@ def install(key, source, target, progress, cancelled):
         archive = Path(scratch) / pack.filename
         payload = Path(scratch) / 'ready'
         payload.mkdir()
-        digest = hashlib.sha256()
-        read = 0
         expanded=sum(p['bytes'] for p in COMPONENT_PACKS[key]['files'].values()) if key in COMPONENT_PACKS else pack.size
         required = pack.size*4 if key in GRAPH_HASHES else pack.size+expanded+16*1024**2
         if shutil.disk_usage(scratch).free < required:
             raise OSError(E('E_INSTALL_SPACE_REQUIRED', v0=required / 1e9))
         check()
-        with (source.open('rb') if isinstance(source, Path) else urlopen(source, timeout=12)) as stream:
-            if not isinstance(source, Path) and urlsplit(stream.geturl()).scheme != 'https':
-                raise ValueError(E('E_MODEL_TLS_INVALID'))
-            with archive.open('wb') as output:
-                while chunk := stream.read(1024 * 1024):
-                    check()
-                    read += len(chunk)
-                    if read > pack.size:
-                        raise ValueError(E('E_MODEL_DOWNLOAD_SIZE'))
-                    digest.update(chunk)
-                    output.write(chunk)
-                    progress(M('Downloading files'), read * 100 // pack.size)
-        if read != pack.size or digest.hexdigest() != pack.sha:
-            raise ValueError(E('E_MODEL_CHECKSUM_FAILED'))
-        progress(M('Installing verified files'), -1)
-        with ZipFile(archive) as z:
-            if key == 'vfg':
-                from .vfg_runtime import PINS
-                members = {'nvvfx/libs/' + Path(name).name: name for name in PINS}
-                members.update({name: 'licenses/' + Path(name).name for name in z.namelist()
-                                if '.dist-info/licenses/' in name and not name.endswith('/')})
+        if isinstance(source,OfficialSource):
+            populate(source,payload,progress,cancelled)
+        else:
+            if not isinstance(source,Path):
+                archive=fetch(pack.filename,source,pack.size,pack.sha,progress,cancelled)
             else:
-                members = {name: name for name in z.namelist()}
-            for member, relative in members.items():
-                dest = payload / relative
-                if not dest.resolve().is_relative_to(payload.resolve()):
-                    raise ValueError(E('E_MODEL_ARCHIVE_PATH_INVALID'))
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                with z.open(member) as src, dest.open('xb') as dst:
-                    while chunk := src.read(1024 * 1024):
-                        check()
-                        dst.write(chunk)
+                _copy_verified_archive(source,archive,pack,progress,check)
+            _extract_archive(key,archive,payload,check)
         if key == 'vfg':
             (payload/'licenses/NOTICE.txt').write_text(
                 'Licensed by NVIDIA Corporation under the NVIDIA Open Model License\n', encoding='utf-8')
@@ -223,4 +205,36 @@ def install(key, source, target, progress, cancelled):
             if key in COMPONENT_PACKS:
                 from .desktop_runtimes import validate_payload
                 validate_payload(key,target)
+            elif key in BUILDER_PACKS:
+                from .builder_resources import validate_payload
+                validate_payload(key,target)
         return target
+
+
+def _copy_verified_archive(source,archive,pack,progress,check):
+    digest=hashlib.sha256();read=0
+    with source.open('rb') as stream,archive.open('wb') as output:
+        while chunk := stream.read(1024 * 1024):
+            check()
+            read += len(chunk)
+            if read > pack.size:raise ValueError(E('E_MODEL_DOWNLOAD_SIZE'))
+            digest.update(chunk);output.write(chunk)
+            progress(M('Verifying installation file'), read * 100 // pack.size)
+    if read != pack.size or digest.hexdigest() != pack.sha:raise ValueError(E('E_MODEL_CHECKSUM_FAILED'))
+    progress(M('Installing verified files'), -1)
+
+
+def _extract_archive(key,archive,payload,check):
+    with ZipFile(archive) as z:
+        if key == 'vfg':
+            from .vfg_runtime import PINS
+            members = {'nvvfx/libs/' + Path(name).name: name for name in PINS}
+            members.update({name: 'licenses/' + Path(name).name for name in z.namelist()
+                            if '.dist-info/licenses/' in name and not name.endswith('/')})
+        else:members = {name: name for name in z.namelist()}
+        for member, relative in members.items():
+            dest = payload / relative
+            if not dest.resolve().is_relative_to(payload.resolve()):raise ValueError(E('E_MODEL_ARCHIVE_PATH_INVALID'))
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            with z.open(member) as src, dest.open('xb') as dst:
+                while chunk := src.read(1024 * 1024):check();dst.write(chunk)

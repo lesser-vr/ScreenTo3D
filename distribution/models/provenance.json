@@ -1,0 +1,26 @@
+{
+  "da2-base": {
+    "license": "CC-BY-NC-4.0",
+    "upstream_model": "https://huggingface.co/depth-anything/Depth-Anything-V2-Base",
+    "upstream_source": "https://github.com/DepthAnything/Depth-Anything-V2",
+    "source_revision": "a561b849ebae10a6f5ef49e26c83cbbcd36c71bf",
+    "weight_revision": "a4e71a6c2ce52fe50df0f212066b0d4a87be9b5e",
+    "weight_filename": "depth_anything_v2_vitb.pth",
+    "weight_bytes": 389961218,
+    "weight_sha256": "0d2b7002e62d39d655571c371333340bd88f67ab95050c03591555aa05645328",
+    "conversion": "Fixed-shape mixed-FP16 ONNX; Resize, LayerNormalization and Softmax stay FP32; FP32 input/output",
+    "reference_contract": "Final-depth samples: atol=rtol=0.02"
+  },
+  "vda-small": {
+    "license": "Apache-2.0",
+    "upstream_model": "https://huggingface.co/depth-anything/Video-Depth-Anything-Small",
+    "upstream_source": "https://github.com/DepthAnything/Video-Depth-Anything",
+    "source_revision": "4f5ae23172ba60fd7bc11ef671cca678842c7072",
+    "weight_revision": "256875362cff76724b920335dfb4b29dd611f66e",
+    "weight_filename": "video_depth_anything_vits.pth",
+    "weight_bytes": 116440756,
+    "weight_sha256": "13379300b739e659f076a59d52e9801bd8d38c541a7e71f73bbca4dcfb013609",
+    "conversion": "Fixed-shape streaming warmup/cached ONNX; mixed-FP16 encoder projections and spatial attention; FP32 temporal layers, state and output",
+    "reference_contract": "Final-depth samples: atol=rtol=0.001; intermediate cache: vda-fp16-cache-v1"
+  }
+}
