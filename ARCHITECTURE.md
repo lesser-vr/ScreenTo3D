@@ -1,6 +1,6 @@
 # DepthSBS architecture
 
-Status: Current boundary map, reviewed 2026-09-08 against repository contracts.
+Status: Current boundary map, with component updates through 2026-11-12.
 This describes delivered paths and their limits; it does not certify performance.
 See [implementation-status.md](docs/implementation-status.md) for status and [ROADMAP.md](docs/ROADMAP.md) for priorities.
 
@@ -41,10 +41,19 @@ Processing-backend default and delivery-path default are separate decisions.
 
 ## Components and ownership
 
+`media_process.py` owns file-job FFmpeg/FFprobe children, concurrent diagnostic
+drains, bounded log tails/metadata, cancellation during blocked pipe I/O and
+bounded cleanup. `pipeline.py` retains frame/model/stereo ownership, pads shorter
+audio to the finite video stream and checks final MP4 sample count/geometry/time
+before atomic publication. All fallible owned process cleanup precedes replacement.
+`output_placement.control_geometry` fits decorated control windows and their
+minimum sizes; the desktop/QML adapters reapply it on workspace/screen/DPI changes.
+
 `builder_resources.py` owns the bundled TensorRT resource catalog, GPU-architecture
 mapping and exact split-layout validation. `optional_models.py` supplies the
 existing bounded, cancelable, hash-pinned installer for both model and runtime
-packs; runtime packs never invoke model optimization. `resources.py` activates
+packs and owns the fixed separate public model-release origin and model pins.
+Runtime packs never invoke model optimization. `resources.py` activates
 only verified DLL directories before TensorRT import and retains their handles.
 `desktop_runtimes.py` owns the pinned common TensorRT/media component catalogs
 and explicit deferred-layout resolution. Default portable builds install common
@@ -55,8 +64,25 @@ layouts retain their explicit directories.
 `ModelDownloads.ensure` sequences required installations under the shared lease
 after an explicit Start/Install action. Completion hands control directly to the
 requested task; cancellation/failure drops its continuation. The separate,
-capture-excluded `RuntimeSetup.qml` window displays progress and file-install
-recovery. A changed live source/processing selection cancels deferred execution.
+capture-excluded `RuntimeSetup.qml` window displays guidance, progress and file-install
+recovery. `official_sources.py` maps original publisher archives to the existing
+component inventory; `upstream_sources.json` pins their URLs, versions, sizes and
+archive hashes. `download_cache.py` owns per-artifact OS locks, verified/partial
+files, bounded network retries and strict Range/HTTPS handling. Ordinary runtime
+setup needs no configured model origin or browser. `engine_reference.py` owns
+the unchanged final-depth guard, named VDA FP16 cache contract and bounded candidate
+rebuild; build receipts record the contract and number of attempts. Unconfigured
+legacy origins enter guidance without a failed-install event; new builds have
+a fixed public model origin even without an override file.
+The portable builder defaults to public Base/VDA downloads; explicit
+`--bundle-models` produces an offline model layout. Release packaging checks both
+runtime and model URLs and rejects accidental bundled packs in a public-download
+build. `prepare-model-release.py` stages only allowlisted, fully pinned ONNX packs
+and model-specific public license/provenance documents for the model repository.
+`browser_download.py` owns bounded completed-file observation for the authenticated
+browser handoff; the Qt adapter owns its timer and cancels it on dismissal. Detected
+files use the same pinned installer. A changed input/processing selection cancels
+deferred execution; installation-owned engine path updates do not count as a user change.
 `portable_package.py` owns dependency pruning and license-file exceptions.
 `qt_portable_profile.json` records the PySide6 6.10.2 Python/QML/plugin dependency
 closure; the builder rejects another or incomplete SDK instead of applying that

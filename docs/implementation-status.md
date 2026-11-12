@@ -1,5 +1,63 @@
 # Current implementation status
 
+Privacy path cleanup completed locally (2026-11-13). Known personal paths are
+replaced in current documents and the 109-commit reachable history; commit
+emails, dates and messages are preserved. License-directory bytecode no longer
+survives packaging. A new 182,755,816-byte app ZIP passes 16 packaging contracts,
+known-path/cache scans, notice/source hash checks and extracted EXE launch/close.
+The source snapshot is refreshed locally. Publishing the sanitized main/tag
+history does not replace existing GitHub release ZIPs. See
+[privacy fix evidence](evidence/privacy-path-fixes-20261113.md).
+
+All three OMA review findings are fixed locally (2026-11-12): mux retains the
+complete video when audio is shorter, owned FFmpeg pipes drain bounded diagnostics
+and honor cancellation, and control-window minimum sizes fit the logical work
+area. Final MP4 sample count, geometry and duration are checked before publication.
+525 CPU/Qt contracts and 23 controller checks pass. Real short/long/no-audio mux,
+NVENC pipeline, corrupt-input rejection and FFmpeg cancellation checks pass;
+Windows Qt fits the complete window/buttons at 960x522 and normal work areas.
+Local prepared EXE folders have the updated Python/QML/catalog files. Small,
+Base and VDA convert/decode short files using existing verified engine caches;
+no model graph/engine rebuild or physical stereo acceptance is implied. The new
+local privacy ZIP above includes these fixes; remote app/model releases are unchanged. See
+[fix evidence](evidence/oma-review-fixes-20261112.md) and the historical
+[review/reproductions](evidence/oma-qa-project-review-20261112.md).
+
+Separate public model distribution implemented (2026-11-12). The public
+`lesser-vr/ScreenTo3D-Models` repository's `packs-2026.11.1` release publishes
+unchanged Base/VDA ONNX ZIPs plus provenance/checksums. Model-specific CC BY-NC
+and Apache licenses remain separate. Default apps include Small and download
+Base/VDA from fixed public URLs; explicit `--bundle-models` preserves offline
+delivery. Anonymous full downloads and archive hashes pass. The model-free app
+ZIP is 182,773,613 bytes, versus 822,256,200 for the preceding model-bundled
+candidate. Core/platform/profiles/Qt contracts pass 416 checks; file-controller
+contracts pass 23. Fresh isolated packaged setup builds all three models and
+converts/decodes generated video with audio; GUI setup reuses separately verified
+public-download caches. Four bilingual model-setup renders, checksum extraction,
+source/Small identity, extracted EXE launch/normal close and the 121-binary Qt
+dependency check pass. Current source
+worktree changes and the new app ZIP remained local at that build's verification;
+the source repository is private and its app release is unchanged. See
+[public model distribution evidence](evidence/public-model-distribution-20261112.md).
+
+Previous model-bundled/official-download candidate implemented locally (2026-11-12, not
+released). Base/VDA ONNX packs are included in the app. Pinned publisher archives
+download without sign-in, with verified cache reuse, resumable partial files and
+bounded retries. Release packaging checks upstream availability before publishing
+local assets; a full-hash check command is also available. Core/platform/Qt
+contracts pass 318 checks and file-controller contracts pass 23. A fresh isolated
+portable prepares all three models and converts/decodes generated audio/video
+with Small, Base and VDA. Original publisher archives were fully downloaded and
+hash-verified; GUI setup then reused those originals. VDA's observed false
+rejection is captured as a TC: final-depth checks stay fixed while the named FP16
+cache contract bounds tensor RMSE and worst error. See
+[official-download and VDA evidence](evidence/official-downloads-20261112.md).
+The final single ZIP is 822,256,200 bytes; checksum extraction, isolated-path
+EXE launch/normal close and the 121-binary Qt dependency closure pass.
+The repository remains private; no commit, push or remote release replacement
+was performed. The earlier browser-handoff candidate is historical evidence in
+[first-use guidance](evidence/first-use-guidance-20261112.md).
+
 1.0.0 release explicitly deleted and recreated (2026-11-12). The old release
 `441356629` is gone; the new published/latest release is `441937625`, using the
 same `v1.0.0` tag. All 17 assets were reuploaded and their sizes/server digests

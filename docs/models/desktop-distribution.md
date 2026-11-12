@@ -2,12 +2,12 @@
 
 `ScreenTo3D.exe`의 최초 기본값은 실시간 3D에서 DA2 Small, 파일 변환에서 DA2 Base이다. 저장된 사용자 선택이 있으면 복원한다. Small ONNX는 본체에 포함한다. 첫 사용 때 GPU용 엔진을 로컬에 만든다. 파일 변환의 Base를 설치하지 않았다면 설치 안내가 표시되며, Small을 직접 선택할 수도 있다.
 
-실시간 출력 설정의 깊이 모델에서 DA2 Base·VDA Small을 선택하거나 프레임 보간(VFG)을 켜면 필요한 파일의 용량과 조건이 표시된다. 파일 변환도 같은 모델 설치를 공유하며 별도의 입체감·VFG 옵션을 제공한다. 설치 후 사용자가 3D 시작 또는 파일 변환을 누른다.
+실시간 출력 설정의 깊이 모델에서 DA2 Base·VDA Small을 선택하거나 프레임 보간(VFG)을 켜면 필요한 파일의 용량과 조건이 표시된다. 파일 변환도 같은 모델 설치를 공유하며 별도의 입체감·VFG 옵션을 제공한다. 작업 시작에서 필요한 설치가 끝나면 요청 작업을 계속하고, 별도 설치 화면에서 설치했다면 사용자가 작업을 시작한다. 모델 선택만으로 다운로드하지 않는다.
 
 | 선택 | 다운로드 | 적용 범위 |
 |---|---|---|
-| 공통 TensorRT 구성요소 | 약 438 MB | 첫 3D 실행 또는 모델 엔진 설치 전에 준비. 전체 런타임·PTX·CUDA 런타임과 고지. |
-| 미디어 도구 | 약 92 MB | 파일 변환 첫 실행 전에 FFmpeg·FFprobe와 공유 DLL·고지 설치. |
+| 공통 TensorRT 구성요소 | 공식 원본 약 1.96 GB + CUDA 약 3 MB | 첫 3D 실행 또는 모델 엔진 설치 전에 준비. 같은 TensorRT 원본을 GPU 리소스 설치와 공유. |
+| 미디어 도구 | 공식 원본 약 97 MB | 파일 변환 첫 실행 전에 FFmpeg·FFprobe와 공유 DLL·고지 설치. |
 | DA2 Base | DA2 Base 약 392 MB | 두 화면 비율의 혼합 FP16 ONNX 그래프와 검증 데이터. CC BY-NC 4.0. |
 | VDA Small·VDA Small 5프레임 | VDA Small 약 363 MB | 인코더 혼합 FP16 ONNX와 검증 데이터. 두 화면 비율에 대해 첫 프레임·후속 프레임 엔진을 만든다. Apache 2.0. |
 | 프레임 보간 | NVIDIA 공식 wheel 약 436 MB | 기본 꺼짐. Small·Base의 지원되는 창 캡처에서 사용한다. wheel을 검증하고 VFG 구성요소와 NVIDIA 고지만 설치한다. |
@@ -15,14 +15,19 @@
 ## 배포 준비
 
 1.0.0 배포 파일과 실행 순서는 [릴리스 안내](../releases/1.0.0.md)에 있습니다.
-현재 앱은 `ScreenTo3D-1.0.0-windows-x64.zip` 하나를 직접 풀고 EXE를 실행하면 됩니다.
+앱은 `ScreenTo3D-1.0.0-windows-x64.zip` 하나를 직접 풀고 EXE를 실행합니다.
 추출 도구는 체크섬 검사와 팩 일괄 배치를 위한 선택 사항이며 기존 목적지를 덮어쓰지 않습니다.
 빌더는 단일 ZIP에서 part 접미사를 생략하고, 여러 ZIP이 필요한 큰 배포본에만 번호를 붙입니다.
-선택 모델 ZIP은 앱 옆 `packs/`에 풉니다.
+새 기본 빌드는 Small만 포함하며 Base·VDA는 별도 공개
+[모델 저장소](https://github.com/lesser-vr/ScreenTo3D-Models)의 고정 릴리즈에서 받습니다.
+`--bundle-models`를 지정할 때만 앱 내부 `packs/`에 두 팩을 포함합니다.
 
-이후 소스 빌더의 기본 출력은 **첫 사용 설치형**입니다. 기존 1.0.0 공개
-파일은 변경하지 않습니다. 공통 TensorRT DLL·PTX·CUDA 런타임, 미디어 도구,
-엔진 생성에 필요한 GPU 아키텍처별 리소스를 별도 ZIP으로 제공합니다. `runtime-packs/`는
+소스 빌더의 기본 출력은 **Small 동봉·Base/VDA 공개 다운로드·공식 런타임 직접 다운로드형**입니다.
+TensorRT 11.2.1.2, CUDA Runtime 13.1.80, FFmpeg 9.0.1, VFG 0.2.0.0의
+고정 원본 URL·크기·해시는 `upstream_sources.json`이 소유합니다. 전체 원본은
+`%LOCALAPPDATA%\DepthSBS\downloads`에 보관하고 같은 파일을 다시 받지 않습니다.
+`--export-runtime-packs`를 지정한 경우에만 기존 오프라인 런타임 ZIP을 추가로 만듭니다.
+오프라인 팩을 함께 전달할 때 `runtime-packs/`는
 `ScreenTo3D-1.0.0/`와 나란히 둡니다. 추출 도구는 내려받은 런타임 ZIP을 풀지
 않고 그대로 그 폴더에 복사하며, 앱이 필요한 팩만 해시 검증 후 설치합니다.
 SM75·80·86·89·90·100·120은 해당 팩을 선택하고 그 밖은 전체 호환 팩을 선택합니다.
@@ -60,12 +65,23 @@ python scripts/build-model-packs.py out/desktop-distribution/packs
 python scripts/build-desktop-portable.py out/desktop-distribution/ScreenTo3D-1.0.0 `
     --python-zip out/desktop-distribution/python-3.13.9-embed-amd64.zip
 python scripts/package-desktop-release.py out/desktop-distribution/ScreenTo3D-1.0.0 `
-    out/desktop-distribution/assets --packs out/desktop-distribution/packs
+    out/desktop-distribution/assets
 ```
 
-온라인 배포 시 두 모델 ZIP, 공통 TensorRT·미디어 도구 ZIP과 GPU 런타임 ZIP을 배포자가 관리하는 HTTPS 경로에 원래 이름으로 게시하고, 포터블 빌드 명령에 `--model-origin <HTTPS 디렉터리 주소>`를 추가한다. 주소는 결과 앱의 `model-origin.txt`에 들어간다. 빌드 스크립트는 업로드하지 않는다. 비공개 GitHub 릴리스 URL을 공개 다운로드 서버로 가정하지 않으며, 자동 다운로드 주소가 없을 때는 내려받은 원본 팩으로 로컬 설치한다. Base 팩에는 모델의 비상업용 조건이 적용된다. VFG는 앱이 직접 [NVIDIA 공식 인덱스](https://pypi.nvidia.com/nvidia-vfx/)의 고정 파일을 요청한다.
+기본 온라인 설치는 앱이 가진 공개 모델 원본을 사용하며 로그인 구성이 필요 없다.
+`optional_models.py`가 팩별 해시와 `packs-2026.11.1` 고정 원본을 소유한다.
+`--model-origin`은 별도 배포자의 HTTPS 원본 override이며 해시를 바꾸지 못한다.
+Base 팩의 비상업용 조건은 유지한다. 모델 릴리즈 준비는
+`python scripts/prepare-model-release.py <새 출력 폴더>`로 수행한다. 검증된 ZIP과
+모델별 카드·라이선스·출처 manifest만 준비하며 공개 게시 자체는 별도 작업이다.
 
-공통 팩의 원본 이름은 `tensorrt-11.2.1.2-core-v1.zip`, `ffmpeg-9.0.1-shared-v1.zip`이다. 빌더가 `scripts/build-component-packs.py`를 통해 고정 파일 해시·크기를 검증하고 재현 가능한 ZIP을 만든다. 패키저는 두 ZIP을 앱 ZIP 밖에 배치하고 `component-runtime`으로 기록한다. 추출 도구는 받은 팩만 `runtime-packs/`에 복사한다.
+패키징은 앱의 고정 런타임·모델 원본으로 익명 다운로드 접근·파일 크기·ZIP 헤더를 점검하며, 실패하면 릴리스 자산을 만들지 않는다. 원격 모델 빌드에 실수로 팩이 포함되거나 기존 `--packs`로 중복 모델 ZIP을 만들려 하면 거부한다. 전체 해시까지 확인하는 별도 명령은 다음과 같다. 이 명령도 이미 받은 원본을 검증해 재사용한다.
+
+```powershell
+python scripts/check-upstream-downloads.py --models --full --report out/upstream-check.json
+```
+
+선택적인 `--export-runtime-packs` 오프라인 팩 이름은 `tensorrt-11.2.1.2-core-v1.zip`, `ffmpeg-9.0.1-shared-v1.zip`이다. 빌더가 `scripts/build-component-packs.py`를 통해 고정 파일 해시·크기를 검증하고 재현 가능한 ZIP을 만든다. 이 선택 경로에서만 패키저가 두 ZIP을 앱 ZIP 밖에 배치하고 `component-runtime`으로 기록한다. 추출 도구는 받은 팩만 `runtime-packs/`에 복사한다.
 
 오프라인 전달 시 앱과 `packs/`, 필요한 `runtime-packs/`를 나란히 둔다. 모델은 **로컬 팩 설치**로 가져오고 공통·미디어·GPU 런타임은 첫 작업 전에 검증·설치한다. 별도로 받은 파일은 **파일에서 설치**로 선택한다. VFG는 동일한 버전의 원본 NVIDIA wheel을 선택할 수 있다.
 
@@ -73,7 +89,9 @@ python scripts/package-desktop-release.py out/desktop-distribution/ScreenTo3D-1.
 
 빌더는 개발용 라이브러리·헤더·CMake 파일과 C/C++·CUDA·Cython 소스
 (`.c`, `.cc`, `.cpp`, `.cxx`, `.cu`, `.pyx`, `.pxd`, `.pxi`), 미사용 Qt WebEngine을
-제외한다. 라이선스 예외는 확장자보다 우선한다. Qt는
+제외한다. 사용자 빌드 경로를 포함할 수 있는 `__pycache__`·`.pyc`·`.pyo`는
+라이선스 폴더 안에서도 우선 제외한다. 실제 라이선스 문서의 보존은 나머지 확장자
+제외 규칙보다 우선한다. Qt는
 `v1/depthsbs_app/qt_portable_profile.json`에 기록한 **PySide6 6.10.2** 구성만
 포함하며, 빌더는 다른 버전이나 필수 DLL·PYD가 빠진 입력을 거부한다. 실제 앱의
 Python import, QML import scanner와 DLL 의존성을 기준으로 미사용 3D·차트·

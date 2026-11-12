@@ -24,6 +24,15 @@ current loader, not permanent restrictions on future implementations.
   remain enforced until a validated loader change.
 - Preserve output destination/temp-file controls, dependency pinning, inventory,
   parser/config validation and redacted default diagnostics.
+- Official runtime downloads verify full archive hashes before selective extraction
+  and independently check payload hashes. Existing SDK and the explicitly pinned
+  official wheel signatures are accepted for eleven TensorRT DLLs only after their
+  remaining PE bytes were compared equal. Runtime loading never normalizes a
+  binary or trusts an arbitrary same-version replacement. Legacy component marker
+  hashes identify the canonical payload revision, not a claim that a repacked ZIP
+  was downloaded. Numerical candidate retries never alter the declared acceptance
+  contract. VDA's FP16 cache contract and the unchanged final-depth guard are
+  recorded in build receipts; finite/signature checks remain mandatory.
 
 ## Capture, native handles and reporting
 
@@ -89,6 +98,13 @@ permitted use, notices, provenance and bundle/download/user-supplied policy.
 Public availability is not license clearance. Qt, FFmpeg and NVIDIA dependencies
 retain their recorded packaging obligations; source-local use is not clean-machine
 or redistribution certification. Recheck changed artifacts/terms before new use.
+
+The separate public model repository supplies fixed-version Base/VDA ZIPs only;
+the app retains its own size, archive/graph hashes and numerical acceptance rules.
+Remote manifests/checksums are provenance, not authority to replace app pins.
+Public model staging allowlists archive members and excludes app/runtime binaries,
+serialized GPU engines and videos. Model-specific CC BY-NC/Apache notices remain
+separate; repository separation does not relax Base's non-commercial restriction.
 
 ## Build validation and future manifest boundary
 

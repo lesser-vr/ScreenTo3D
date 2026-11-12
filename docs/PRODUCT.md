@@ -67,6 +67,10 @@ gray, white input surfaces, blue primary action, thin borders and compact type.
 Windows title-bar controls remain native and in their usual positions. The selected source shows
 its application icon when available, otherwise a neutral window symbol. Icon
 lookup reads only OS icon metadata, is bounded and never captures a thumbnail.
+Control windows retain their preferred sizes when space permits; file/settings
+minimum sizes shrink to the screen work area, accounting for native window frames,
+so bottom actions remain reachable at smaller logical resolutions. Screen/DPI or
+work-area changes refit those controls. The file settings remain scrollable.
 The quality, file, settings and separate error windows share the light treatment;
 the SBS video surface itself remains black. QML color tokens live in Theme.qml.
 Tooltips and help overlays require nonempty, non-whitespace content and a visible
@@ -104,6 +108,11 @@ Only completed events plus clean worker exit and final-file publication count as
 success. Output paths cannot collide with another job or any input. Existing
 destinations require one explicit replacement confirmation before starting;
 an unapproved destination appearing later stops the queue.
+File mux preserves the video timeline: shorter audio is padded with silence and
+longer audio ends with the video. No-audio input retains every video frame.
+The completed MP4's video frame count, geometry and duration are verified before
+replacing a destination. Media-tool cancellation also interrupts blocked I/O;
+failed/cancelled processing preserves the previous result and stops the queue.
 
 Automatically chosen names use `_Full_SBS`, `_Half_SBS`, `_Full_TB` or `_Half_TB`
 before `.mp4`, adding a number to avoid collisions. Changing the stereo format
@@ -396,7 +405,11 @@ as physical display latency. See [current paths and limits](implementation-statu
 
 The current desktop portable opens live with DA2 Small FP16 bundled and initially
 selects DA2 Base for files; explicit saved selections are restored. Small builds
-its local TensorRT engine on first use. Selecting
+its local TensorRT engine on first use. Base and VDA's verified ONNX/reference ZIPs
+download from the separate public `lesser-vr/ScreenTo3D-Models` release on first
+explicit setup/start. Their original model licenses and conversion provenance
+remain visible; Base is non-commercial. First use then prepares engines
+for the current GPU. Selecting
 Balanced, VDA Small, or enabling VFG exposes the missing component beside that
 selection, with its download size and terms. Installation starts on explicit
 action, shares the processing lease, and supports cancel, retry and a verified
@@ -410,19 +423,45 @@ and state. The installer also verifies its warmup-to-cached transition. The pack
 desktop offers VDA Small for Video Quality; oVDA is a source-only integration.
 Source and portable desktops share these task-specific defaults; saved selections
 reuse installed models without downloading them again.
-New portable builds retain Small and the UI in the app. An explicit Start 3D
-installs missing common TensorRT components before building/using the local
-engine. File Start also installs missing FFmpeg/FFprobe. A separate protected
+New default portable builds retain Small and the UI in the app. Base/VDA packs are
+separate, fixed-version public downloads without a GitHub account or token.
+`--bundle-models` remains an explicit offline-distribution choice. An explicit Start 3D
+routes missing common TensorRT components, GPU resources, the selected optional
+model and enabled VFG to setup before building/using the local engine. File Start
+also prepares missing FFmpeg/FFprobe. Missing files are a normal preparation state,
+not an error or a reason to disable Start when an input is selected. A separate protected
 setup window shows size, progress and Cancel; the requested task continues only
 after successful setup. Cancellation, failure or closing setup keeps the task
 stopped. After a failure, explicit installation may be retried, then Start is
 pressed again. A changed live source or processing selection requires a new Start.
 App launch and merely selecting a model never initiate network downloads.
 The app selects an engine-builder resource by the detected GPU architecture.
-Pinned local `runtime-packs/` sidecars take precedence over a configured HTTPS
-origin; without either, setup offers installation from the original file and an
-actionable separate error. Installed common/media components are reused by both
+Pinned local `runtime-packs/` sidecars remain an offline recovery path. Otherwise
+setup fetches exact original TensorRT/CUDA, FFmpeg and VFG archives directly from
+their publisher endpoints without GitHub/NVIDIA sign-in or user CLI commands.
+Versions, archive sizes and SHA-256 identities are bundled with the app; no
+automatic latest-version substitution is allowed. TensorRT's approximately 1.96 GB
+original archive is shared by common and GPU-resource installation. The UI shows
+the original download size or cache reuse, not the smaller legacy repacked ZIP size.
+Verified originals and interrupted `.part` downloads stay in the user download
+cache. Retry resumes by validated HTTP Range; a server ignoring Range restarts
+the file safely. There are at most three network attempts per action. Cancellation
+retains useful partial data but cancels task continuation. Cached complete files
+are hash-verified before reuse, and installed payload files retain their own pins.
+Original local packs can still be selected with **파일에서 설치**. The legacy browser
+handoff remains only for unconfigured, missing optional source packs, not ordinary
+runtime setup. Installed common/media components are reused by both
 tasks; complete payload verification precedes executable loading.
+Model numerical acceptance keeps the existing final-depth pointwise tolerances.
+VDA's mixed-FP16 intermediate cache uses the named `vda-fp16-cache-v1` contract:
+the prior pointwise check remains accepted, and an FP16 tactic variant can also
+pass with relative tensor RMSE at most 1% and maximum error at most 3% of the
+reference tensor RMS. Shape and finite-value checks remain mandatory; this
+alternative never applies to final depth. A failing
+candidate receives at most one rebuild; a cached-stage mismatch rebuilds that
+stage, while a warmup mismatch rebuilds both dependent stages. Only a candidate
+passing the declared checks is published. Repeated failure reports a localized
+reference error naming the profile and output, rather than an unknown NumPy error.
 Unmapped architectures use the full upstream resource pack; TensorRT determines
 GPU support. Full-runtime builds and source checkouts keep their existing layout.
 The CUDA runtime is in the common component pack. The app needs no manual
