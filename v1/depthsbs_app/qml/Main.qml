@@ -32,23 +32,31 @@ ApplicationWindow {
         if (page === index && index > 1) { tools.showNormal(); tools.raise(); tools.requestActivate() }
         else page = index
     }
+    function fitWorkspace() {
+        desktop.fitControlWindow(root, fileWorkspace ? 760 : 380, fileWorkspace ? 620 : 260, width, height)
+    }
+    function fitTools() {
+        if (tools.visible)
+            desktop.fitControlWindow(tools, page === 3 ? 460 : 760, page === 3 ? 430 : 620, tools.width, tools.height)
+    }
+    Connections {
+        target: desktop
+        function onWorkAreaChanged() { Qt.callLater(root.fitWorkspace); Qt.callLater(root.fitTools) }
+    }
+    onScreenChanged: Qt.callLater(fitWorkspace)
     onPageChanged: {
         if (fileWorkspace !== (page === 1)) {
             if (fileWorkspace) fileSize = Qt.size(width, height)
             else liveSize = Qt.size(width, height)
             fileWorkspace = page === 1
-            minimumWidth = page === 1 ? 760 : 380
-            minimumHeight = page === 1 ? 620 : 260
-            width = fileWorkspace ? fileSize.width : liveSize.width
-            height = fileWorkspace ? fileSize.height : liveSize.height
+            desktop.fitControlWindow(root, fileWorkspace ? 760 : 380, fileWorkspace ? 620 : 260,
+                fileWorkspace ? fileSize.width : liveSize.width, fileWorkspace ? fileSize.height : liveSize.height)
         }
         if (page > 1) {
             if (!desktop.protectWindow(tools)) return
-            tools.minimumWidth = page === 3 ? 460 : 760
-            tools.minimumHeight = page === 3 ? 430 : 620
-            tools.width = page === 3 ? 480 : 860
-            tools.height = page === 3 ? 460 : 740
             tools.showNormal(); tools.raise(); tools.requestActivate()
+            desktop.fitControlWindow(tools, page === 3 ? 460 : 760, page === 3 ? 430 : 620,
+                page === 3 ? 480 : 860, page === 3 ? 460 : 740)
         }
         else tools.hide()
     }
@@ -292,6 +300,7 @@ ApplicationWindow {
         id: tools; objectName: "toolsWindow"
         width: 860; height: 740; minimumWidth: 760; minimumHeight: 620
         visible: false; color: root.color
+        onScreenChanged: Qt.callLater(root.fitTools)
         font: root.font; palette: root.palette
         title: root.page === 3 ? qsTr("ScreenTo3D · Live output settings") : qsTr("ScreenTo3D · Settings and diagnostics")
         onClosing: function(close) { close.accepted = false; root.page = 0 }

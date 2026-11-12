@@ -57,6 +57,7 @@ _qt_dll_directory = (
 class DesktopController(QObject):
     changed = Signal()
     exitReady = Signal()
+    workAreaChanged = Signal()
 
     def __init__(self, preferences=None):
         super().__init__()
@@ -777,6 +778,18 @@ class DesktopController(QObject):
             return False
         return True
 
+    @Slot(QObject,int,int,int,int)
+    def fitControlWindow(self,window,minimum_width,minimum_height,width,height):
+        from PySide6.QtCore import QRect,QSize
+        from PySide6.QtGui import QWindow
+        from .output_placement import control_geometry
+        screen=window.screen()
+        if screen is None:return
+        limits,geometry=control_geometry(QRect(window.x(),window.y(),width,height),
+            screen.availableGeometry(),QSize(minimum_width,minimum_height),window.frameMargins())
+        window.setMinimumSize(limits)
+        if window.visibility() not in (QWindow.Maximized,QWindow.FullScreen):window.setGeometry(geometry)
+
     @Slot(object)
     def showLiveError(self, message):
         if not self.error_dialog.showError(message):
@@ -841,6 +854,11 @@ def create_app(preferences=None):
         raise RuntimeError(E('E_UI_LOAD_FAILED'))
     window = engine.rootObjects()[0]
     controller.main_window = window
+    def watch_work_area(screen):
+        screen.availableGeometryChanged.connect(lambda *_:controller.workAreaChanged.emit())
+        screen.logicalDotsPerInchChanged.connect(lambda *_:controller.workAreaChanged.emit())
+    for screen in app.screens():watch_work_area(screen)
+    app.screenAdded.connect(watch_work_area)
     from .error_dialog import LiveErrorDialog
 
     controller.error_dialog = LiveErrorDialog(window)

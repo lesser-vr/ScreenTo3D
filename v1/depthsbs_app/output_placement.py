@@ -3,7 +3,18 @@ import json
 import os
 from pathlib import Path
 
-from PySide6.QtCore import QRect
+from PySide6.QtCore import QRect,QSize,QMargins
+
+
+def control_geometry(rect,available,minimum,frame=QMargins()):
+    """Fit the whole decorated control window, including minimum-size limits."""
+    client=available.adjusted(frame.left(),frame.top(),-frame.right(),-frame.bottom())
+    width=max(1,client.width());height=max(1,client.height())
+    limits=QSize(min(minimum.width(),width),min(minimum.height(),height))
+    size=QSize(min(max(limits.width(),rect.width()),width),min(max(limits.height(),rect.height()),height))
+    x=min(max(rect.x(),client.x()),client.right()-size.width()+1)
+    y=min(max(rect.y(),client.y()),client.bottom()-size.height()+1)
+    return limits,QRect(x,y,size.width(),size.height())
 
 
 def fit_rect(rect, available):

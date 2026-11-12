@@ -736,9 +736,8 @@ class LivePreview(QObject):
                 self.output_window.hide()
         main = getattr(self.desktop, "main_window", None)
         if main is not None and QGuiApplication.screens():
-            from .output_placement import fit_rect
-            screen = main.screen() or QGuiApplication.primaryScreen()
-            main.setGeometry(fit_rect(main.geometry(), screen.availableGeometry()))
+            files=bool(main.property('fileWorkspace'))
+            self.desktop.fitControlWindow(main,760 if files else 380,620 if files else 260,main.width(),main.height())
             main.showNormal()
         self.changed.emit()
 
