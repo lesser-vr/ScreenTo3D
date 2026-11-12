@@ -11,6 +11,7 @@ import numpy as np
 from .desktop_jobs import BUNDLE
 from .engine_cache import TRT_VERSION, device_identity, save_record
 from .resources import configure_resource_root, prepare_dll_search_path
+from .engine_reference import build_validated
 
 
 def sample_outputs(folder, key, width):
@@ -101,26 +102,23 @@ def build(key, folder):
         name = f'518x{width}-fp16'
         profile = folder/name
         engines = {}
-        for stage in (('model',) if base else ('warmup', 'cached')):
+        stages=('model',) if base else ('warmup','cached')
+        def compile_stage(stage):
             graph = profile/f'{stage}.onnx'
             graph_bytes = graph.read_bytes()
             if hashlib.sha256(graph_bytes).hexdigest() != GRAPH_HASHES[key][width][stage]:
                 raise ValueError(E('E_MODEL_GRAPH_INVALID'))
             engines[stage] = compile_graph(graph_bytes, profile/f'{stage}.plan', trt, logger)
-            del graph_bytes
-            graph.unlink()
-        samples = sample_outputs(profile, key, width)
         reference = profile/'reference.npz'
         with np.load(reference, allow_pickle=False) as stored:
-            if set(stored.files) != set(samples):
-                raise ValueError('Invalid reference tensor set')
-            for label, actual in samples.items():
-                tolerance = 0.02 if base else 0.001
-                np.testing.assert_allclose(actual, stored[label], atol=tolerance, rtol=tolerance)
+            attempts=build_validated(stages,compile_stage,lambda:sample_outputs(profile,key,width),
+                                     stored,0.02 if base else 0.001,name,None if base else 'vda-fp16-cache-v1')
+        for stage in stages:(profile/f'{stage}.onnx').unlink()
         reference.unlink()
         profiles[name] = dict(engines=engines, precision='mixed-fp16', gpu=device['gpu'], compute_capability=device['compute_capability'],
                               tensorrt=trt.__version__, input_shape=[1, 3, 518, width] if base else [1, 1, 3, 518, width],
-                              validation='local-depth-and-cache-samples' if not base else 'local-depth-samples')
+                              validation='local-depth-and-cache-samples' if not base else 'local-depth-samples',validation_attempts=attempts,
+                              reference_contract='base-pointwise-v1' if base else 'vda-fp16-cache-v1')
     save_record(folder/'build.receipt', dict(source=PACKS[key].sha, device=device, profiles=profiles))
 
 

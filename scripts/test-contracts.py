@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # Keep all test modules classified so additions cannot silently miss CI.
 GROUPS = {'core': ['test_cleanup.py',
           'test_download_cache.py',
+          'test_engine_reference.py',
           'test_release_packaging.py',
           'test_desktop_runtimes.py',
           'test_native_memory_contract.py',
