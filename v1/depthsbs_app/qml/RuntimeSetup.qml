@@ -10,7 +10,7 @@ Window {
     readonly property var installer: desktop.modelDownloads
     objectName: "runtimeSetupWindow"
     title: qsTr("ScreenTo3D · Required components")
-    width: 480; height: 360
+    width: 520; height: 420
     minimumWidth: 380; minimumHeight: Math.max(300, content.implicitHeight + 48)
     color: theme.window
     visible: installer.setupVisible
@@ -23,7 +23,7 @@ Window {
         id: content
         anchors.fill: parent; anchors.margins: 24; spacing: 16
         Label {
-            text: qsTr("Preparing required components")
+            text: qsTr("Prepare required files")
             color: setup.theme.ink; font.pixelSize: 22; font.weight: Font.DemiBold
             wrapMode: Text.WordWrap; Layout.fillWidth: true
         }

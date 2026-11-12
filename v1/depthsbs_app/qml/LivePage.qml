@@ -29,7 +29,6 @@ Item {
         onClicked: live.setKind(sourceKind)
     }
     readonly property Theme theme: Theme {}
-    readonly property bool installNeeded: desktop.missingModels[live.liveModel] === true || (live.vfgEnabled && desktop.missingModels.vfg)
     Component.onCompleted: live.setPreviewVisible(false)
     ColumnLayout {
         anchors.fill: parent; anchors.margins: 24; spacing: 14
@@ -132,9 +131,9 @@ Item {
         ActionButton {
             objectName: "captureStart"; Layout.fillWidth: true; primary: true
             symbol: live.active ? "stop" : "play"
-            text: live.vfgSwitching ? qsTr("Cancel switch") : live.stoppingNow ? qsTr("Stopping…") : live.active ? (live.hasFrame ? qsTr("Stop 3D") : qsTr("Cancel")) : page.installNeeded ? qsTr("Open installation settings") : qsTr("Start 3D")
-            enabled: live.vfgSwitching || (live.active ? !live.stoppingNow : !desktop.busy && (page.installNeeded || live.selectedIndex >= 0))
-            onClicked: live.active ? live.stop() : page.installNeeded ? page.Window.window.openPage(3) : live.startMinimal()
+            text: live.vfgSwitching ? qsTr("Cancel switch") : live.stoppingNow ? qsTr("Stopping…") : live.active ? (live.hasFrame ? qsTr("Stop 3D") : qsTr("Cancel")) : qsTr("Start 3D")
+            enabled: live.vfgSwitching || (live.active ? !live.stoppingNow : !desktop.busy && live.selectedIndex >= 0)
+            onClicked: live.active ? live.stop() : live.startMinimal()
         }
     }
 }

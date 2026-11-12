@@ -140,9 +140,11 @@ class DesktopController(QObject):
         try:return required_key()
         except (OSError,RuntimeError):return ''  # Existing GPU diagnostics explain missing drivers on use.
 
-    def ensureRuntime(self,task,resume):
+    def ensureRuntime(self,task,resume,*,model=None,vfg=None):
         keys=['trt-core',self.gpuRuntimeKey]
         if task=='file':keys.append('media-tools')
+        keys.append(model if model is not None else self.values['model'])
+        if (vfg if vfg is not None else self.values['vfg']):keys.append('vfg')
         return self.downloads.ensure(keys,resume)
 
     def syncRuntimes(self):
@@ -418,14 +420,17 @@ class DesktopController(QObject):
         if self.selected<0:
             self.showLiveError(E('E_FILE_INPUT_REQUIRED'))
             return
-        if self.downloads.needed(self.values['model']):
-            self.showLiveError(E('E_MODEL_INSTALL_REQUIRED'))
-            return
-        if self.values['vfg'] and self.downloads.needed('vfg'):
-            self.showLiveError(E('E_VFG_NOT_READY'))
-            return
         try:
-            if not self.ensureRuntime('file',self.start):return
+            # Installation updates the selected engine path itself.
+            selection={key:value for key,value in self.values.items() if key!='engine'}
+            inputs=[(row['source'],row['output']) for row in self.rows]
+            selected=self.selected
+            def resume():
+                current={key:value for key,value in self.values.items() if key!='engine'}
+                if selection!=current or selected!=self.selected or inputs!=[(row['source'],row['output']) for row in self.rows]:
+                    self.showLiveError(E('E_SETUP_SELECTION_CHANGED'));return
+                self.start()
+            if not self.ensureRuntime('file',resume):return
             self.syncRuntimes()
             if self.selected<0:raise ValueError(E('E_FILE_INPUT_REQUIRED'))
             indices=[i for i,row in enumerate(self.rows) if row['state'] in ('queued','failed','cancelled')]

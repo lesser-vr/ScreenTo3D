@@ -51,6 +51,34 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(self.c.settings["mode"], original)
         self.assertEqual(len(self.c.rows), 1)
 
+    def test_missing_file_runtime_or_model_opens_setup_without_error_or_worker(self):
+        for missing in ('trt-core','da2-base','vfg'):
+            with self.subTest(missing=missing):
+                self.c.downloads.dismissSetup()
+                self.c.values['vfg']=missing=='vfg'
+                with patch.object(self.c.downloads,'needed',side_effect=lambda key:key==missing),\
+                     patch('depthsbs_app.model_downloads.source_for',side_effect=FileNotFoundError('No origin')),\
+                     patch.object(self.c,'showLiveError') as error,\
+                     patch.object(self.c,'showModelError') as model_error,\
+                     patch.object(self.c,'_spawn') as spawn,\
+                     patch('depthsbs_app.model_downloads.BRIDGE') as bridge:
+                    bridge.is_file.return_value=True
+                    self.c.start()
+                    self.assertTrue(self.c.downloads.setupVisible)
+                    self.assertEqual(self.c.downloads.setupKey,missing)
+                    error.assert_not_called();model_error.assert_not_called();spawn.assert_not_called()
+
+    def test_setup_continuation_accepts_installed_engine_but_rejects_changed_settings(self):
+        with patch.object(self.c.downloads,'needed',return_value=False),\
+             patch.object(self.c,'ensureRuntime',return_value=False) as ensure:
+            self.c.start();resume=ensure.call_args.args[1]
+        self.c.values['engine']='installed engine path'
+        with patch.object(self.c,'start') as start:
+            resume();start.assert_called_once()
+        self.c.values['depth_strength']=.75
+        with patch.object(self.c,'showLiveError') as error,patch.object(self.c,'start') as start:
+            resume();start.assert_not_called();error.assert_called_once()
+
     def test_offline_mode_selects_dedicated_vda_label(self):
         self.c.setOption("mode", "offline-quality")
         self.assertEqual(self.c.settings["model"], "vda-small")

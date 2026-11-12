@@ -281,7 +281,7 @@ ApplicationWindow {
                     Action { text: qsTr("Open video"); visible: desktop.canOpen; onClicked: desktop.openResult() }
                     Action { text: qsTr("Open folder"); visible: desktop.canOpen; onClicked: desktop.openResultFolder() }
                     Action { text: desktop.cancellingNow ? qsTr("Cleaning up…") : qsTr("Cancel"); enabled: desktop.canCancel; onClicked: desktop.cancel() }
-                    Action { objectName: "convertButton"; text: qsTr("Start conversion"); primary: true; enabled: !desktop.busy && desktop.selectedIndex >= 0 && !desktop.missingModels[desktop.settings.model] && (!desktop.settings.vfg || !desktop.missingModels.vfg); onClicked: desktop.start() }
+                    Action { objectName: "convertButton"; text: qsTr("Start conversion"); primary: true; enabled: !desktop.busy && desktop.selectedIndex >= 0; onClicked: desktop.start() }
                 }
             }
         }

@@ -645,7 +645,7 @@ class LivePreview(QObject):
                 self.errorOccurred.emit(E('E_SETUP_SELECTION_CHANGED'));return
             self.startMinimal()
         try:
-            if not self.desktop.ensureRuntime('live',resume):return
+            if not self.desktop.ensureRuntime('live',resume,model=self.live_model,vfg=self.vfg_enabled):return
             self.desktop.syncRuntimes()
         except Exception as exc:
             self.errorOccurred.emit(as_error(exc));return
