@@ -30,7 +30,7 @@ def copy(src, dst, *, package_root=None, excluded=None):
             for name in names:
                 source=Path(directory)/name
                 target=dst/source.relative_to(src)
-                reason=exclusion(target.relative_to(package_root),is_dir=source.is_dir()) if package_root else ('bytecode' if name=='__pycache__' or name.endswith('.pyc') else '')
+                reason=exclusion(target.relative_to(package_root),is_dir=source.is_dir()) if package_root else ('bytecode' if name.lower()=='__pycache__' or name.lower().endswith(('.pyc','.pyo')) else '')
                 if reason:
                     rejected.append(name)
                     if excluded is not None:

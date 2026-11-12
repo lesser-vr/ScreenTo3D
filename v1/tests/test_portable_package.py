@@ -87,5 +87,18 @@ class PortablePackageTests(unittest.TestCase):
         self.assertEqual(exclusion(r'packages\torch\__pycache__\x.pyc'),'bytecode')
         self.assertEqual(exclusion(r'packages\torch\lib\torch_cuda.dll'),'')
 
+    def test_license_directory_does_not_preserve_generated_bytecode(self):
+        for path in ('packages/packaging/licenses/__pycache__',
+                     'packages/packaging/licenses/__pycache__/__init__.cpython-313.pyc',
+                     'packages/packaging/licenses/LICENSE.pyc',
+                     'packages/packaging/licenses/COPYING.pyo',
+                     r'packages\packaging\licenses\__pycache__\module.pyc'):
+            with self.subTest(path=path):
+                self.assertEqual(exclusion(path,is_dir=path.endswith('__pycache__')),'bytecode')
+        for path in ('packages/packaging/licenses/__init__.py',
+                     'packages/packaging/licenses/LICENSE',
+                     'packages/packaging/licenses/COPYING.LIB'):
+            with self.subTest(path=path):self.assertEqual(exclusion(path),'')
+
 
 if __name__=='__main__':unittest.main()

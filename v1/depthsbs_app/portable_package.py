@@ -31,11 +31,12 @@ def validate_qt_source(directory):
 def exclusion(relative,*,is_dir=False):
     path=PurePosixPath(str(relative).replace('\\','/'))
     name=path.name.lower()
+    # Generated code can contain private build paths, including in licenses/.
+    if '__pycache__' in (p.lower() for p in path.parts) or name.endswith(('.pyc','.pyo')):
+        return 'bytecode'
     # License texts such as COPYING.LIB must survive extension-based pruning.
     if name.startswith(('license','licence','copying','notice','copyright')) or 'licenses' in (p.lower() for p in path.parts):
         return ''
-    if '__pycache__' in path.parts or name.endswith('.pyc'):
-        return 'bytecode'
     if is_dir:
         return ''  # Traverse so nested license files cannot be skipped with a parent.
     if path.suffix.lower() in DEVELOPMENT_SUFFIXES or name.endswith('.h.in'):
