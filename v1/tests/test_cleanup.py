@@ -31,7 +31,7 @@ class PipelineFailureTests(unittest.TestCase):
     def test_failure_and_finalization_cancel_preserve_existing_output(self):
         for scenario in ('inference', 'truncated_decode', 'encode_spawn', 'mux',
                          'cancel_after_mux', 'publish', 'cancel_before_start',
-                         'decode_exit', 'encode_exit', 'empty_decode', 'empty_mux', 'process_cleanup'):
+                         'decode_exit', 'encode_exit', 'empty_decode', 'empty_mux', 'process_cleanup','final_media'):
             with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as folder:
                 root = Path(folder)
                 output, cancel = root / 'output.mp4', root / 'cancel'
@@ -57,7 +57,7 @@ class PipelineFailureTests(unittest.TestCase):
                 context = Mock(__enter__=Mock(return_value=engine), __exit__=Mock(return_value=False))
                 events = []
 
-                def mux(arguments):
+                def mux(arguments,**kwargs):
                     Path(arguments[-1]).write_bytes(b'' if scenario == 'empty_mux' else b'mock mux payload')
                     if scenario == 'cancel_after_mux':
                         cancel.touch()
@@ -77,6 +77,7 @@ class PipelineFailureTests(unittest.TestCase):
                     stack.enter_context(patch.object(pipeline, 'DepthEngine', return_value=context))
                     stack.enter_context(patch.object(pipeline.subprocess, 'Popen', side_effect=popen))
                     stack.enter_context(patch.object(pipeline, '_run', side_effect=mux))
+                    stack.enter_context(patch.object(pipeline, 'verify_output',side_effect=RuntimeError('Final media mismatch') if scenario=='final_media' else None))
                     if scenario == 'process_cleanup':
                         actual_cleanup = pipeline._cleanup_processes
                         def fail_cleanup(processes):

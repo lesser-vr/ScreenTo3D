@@ -20,6 +20,7 @@ from .telemetry import StageMetrics
 from .lifecycle import Lifecycle
 from .stereo import project_eye, guide_depth, refine_flat_background, color_change
 from .messages import ErrorMessage as E
+from .media_process import MediaProcesses, cleanup_processes as _cleanup_processes
 
 
 Progress = Callable[[dict], None]
@@ -39,22 +40,19 @@ def _tool(name: str) -> str:
     return str(bundled) if bundled.exists() else name
 
 
-def _run(arguments: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        arguments, text=True, encoding="utf-8", errors="replace",
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
-        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-    )
+def _run(arguments: list[str], *, media=None) -> subprocess.CompletedProcess:
+    if media is not None:return media.run(arguments)
+    with MediaProcesses() as owned:return owned.run(arguments)
 
 
-def probe_video(path: Path, output_codec='h264', stereo_layout='full-sbs') -> dict:
+def probe_video(path: Path, output_codec='h264', stereo_layout='full-sbs', *, media=None) -> dict:
     if output_codec not in OUTPUTS:
         raise ValueError(f'Unknown output codec: {output_codec}')
     output_policy = OUTPUTS[output_codec]
     result = _run([
         _tool("ffprobe"), "-v", "error", "-print_format", "json",
         "-show_streams", "-show_format", str(path),
-    ])
+    ],media=media)
     if result.returncode != 0:
         raise RuntimeError("FFprobe failed: " + result.stderr.strip())
     payload = json.loads(result.stdout)
@@ -226,25 +224,28 @@ def _check_cancel(cancel_path):
         raise InterruptedError('Conversion cancelled')
 
 
-def _cleanup_processes(processes):
-    errors = []
-    for process in processes:
-        if process is None:
-            continue
-        try:
-            if process.poll() is None:
-                process.kill()
-            process.wait()
-        except Exception as error:
-            errors.append(error)
-        for name in ('stdin', 'stdout', 'stderr'):
-            stream = getattr(process, name, None)
-            if stream is not None:
-                try:
-                    stream.close()
-                except Exception as error:
-                    errors.append(error)
-    return errors
+def verify_output(path,frames,width,height,fps,*,media):
+    """MP4's sample count verifies mux preservation without decoding it again."""
+    result=_run([_tool('ffprobe'),'-v','error','-select_streams','v:0',
+        '-show_entries','stream=width,height,nb_frames,duration','-of','json',str(path)],media=media)
+    try:
+        if result.returncode:raise ValueError(result.stderr)
+        stream=json.loads(result.stdout)['streams'][0]
+        count=int(stream['nb_frames']);duration=float(stream['duration'])
+        import math
+        if (int(stream['width'])!=width or int(stream['height'])!=height or count!=frames
+                or not math.isfinite(duration) or abs(duration-frames/fps)>max(1/fps,.002)):
+            raise ValueError(f'Final video does not match {frames} frames at {width}x{height}.')
+    except (ValueError,KeyError,IndexError,TypeError) as error:
+        raise RuntimeError(E('E_AUDIO_MUX',details=str(error))) from error
+
+
+def mux_video(video,input_path,output_path,has_audio,*,media):
+    arguments=[_tool('ffmpeg'),'-y','-v','error','-i',str(video),'-i',str(input_path),
+               '-map','0:v:0','-map','1:a?','-c:v','copy','-c:a','aac','-b:a','192k']
+    if has_audio:arguments+=['-af','apad','-shortest']
+    arguments+=['-movflags','+faststart',str(output_path)]
+    return _run(arguments,media=media)
 
 
 def convert_video(
@@ -255,6 +256,16 @@ def convert_video(
     stereo_layout="full-sbs",
     depth_strength=1.0,vfg=False,interpolation_factory=None,
 ) -> dict:
+    with MediaProcesses(cancel_path) as media:
+        return _convert_video(input_path,output_path,mode,progress,cancel_path,
+            projection_factory=projection_factory,diagnostic_hashes=diagnostic_hashes,output_codec=output_codec,
+            depth_backend=depth_backend,letterbox_refinement=letterbox_refinement,stereo_layout=stereo_layout,
+            depth_strength=depth_strength,vfg=vfg,interpolation_factory=interpolation_factory,media=media)
+
+
+def _convert_video(input_path,output_path,mode,progress,cancel_path,*,projection_factory,diagnostic_hashes,
+                   output_codec,depth_backend,letterbox_refinement,stereo_layout,depth_strength,vfg,
+                   interpolation_factory,media):
     job_started = time.perf_counter()
     import hashlib
     hashes = {name: hashlib.sha256() for name in ('decoded_rgb', 'depth', 'sbs_rgb')} if diagnostic_hashes else None
@@ -275,7 +286,7 @@ def convert_video(
     policy = replace(MODES[mode], letterbox_refinement=letterbox_refinement, stereo_layout=stereo_layout)
     policy = replace(policy,divergence=policy.divergence*depth_strength)
     from .stereo_layout import dimensions, pack
-    metadata = probe_video(input_path, output_codec=output_codec, stereo_layout=stereo_layout)
+    metadata = probe_video(input_path, output_codec=output_codec, stereo_layout=stereo_layout,media=media)
     backend = depth_backend if depth_backend is not None else resolve_backend(policy.depth_backend, DepthEngine, preprocess)
     backend.validate_policy(policy)
     offline_factory = backend.offline_processor_factory
@@ -320,13 +331,13 @@ def convert_video(
                 vfg_session=projection_scope.enter_context(interpolation_factory(width*2,height))
                 interpolator=DoubleRate(vfg_session.generate)
                 progress(dict(event='file_vfg',enabled=True,multiplier=2,output_fps=output_fps))
-            decode = subprocess.Popen(
+            decode = media.spawn(
                 [_tool("ffmpeg"), "-v", "error", "-i", str(input_path),
                  "-map", "0:v:0", "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1"],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
             )
-            encode = subprocess.Popen(
+            encode = media.spawn(
                 [_tool("ffmpeg"), "-y", "-v", "error", "-f", "rawvideo",
                  "-pix_fmt", "rgb24", "-s", f"{packed_width}x{packed_height}",
                  "-r", f"{output_fps:.8f}", "-i", "pipe:0", "-an",
@@ -446,11 +457,13 @@ def convert_video(
             _check_cancel(cancel_path)
             decode.stdout.close()
             decode_error = decode.stderr.read().decode("utf-8", "replace")
+            media.check_cancel()
             if decode.wait() != 0:
                 raise RuntimeError("Decode failed: " + decode_error.strip())
             lifecycle.checkpoint('decode_drain')
             encode.stdin.close()
             encode_error = encode.stderr.read().decode("utf-8", "replace")
+            media.check_cancel()
             if encode.wait() != 0:
                 raise RuntimeError("NVENC encode failed: " + encode_error.strip())
             lifecycle.checkpoint('encode_drain')
@@ -463,22 +476,19 @@ def convert_video(
         if frames == 0:
             raise RuntimeError("No video frames were decoded")
         _check_cancel(cancel_path)
-        mux = _run([
-            _tool("ffmpeg"), "-y", "-v", "error", "-i", str(video_path),
-            "-i", str(input_path), "-map", "0:v:0", "-map", "1:a?",
-            "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest",
-            "-movflags", "+faststart", str(partial_path),
-        ])
+        mux = mux_video(video_path,input_path,partial_path,metadata.get('has_audio',False),media=media)
         if mux.returncode != 0:
             raise RuntimeError("Audio mux failed: " + mux.stderr.strip())
         lifecycle.checkpoint('audio_mux')
         _check_cancel(cancel_path)
         if not partial_path.is_file() or partial_path.stat().st_size == 0:
             raise RuntimeError("Mux produced no final media")
+        verify_output(partial_path,frames,packed_width,packed_height,output_fps,media=media)
         # Finish every fallible owned cleanup before replacing an existing result.
         # Otherwise a late pipe/temp cleanup error could report failure after publication.
         cleanup_errors = _cleanup_processes((decode, encode))
         decode = encode = None
+        cleanup_errors.extend(media.finish())
         if cleanup_errors:
             raise ExceptionGroup('Pipeline cleanup failed', cleanup_errors)
         video_path.unlink(missing_ok=True)
@@ -532,6 +542,10 @@ def convert_video(
         progress({"event": "cancelled", "frames": frames})
         raise
     except BaseException:
+        try:media.check_cancel()
+        except InterruptedError:
+            progress({'event':'cancelled','frames':frames})
+            raise
         raise
     finally:
         primary = sys.exception()

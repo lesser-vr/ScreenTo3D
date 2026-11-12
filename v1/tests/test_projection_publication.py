@@ -50,7 +50,7 @@ class PublicationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / 'output.mp4'
             output.write_bytes(b'old output')
-            def mux(arguments):
+            def mux(arguments,**kwargs):
                 projection.__exit__.assert_called_once()
                 Path(arguments[-1]).write_bytes(b'new output')
                 return subprocess.CompletedProcess(arguments, 0, '', '')
@@ -58,7 +58,8 @@ class PublicationTests(unittest.TestCase):
             with patch.object(pipeline, 'probe_video', return_value=metadata), \
                  patch.object(pipeline, 'DepthEngine', return_value=engine_scope), \
                  patch.object(pipeline.subprocess, 'Popen', side_effect=[decoder, encoder]) as spawn, \
-                 patch.object(pipeline, '_run', side_effect=mux) as mux_call:
+                 patch.object(pipeline, '_run', side_effect=mux) as mux_call, \
+                 patch.object(pipeline, 'verify_output'):
                 if failure:
                     with self.assertRaisesRegex(RuntimeError, f'projection {failure} failed'):
                         pipeline.convert_video(Path(folder)/'input.mp4', output, 'performance', events.append,

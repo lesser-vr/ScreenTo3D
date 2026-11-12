@@ -28,14 +28,15 @@ class PipelineLifecycleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder) / 'output.mp4'
 
-            def mux(arguments):
+            def mux(arguments,**kwargs):
                 Path(arguments[-1]).write_bytes(b'mock mux payload')
                 return subprocess.CompletedProcess(arguments, 0, '', '')
 
             with patch.object(pipeline, 'probe_video', return_value=metadata), \
                     patch.object(pipeline, 'DepthEngine', return_value=context), \
                     patch.object(pipeline.subprocess, 'Popen', side_effect=[decoder, encoder]), \
-                    patch.object(pipeline, '_run', side_effect=mux):
+                    patch.object(pipeline, '_run', side_effect=mux), \
+                    patch.object(pipeline, 'verify_output'):
                 result = pipeline.convert_video(Path(folder) / 'input.mp4', output,
                                                 'performance', events.append)
             self.assertTrue(output.exists())

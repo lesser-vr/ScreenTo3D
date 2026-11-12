@@ -59,12 +59,12 @@ class FileInterpolationTests(unittest.TestCase):
         interpolator=Mock();interpolator.generate.side_effect=RuntimeError('test VFG failure') if fail else lambda a,b:((a.astype(np.uint16)+b)//2).astype(np.uint8)
         interpolator.telemetry.return_value={}
         interpolation_context=Mock(__enter__=Mock(return_value=interpolator),__exit__=Mock(return_value=False))
-        def mux(arguments):
+        def mux(arguments,**kwargs):
             Path(arguments[-1]).write_bytes(b'new media')
             return subprocess.CompletedProcess(arguments,0,'','')
         output=Path(folder)/'output.mp4'
         with patch.object(pipeline,'probe_video',return_value=metadata),patch.object(pipeline,'DepthEngine',return_value=context), \
-                patch.object(pipeline.subprocess,'Popen',side_effect=[decoder,encoder]) as spawn,patch.object(pipeline,'_run',side_effect=mux):
+                patch.object(pipeline.subprocess,'Popen',side_effect=[decoder,encoder]) as spawn,patch.object(pipeline,'_run',side_effect=mux),patch.object(pipeline,'verify_output'):
             result=pipeline.convert_video(Path(folder)/'source.mp4',output,'performance',lambda e:None,
                 vfg=vfg,depth_strength=strength,stereo_layout=layout,interpolation_factory=lambda w,h:interpolation_context)
         return result,spawn.call_args_list[1].args[0],writer,interpolator,interpolation_context
