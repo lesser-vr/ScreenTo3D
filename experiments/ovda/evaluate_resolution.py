@@ -21,12 +21,12 @@ import time
 import cv2
 import numpy as np
 import torch
-from depthsbs_app.live_model import model_adapter
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.stereo_layout import dimensions
-from depthsbs_app.stereo_stability import sample_depth
+from screento3d_app.live_model import model_adapter
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.stereo_layout import dimensions
+from screento3d_app.stereo_stability import sample_depth
 from evaluate_precision import TimedContext,normalize
 from trial_runtime import create_engine
 from public_test_media import CORPUS

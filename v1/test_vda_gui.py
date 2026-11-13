@@ -4,7 +4,7 @@ from pathlib import Path
 import tkinter as tk
 from unittest.mock import patch
 
-from depthsbs_app.gui import DepthSbsGui
+from screento3d_app.gui import ScreenTo3DGui
 from vda_streaming_experiment import ROOT
 
 
@@ -16,15 +16,15 @@ def main():
     root = tk.Tk()
     root.withdraw()
     try:
-        gui = DepthSbsGui(root, backend='vda-small', mode='video-quality',
+        gui = ScreenTo3DGui(root, backend='vda-small', mode='video-quality',
             engine_dir=args.engine_dir,
             runtime_dir=Path('C:/TensorRT/TensorRT-11.2.1.2/bin'),
-            media_tools=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+            media_tools=ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
         root.update_idletasks()
         gui.input_value.set(str(args.input))
         gui.output_value.set(str(ROOT/'out/vda-gui-test-not-created.mp4'))
-        with patch('depthsbs_app.gui.subprocess.Popen') as spawn, patch('depthsbs_app.gui.threading.Thread.start'), \
-                patch('depthsbs_app.gui.messagebox.showerror') as error:
+        with patch('screento3d_app.gui.subprocess.Popen') as spawn, patch('screento3d_app.gui.threading.Thread.start'), \
+                patch('screento3d_app.gui.messagebox.showerror') as error:
             gui.start()
             error.assert_not_called()
             assert gui.refinement_value.get() == ''
@@ -60,7 +60,7 @@ def main():
     root = tk.Tk()
     root.withdraw()
     try:
-        gui = DepthSbsGui(root)
+        gui = ScreenTo3DGui(root)
         assert gui.backend_value.get() == 'da2-small' and gui.mode_value.get() == 'balanced'
         assert not gui.letterbox_value.get()
         print('PASS: DA2 GUI defaults unchanged')

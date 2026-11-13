@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from depthsbs_app.stereo_layout import dimensions, pack
+from screento3d_app.stereo_layout import dimensions, pack
 
 
 class StereoLayoutTests(unittest.TestCase):

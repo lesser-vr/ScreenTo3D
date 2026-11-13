@@ -1,7 +1,7 @@
 import unittest
 
 import numpy as np
-from depthsbs_app.offline_depth import CenteredDepthWindow, is_scene_cut
+from screento3d_app.offline_depth import CenteredDepthWindow, is_scene_cut
 
 
 def frame(value, shape=(8, 12, 3)):

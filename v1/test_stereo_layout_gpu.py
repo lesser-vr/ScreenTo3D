@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 import numpy as np
 import torch
-from depthsbs_app.stereo_layout import LAYOUTS, pack
-from depthsbs_app.vfg_renderer import BridgePool
+from screento3d_app.stereo_layout import LAYOUTS, pack
+from screento3d_app.vfg_renderer import BridgePool
 
 
 def main():

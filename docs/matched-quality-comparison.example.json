@@ -1,5 +1,5 @@
 {
-  "schema": "depthsbs.matched-quality-comparison.v1",
+  "schema": "screento3d.matched-quality-comparison.v1",
   "template_notice": "Replace every placeholder and numeric rate with observations from the compared runs.",
   "workload": {
     "kind": "video",
@@ -36,7 +36,7 @@
       }
     },
     "candidate": {
-      "label": "DepthSBS candidate",
+      "label": "ScreenTo3D candidate",
       "model": "replace-with-model-and-artifact",
       "postprocessing": "replace-with-exact-depth-and-stereo-settings",
       "frame_generation": "replace-with-FG-or-none",

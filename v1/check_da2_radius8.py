@@ -12,15 +12,15 @@ import numpy as np
 import torch
 
 from compare_live_guide_radii import HFR, frames
-from depthsbs_app import live_gpu_texture
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
-from depthsbs_app.live_gpu_texture import LiveGpuTexture
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.live_texture_pool import LiveTexturePool
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.trt_backend import DepthEngine
+from screento3d_app import live_gpu_texture
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.live_gpu_texture import LiveGpuTexture
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.live_texture_pool import LiveTexturePool
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.trt_backend import DepthEngine
 from public_test_media import SOURCES
 
 

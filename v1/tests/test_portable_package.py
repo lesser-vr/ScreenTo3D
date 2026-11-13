@@ -1,5 +1,5 @@
 import unittest
-from depthsbs_app.portable_package import exclusion,runtime_exclusion,validate_qt_source,QT_PROFILE
+from screento3d_app.portable_package import exclusion,runtime_exclusion,validate_qt_source,QT_PROFILE
 import ast
 from pathlib import Path
 import re
@@ -36,7 +36,7 @@ class PortablePackageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'incomplete'):validate_qt_source(root)
 
     def test_profile_covers_direct_desktop_python_and_qml_imports(self):
-        root=Path(__file__).resolve().parents[1]/'depthsbs_app'
+        root=Path(__file__).resolve().parents[1]/'screento3d_app'
         for file in root.rglob('*.py'):
             for node in ast.walk(ast.parse(file.read_text(encoding='utf-8-sig'))):
                 if isinstance(node,ast.ImportFrom) and (node.module or '').startswith('PySide6.'):

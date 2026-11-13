@@ -33,10 +33,10 @@ def main():
     if args.repeats <= 0 or args.output.exists():
         raise ValueError("Positive repeats and fresh output required")
     args.output.mkdir(parents=True)
-    from depthsbs_app.pipeline import probe_video
-    from depthsbs_app.resources import configure_media_tools
+    from screento3d_app.pipeline import probe_video
+    from screento3d_app.resources import configure_media_tools
 
-    media = ROOT / "out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg"
+    media = ROOT / "out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg"
     configure_media_tools(media)
     metadata = probe_video(args.input, output_codec="h264")
     assert (metadata["width"], metadata["height"], metadata["total_frames"]) == (

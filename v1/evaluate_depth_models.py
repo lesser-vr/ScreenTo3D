@@ -28,18 +28,18 @@ def sha(path):
 
 def run_one(args):
     import torch
-    from depthsbs_app import pipeline, da2_base
-    from depthsbs_app.resources import configure_media_tools
-    from depthsbs_app.depth_backend import resolve_backend, vda_binding
+    from screento3d_app import pipeline, da2_base
+    from screento3d_app.resources import configure_media_tools
+    from screento3d_app.depth_backend import resolve_backend, vda_binding
     from vda_comparison import BoundedEngine
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
     torch.cuda.reset_peak_memory_stats()
     with os.add_dll_directory('C:/TensorRT/TensorRT-11.2.1.2/bin'):
         runtime=Path('C:/TensorRT/TensorRT-11.2.1.2/bin')
         if args.one == 'small':
-            from depthsbs_app import trt_backend
+            from screento3d_app import trt_backend
             def factory(progress):
                 with patch.object(trt_backend,'_model_path',return_value=ROOT/'out/models/da2-small/model_fp16.onnx'):
                     return trt_backend.DepthEngine(progress)
@@ -109,7 +109,7 @@ def run_one(args):
 
 
 def inspect_media(path, expected):
-    ffprobe=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg/ffprobe.exe'
+    ffprobe=ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg/ffprobe.exe'
     streams=json.loads(subprocess.check_output([str(ffprobe),'-v','error','-show_streams','-of','json',str(path)]))['streams']
     assert any(s['codec_type']=='audio' for s in streams)==expected['has_audio']
     capture=cv2.VideoCapture(str(path)); count=0
@@ -184,10 +184,10 @@ def main():
     args=parser.parse_args()
     if args.one:
         run_one(args);return
-    from depthsbs_app import pipeline
-    from depthsbs_app.resources import configure_media_tools
+    from screento3d_app import pipeline
+    from screento3d_app.resources import configure_media_tools
     from vda_comparison import validate_metadata, validate_runs
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     metadata=pipeline.probe_video(args.input);validate_metadata(metadata,124)
     root=ROOT/'out/model-evaluation'/uuid.uuid4().hex;root.mkdir(parents=True)
     print(root,flush=True)

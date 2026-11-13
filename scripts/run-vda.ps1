@@ -14,7 +14,7 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $python = Join-Path $repo 'out/vda-oracle-env/Scripts/python.exe'
 $sitePackages = Join-Path $repo 'out/vda-oracle-env/Lib/site-packages'
-$media = Join-Path $repo 'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg'
+$media = Join-Path $repo 'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg'
 if (-not $EngineDirectory) { $EngineDirectory = Join-Path $repo 'out/vda-local' }
 if (-not (Test-Path -LiteralPath $python)) { throw 'Prepare the local VDA environment first; see docs/product-specs/vda-local-preview.md.' }
 if (-not (Test-Path -LiteralPath $sitePackages)) { throw 'Prepared VDA packages are missing.' }
@@ -36,7 +36,7 @@ if (-not $configuredHome -or $configuredHome -like '*\WindowsApps\*' -or
 }
 if ([bool]$InputVideo -ne [bool]$OutputVideo) { throw 'InputVideo and OutputVideo must be supplied together.' }
 if ($Diagnostics -and $InputVideo) { throw 'Diagnostics cannot be combined with conversion.' }
-$arguments = @('-m', 'depthsbs_app.main', '--depth-backend', 'vda-small',
+$arguments = @('-m', 'screento3d_app.main', '--depth-backend', 'vda-small',
     '--vda-engine-dir', $EngineDirectory, '--runtime-dir', $RuntimeDirectory,
     '--media-tools', $media, '--mode', $Mode, '--output-codec', $OutputCodec,
     '--stereo-renderer', $StereoRenderer)

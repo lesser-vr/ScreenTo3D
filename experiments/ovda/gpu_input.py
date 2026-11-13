@@ -2,10 +2,10 @@
 """Pinned, same-stream FP32 preprocessing; no captured image readback."""
 import ctypes as ct
 import hashlib
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.gpu_runtime import GpuInputSupport
-from depthsbs_app.ovda_geometry import content_rect, SUPPORTED_CANVASES
-from depthsbs_app.portable_cuda import DIRECTORY, PINS
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.gpu_runtime import GpuInputSupport
+from screento3d_app.ovda_geometry import content_rect, SUPPORTED_CANVASES
+from screento3d_app.portable_cuda import DIRECTORY, PINS
 
 DLL_PATH = ROOT/'out/ovda-gpu-input-resolution/ovda_input.dll'
 DLL_SHA256 = 'ef4fa57630fc1ab6eeeecac39bbf3927f57c4bde1afe0cb82875a50524b294a6'

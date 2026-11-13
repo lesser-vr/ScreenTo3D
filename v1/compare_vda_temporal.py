@@ -9,9 +9,9 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from depthsbs_app import pipeline
-from depthsbs_app.config import MODES
-from depthsbs_app.depth_backend import BackendBinding
+from screento3d_app import pipeline
+from screento3d_app.config import MODES
+from screento3d_app.depth_backend import BackendBinding
 from vda_streaming_experiment import ROOT, VdaStreamingEngine, binding
 
 
@@ -32,7 +32,7 @@ def main():
     report = dict(passed=False, input=str(args.input), runs={}, boundary=[])
     policy = MODES['video-quality']
     try:
-        with patch('depthsbs_app.resources.bundle_root', return_value=ROOT / 'out/gpu-preview/DepthSBS-GPU-Preview/_internal'):
+        with patch('screento3d_app.resources.bundle_root', return_value=ROOT / 'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal'):
             for name, alpha in [('existing_ema', policy.temporal_alpha), ('native_only', 1.0)]:
                 def factory(progress):
                     engine = VdaStreamingEngine()

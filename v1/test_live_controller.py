@@ -8,25 +8,25 @@ from unittest.mock import Mock, patch
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QSettings
 from PySide6.QtGui import QImage
-from depthsbs_app.desktop import DesktopController
-from depthsbs_app.desktop_preferences import DesktopPreferences
-from depthsbs_app.live_preview import LivePreview
-from depthsbs_app.capture_mailbox import Mailbox
+from screento3d_app.desktop import DesktopController
+from screento3d_app.desktop_preferences import DesktopPreferences
+from screento3d_app.live_preview import LivePreview
+from screento3d_app.capture_mailbox import Mailbox
 
 APP = QApplication.instance() or QApplication([])
 
 
 class LiveControllerTests(unittest.TestCase):
     def test_output_summary_includes_latest_gpu_usage_and_clears_stale_value(self):
-        from depthsbs_app.live_sbs import GPU_USAGE,GPU_USAGE_NS,STAT_COUNT
+        from screento3d_app.live_sbs import GPU_USAGE,GPU_USAGE_NS,STAT_COUNT
         self.live.processing_stats=[0]*STAT_COUNT
         self.live.processing_stats[GPU_USAGE]=65
         self.live.processing_stats[GPU_USAGE_NS]=1_000_000_000
         self.live.process=Mock()
         try:
-            with patch('depthsbs_app.live_preview.time.perf_counter_ns',return_value=2_000_000_000):
+            with patch('screento3d_app.live_preview.time.perf_counter_ns',return_value=2_000_000_000):
                 self.assertIn('GPU 65%',self.live.outputSummary())
-            with patch('depthsbs_app.live_preview.time.perf_counter_ns',return_value=5_000_000_000):
+            with patch('screento3d_app.live_preview.time.perf_counter_ns',return_value=5_000_000_000):
                 self.assertIn('GPU —',self.live.outputSummary())
         finally:self.live.process=None
 
@@ -55,7 +55,7 @@ class LiveControllerTests(unittest.TestCase):
         self.assertEqual(self.desktop.lease.owner, "file")
 
     def test_initial_refresh_never_selects_a_window(self):
-        with patch("depthsbs_app.live_preview.windows", return_value=[dict(kind="window", id=11, pid=1, label="A")]):
+        with patch("screento3d_app.live_preview.windows", return_value=[dict(kind="window", id=11, pid=1, label="A")]):
             live = LivePreview(self.desktop)
             live.refresh()
             self.assertEqual(live.selectedIndex, -1)
@@ -63,7 +63,7 @@ class LiveControllerTests(unittest.TestCase):
 
     def test_close_live_app_stops_without_confirmation_and_keeps_lease(self):
         self.fake_active()
-        with patch("depthsbs_app.desktop.QMessageBox.question") as question:
+        with patch("screento3d_app.desktop.QMessageBox.question") as question:
             self.assertFalse(self.desktop.requestClose())
             question.assert_not_called()
         self.assertTrue(self.desktop.closing)
@@ -81,12 +81,12 @@ class LiveControllerTests(unittest.TestCase):
         b = dict(kind="window", id=22, pid=2, label="B")
         self.live.items, self.live.selected = [a, b], 1
         renamed = dict(b, label="Changed title")
-        with patch("depthsbs_app.live_preview.windows", return_value=[renamed, a]):
+        with patch("screento3d_app.live_preview.windows", return_value=[renamed, a]):
             self.live.refresh()
         self.assertEqual(self.live.selectedIndex, 0)
         self.assertEqual(self.live.items[0]["label"], "Changed title")
         # Reused HWND in another process is not the same source.
-        with patch("depthsbs_app.live_preview.windows", return_value=[dict(b, pid=9), a]):
+        with patch("screento3d_app.live_preview.windows", return_value=[dict(b, pid=9), a]):
             self.live.refresh()
             self.assertEqual(self.live.selectedIndex, -1)
             self.live.refresh()
@@ -99,7 +99,7 @@ class LiveControllerTests(unittest.TestCase):
         self.live.kind = "monitor"
         self.live.items = [dict(kind="monitor", id=1, device="DISPLAY_A", label="A")]
         self.live.selected = 0
-        with patch("depthsbs_app.live_preview.monitors", return_value=[
+        with patch("screento3d_app.live_preview.monitors", return_value=[
             dict(kind="monitor", id=1, device="DISPLAY_B", label="B"),
             dict(kind="monitor", id=2, device="DISPLAY_A", label="A"),
         ]):
@@ -123,24 +123,24 @@ class LiveControllerTests(unittest.TestCase):
         self.desktop._cleanup()
 
     def test_local_gui_defaults_to_native_without_loading_it(self):
-        with patch("depthsbs_app.live_preview.os.environ", {}):
+        with patch("screento3d_app.live_preview.os.environ", {}):
             live = LivePreview(self.desktop)
         self.assertEqual(live.processingPath, "gpu-texture")
         self.assertFalse(live.nativeReady)
         self.assertFalse(live.hasFrame)
         self.assertIsNone(live.report()['native_delivery'])
         self.assertEqual(live.presentationHz, 60)
-        from depthsbs_app.live_policy import LIVE_MODES
+        from screento3d_app.live_policy import LIVE_MODES
         self.assertTrue(all(policy.presentation_hz == 0 for policy in LIVE_MODES.values()))
 
     def test_default_native_failure_releases_lease_without_fallback(self):
-        with patch("depthsbs_app.live_preview.os.environ", {}):
+        with patch("screento3d_app.live_preview.os.environ", {}):
             live = LivePreview(self.desktop)
         live.items = [dict(kind='window', id=11, pid=1, width=640, height=360)]
         live.selected = 0
-        with patch('depthsbs_app.live_preview.validate_source'), patch(
-            'depthsbs_app.native_delivery.NativeDelivery', side_effect=RuntimeError('hash mismatch')
-        ), patch('depthsbs_app.live_preview.mp.get_context') as context:
+        with patch('screento3d_app.live_preview.validate_source'), patch(
+            'screento3d_app.native_delivery.NativeDelivery', side_effect=RuntimeError('hash mismatch')
+        ), patch('screento3d_app.live_preview.mp.get_context') as context:
             live.start()
         self.assertEqual(live.processingPath, 'gpu-texture')
         self.assertIsNone(self.desktop.lease.owner)
@@ -260,7 +260,7 @@ class LiveControllerTests(unittest.TestCase):
 
     def test_explicit_reference_environment_remains_available(self):
         with patch(
-            "depthsbs_app.live_preview.os.environ", {"DEPTHSBS_LIVE_GPU_CANDIDATE": "0"}
+            "screento3d_app.live_preview.os.environ", {"SCREENTO3D_LIVE_GPU_CANDIDATE": "0"}
         ):
             live = LivePreview(self.desktop)
         self.assertEqual(live.processingPath, "reference")
@@ -268,7 +268,7 @@ class LiveControllerTests(unittest.TestCase):
     def test_native_is_explicit_and_locked_while_active(self):
         self.live.setSbs(True)
         self.live.setMode("performance")
-        with patch("depthsbs_app.native_delivery.NativeDelivery"):
+        with patch("screento3d_app.native_delivery.NativeDelivery"):
             self.live.setProcessingPath("gpu-texture")
         self.assertTrue(self.live.nativeEnabled)
         self.assertTrue(self.live.gpu_candidate)
@@ -283,7 +283,7 @@ class LiveControllerTests(unittest.TestCase):
         self.live.setMode("video-quality")
         self.assertEqual(self.live.liveModel, "vda-small")
         self.assertTrue(self.live.nativeCapable)
-        with patch("depthsbs_app.native_delivery.NativeDelivery"):
+        with patch("screento3d_app.native_delivery.NativeDelivery"):
             self.live.setProcessingPath("gpu-texture")
         self.assertTrue(self.live.nativeEnabled)
         self.live.setLiveModel("ovda-small-c16")
@@ -293,7 +293,7 @@ class LiveControllerTests(unittest.TestCase):
         self.live.setSbs(True)
         self.assertEqual(self.live.liveModel, "da2-base")
         self.assertEqual(self.live.report()["processing_path"], "model-device-depth-gpu-stereo-host-output")
-        with patch("depthsbs_app.native_delivery.NativeDelivery"):
+        with patch("screento3d_app.native_delivery.NativeDelivery"):
             self.live.setProcessingPath("gpu-texture")
         self.assertTrue(self.live.nativeEnabled)
         self.assertEqual(self.live.report()["processing_path"], "gpu-texture")
@@ -303,7 +303,7 @@ class LiveControllerTests(unittest.TestCase):
     def test_native_load_failure_does_not_select_or_start_it(self):
         self.live.setMode("performance")
         with patch(
-            "depthsbs_app.native_delivery.NativeDelivery",
+            "screento3d_app.native_delivery.NativeDelivery",
             side_effect=RuntimeError("hash mismatch"),
         ):
             self.live.setProcessingPath("gpu-texture")
@@ -348,8 +348,8 @@ class LiveControllerTests(unittest.TestCase):
         self.fake_active()
         messages = []
         self.live.vfgNotification.connect(lambda text, pending: messages.append((text, pending)))
-        with patch('depthsbs_app.vfg_runtime.unavailable_reason', return_value=''), patch(
-            'depthsbs_app.vfg_runtime.validate_runtime', side_effect=RuntimeError('missing VFG runtime')
+        with patch('screento3d_app.vfg_runtime.unavailable_reason', return_value=''), patch(
+            'screento3d_app.vfg_runtime.validate_runtime', side_effect=RuntimeError('missing VFG runtime')
         ):
             self.live.setVfg(True)
         self.assertTrue(self.live.active)
@@ -368,8 +368,8 @@ class LiveControllerTests(unittest.TestCase):
         self.live.source = dict(self.live.items[0])
         self.live.output_window = Mock()
         self.live.output_window.grabWindow.return_value = QImage(16, 16, QImage.Format_RGB32)
-        with patch('depthsbs_app.vfg_runtime.unavailable_reason', return_value=''), patch(
-            'depthsbs_app.vfg_runtime.validate_runtime'
+        with patch('screento3d_app.vfg_runtime.unavailable_reason', return_value=''), patch(
+            'screento3d_app.vfg_runtime.validate_runtime'
         ):
             self.live.setVfg(True)
         self.assertTrue(self.live.vfgSwitching)
@@ -409,7 +409,7 @@ class LiveControllerTests(unittest.TestCase):
 
     def test_vfg_rejects_file_job_and_fixed_comparison_launcher(self):
         self.desktop.lease.acquire('file')
-        with patch('depthsbs_app.vfg_runtime.unavailable_reason', return_value=''):
+        with patch('screento3d_app.vfg_runtime.unavailable_reason', return_value=''):
             self.live.toggleVfg()
         self.assertFalse(self.live.vfgEnabled)
         self.desktop.lease.release('file')
@@ -428,7 +428,7 @@ class LiveControllerTests(unittest.TestCase):
 
     def test_copy_pool_preserves_retained_readers_and_resize(self):
         import numpy as np
-        from depthsbs_app.owned_preview_image import PreviewCopyPool
+        from screento3d_app.owned_preview_image import PreviewCopyPool
 
         pool = PreviewCopyPool()
         pixels = np.zeros(32 * 32 * 4, np.uint8)
@@ -450,7 +450,7 @@ class LiveControllerTests(unittest.TestCase):
         self.assertEqual(resized.pixelColor(0, 0).blue(), 99)
 
     def test_frame_notification_can_run_after_mailbox_unlock(self):
-        from depthsbs_app.capture_mailbox import SEQ, WIDTH, HEIGHT, RUNNING, STATE
+        from screento3d_app.capture_mailbox import SEQ, WIDTH, HEIGHT, RUNNING, STATE
 
         self.fake_active()
         self.live.notify_unlocked = True
@@ -479,7 +479,7 @@ class LiveControllerTests(unittest.TestCase):
         self.assertEqual(self.live.submitted, 1)
 
     def test_copy_failure_stops_without_acknowledging_partial_frame(self):
-        from depthsbs_app.capture_mailbox import SEQ, ACK, WIDTH, HEIGHT, RUNNING, STATE
+        from screento3d_app.capture_mailbox import SEQ, ACK, WIDTH, HEIGHT, RUNNING, STATE
 
         self.fake_active()
         self.live.use_copy_pool = True
@@ -566,7 +566,7 @@ class LiveControllerTests(unittest.TestCase):
 
     def test_output_exclusion_failure_does_not_show(self):
         self.live.output_window = Mock()
-        with patch("depthsbs_app.capture_sources.set_output_affinity", return_value=False):
+        with patch("screento3d_app.capture_sources.set_output_affinity", return_value=False):
             self.live.showOutput(0, True)
         self.live.output_window.showFullScreen.assert_not_called()
         self.assertFalse(self.live.output_excluded)
@@ -576,7 +576,7 @@ class LiveControllerTests(unittest.TestCase):
         self.live.errorOccurred.connect(errors.append)
         self.live.items = [dict(label='Fixture')]
         self.live.selected = 0
-        with patch('depthsbs_app.live_preview.validate_source', side_effect=ValueError('Rejected source')):
+        with patch('screento3d_app.live_preview.validate_source', side_effect=ValueError('Rejected source')):
             self.live.startSbs(2, -1)
         self.assertEqual(errors, ['Rejected source'])
         self.assertFalse(self.live.active)
@@ -641,11 +641,11 @@ class LiveControllerTests(unittest.TestCase):
 
 class VfgHotkeyTests(unittest.TestCase):
     def make_hotkey(self, registered=True):
-        from depthsbs_app.vfg_hotkey import VfgHotkey
+        from screento3d_app.vfg_hotkey import VfgHotkey
         app, live, user32 = Mock(), Mock(), Mock()
         live.vfgConfigurable = True
         user32.RegisterHotKey.return_value = registered
-        with patch('depthsbs_app.vfg_hotkey.ctypes.WinDLL', return_value=user32):
+        with patch('screento3d_app.vfg_hotkey.ctypes.WinDLL', return_value=user32):
             hotkey = VfgHotkey(app, live)
         return hotkey, app, live, user32
 
@@ -676,10 +676,10 @@ class VfgHotkeyTests(unittest.TestCase):
         user32.UnregisterHotKey.assert_not_called()
 
     def test_fixed_comparison_does_not_register_global_shortcut(self):
-        from depthsbs_app.vfg_hotkey import VfgHotkey
+        from screento3d_app.vfg_hotkey import VfgHotkey
         app, live = Mock(), Mock()
         live.vfgConfigurable = False
-        with patch('depthsbs_app.vfg_hotkey.ctypes.WinDLL') as dll:
+        with patch('screento3d_app.vfg_hotkey.ctypes.WinDLL') as dll:
             hotkey = VfgHotkey(app, live)
             dll.assert_not_called()
         self.assertFalse(hotkey.registered)

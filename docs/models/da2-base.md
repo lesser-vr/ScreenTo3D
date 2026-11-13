@@ -17,9 +17,9 @@ current shared depth/Small/native postprocessing artifacts
 and validated loader pins. The preprocessing binary's OpenCV notice is generated
 beside the DLL. No upstream Veyra/iw3 runtime code or dependency is bundled.
 
-For explicit developer A/B runs, `DEPTHSBS_GPU_CAPTURE=0` selects the existing
-mapped capture; `DEPTHSBS_BASE_INPUT=cpu` then selects original CPU preprocessing.
-`DEPTHSBS_BASE_INPUT=gpu` is the preprocessing default. Setting GPU capture to `1`
+For explicit developer A/B runs, `SCREENTO3D_GPU_CAPTURE=0` selects the existing
+mapped capture; `SCREENTO3D_BASE_INPUT=cpu` then selects original CPU preprocessing.
+`SCREENTO3D_BASE_INPUT=gpu` is the preprocessing default. Setting GPU capture to `1`
 requires Base GPU processing, GPU preprocessing, and the default fused/0ms input
 settings; unsupported combinations fail explicitly. Callback-event recording
 currently requires mapped capture. The implemented native monitor adapter remains
@@ -65,7 +65,7 @@ profile selection. Missing or modified FP16 artifacts fail explicitly.
 The [portable installer](desktop-distribution.md) obtains verified ONNX graphs,
 builds both engines on the current GPU and records their tested hashes.
 Explicit legacy development plans must match the fixed hashes and byte sizes in
-`v1/depthsbs_app/da2_base.py`. Both paths check GPU, runtime and tensor signatures.
+`v1/screento3d_app/da2_base.py`. Both paths check GPU, runtime and tensor signatures.
 
 For eye-4K Full SBS file conversion, select HEVC with `-OutputCodec hevc`.
 Recorded numerical/FP16 results are in [DA2 Base evidence](../evidence/da2-base.md).
@@ -76,8 +76,8 @@ preprocessing, depth postprocessing and I/O remain unchanged. See the
 [promotion record](../evidence/base-fp16-default-20261105.md) for installation pins
 and checks. No additional user-facing precision option is introduced.
 
-For developer diagnostics, `DEPTHSBS_BASE_STAGE_PROFILE=1` records CUDA stage
-events in the device engine. `DEPTHSBS_BASE_GRAPH=1` selects an experimental
+For developer diagnostics, `SCREENTO3D_BASE_STAGE_PROFILE=1` records CUDA stage
+events in the device engine. `SCREENTO3D_BASE_GRAPH=1` selects an experimental
 fixed-buffer TensorRT CUDA graph and requires GPU preprocessing. Both default to
 off; neither adds a GUI control. Graph values other than `0` and `1` are rejected.
 See [current status](../implementation-status.md) for their measured scope and

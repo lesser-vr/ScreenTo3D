@@ -9,9 +9,9 @@ import numpy as np
 import torch
 
 from da2_base_experiment import Da2BaseOracle, ROOT
-from depthsbs_app import pipeline
-from depthsbs_app.depth_backend import BackendBinding, BackendSpec
-from depthsbs_app.resources import configure_media_tools
+from screento3d_app import pipeline
+from screento3d_app.depth_backend import BackendBinding, BackendSpec
+from screento3d_app.resources import configure_media_tools
 from vda_comparison import BoundedEngine, validate_metadata
 
 
@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=Path, required=True)
     args = parser.parse_args()
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     metadata = pipeline.probe_video(args.input)
     validate_metadata(metadata, 124)
     root = ROOT/'out/da2-base-oracle'/uuid.uuid4().hex

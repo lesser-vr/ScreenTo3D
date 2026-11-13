@@ -6,8 +6,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from PySide6.QtCore import QObject, QPointF
-from depthsbs_app.desktop import create_app
-from depthsbs_app.stereo_layout import dimensions
+from screento3d_app.desktop import create_app
+from screento3d_app.stereo_layout import dimensions
 import shiboken6
 
 
@@ -16,7 +16,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
-    with patch('depthsbs_app.live_preview.windows', return_value=[]):
+    with patch('screento3d_app.live_preview.windows', return_value=[]):
         app, engine, desktop = create_app()
     live = desktop.live
     live.output_placement.save = lambda: None

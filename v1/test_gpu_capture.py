@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QWidget
-from depthsbs_app.gpu_capture import GpuCapture
+from screento3d_app.gpu_capture import GpuCapture
 
 
 def main():

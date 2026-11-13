@@ -6,8 +6,8 @@ import threading
 
 import numpy as np
 
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.live_gpu_candidate import DLL_SHA256
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.live_gpu_candidate import DLL_SHA256
 
 TEXTURE_SHA256 = "636937f85c2fc483e7748c63951149f5696fda5bc0f8685031e35f0386d0d0b6"
 PUBLISH_SHA256 = "85a0ce65aa39b051f922906024b88f0995001233fe5e3fb66fab20a0f3c29e7d"

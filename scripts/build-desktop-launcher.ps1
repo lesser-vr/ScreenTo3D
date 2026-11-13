@@ -16,11 +16,11 @@ if (-not $vs) { throw 'MSVC 2022 build tools are required.' }
 & (Join-Path $vs 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
 # Convert the approved artwork to Windows Explorer/taskbar resource sizes.
 Add-Type -AssemblyName System.Drawing
-$icon = [System.IO.BinaryWriter]::new([System.IO.File]::Create((Join-Path $build 'depthsbs.ico')))
+$icon = [System.IO.BinaryWriter]::new([System.IO.File]::Create((Join-Path $build 'screento3d.ico')))
 try {
     $sizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
     $images = @()
-    $artwork = [System.Drawing.Image]::FromFile((Join-Path $repo 'v1/depthsbs_app/assets/depthsbs.png'))
+    $artwork = [System.Drawing.Image]::FromFile((Join-Path $repo 'v1/screento3d_app/assets/screento3d.png'))
     foreach ($size in $sizes) {
         $bitmap = [System.Drawing.Bitmap]::new($size, $size)
         $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
@@ -45,7 +45,7 @@ try {
     }
     foreach ($bytes in $images) { $icon.Write([byte[]]$bytes) }
 } finally { $icon.Dispose() }
-Copy-Item -LiteralPath (Join-Path $build 'depthsbs.ico') -Destination (Join-Path $repo 'v1/depthsbs_app/assets/depthsbs.ico') -ErrorAction Stop
+Copy-Item -LiteralPath (Join-Path $build 'screento3d.ico') -Destination (Join-Path $repo 'v1/screento3d_app/assets/screento3d.ico') -ErrorAction Stop
 Push-Location $build
 try {
     & rc.exe /nologo /I $build /I $source /fo app.res (Join-Path $source 'app.rc')

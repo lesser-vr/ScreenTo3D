@@ -10,7 +10,7 @@ import numpy as np
 import onnx
 from onnx import TensorProto, helper, numpy_helper
 
-from depthsbs_app.build_local_engine import compile_graph
+from screento3d_app.build_local_engine import compile_graph
 
 SOURCE_PACK_SHA256 = '691bc8c7795004d9f5ee8229391af28781301c8cdd7a7dc38c508a7c7a2d5f44'
 
@@ -61,7 +61,7 @@ def main():
     parser.add_argument('destination', type=Path)
     parser.add_argument('--runtime', type=Path, required=True)
     args = parser.parse_args()
-    from depthsbs_app.engine_cache import TRT_VERSION
+    from screento3d_app.engine_cache import TRT_VERSION
     with args.pack.open('rb') as src:
         if hashlib.file_digest(src, 'sha256').hexdigest() != SOURCE_PACK_SHA256:
             raise ValueError('Expected the original verified VDA FP32 ONNX pack')

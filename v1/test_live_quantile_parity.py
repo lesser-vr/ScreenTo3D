@@ -5,8 +5,8 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 import numpy as np
-from depthsbs_app.pipeline import StereoSynthesizer
-from depthsbs_app.live_policy import LIVE_MODES, resolve_live
+from screento3d_app.pipeline import StereoSynthesizer
+from screento3d_app.live_policy import LIVE_MODES, resolve_live
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
         for index in range(4):
             frame = rng.integers(0, 256, (180, 320, 3), dtype=np.uint8)
             depth = rng.random((1, 518, 518), dtype=np.float32)
-            with patch("depthsbs_app.pipeline.np.percentile", side_effect=previous):
+            with patch("screento3d_app.pipeline.np.percentile", side_effect=previous):
                 reference = old.render(frame, depth)
             actual = new.render(frame, depth)
             assert np.array_equal(reference, actual), (mode, index)

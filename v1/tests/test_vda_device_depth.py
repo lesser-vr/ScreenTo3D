@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import torch
 
-from depthsbs_app.vda_device import VdaDeviceDepth, VdaDeviceEngine
+from screento3d_app.vda_device import VdaDeviceDepth, VdaDeviceEngine
 
 
 class FakeTensor:

@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from compare_small_aspect import comparison, preprocess
-from depthsbs_app.pipeline import preprocess as current_preprocess
+from screento3d_app.pipeline import preprocess as current_preprocess
 
 
 class SmallAspectTests(unittest.TestCase):

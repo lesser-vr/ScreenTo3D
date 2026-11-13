@@ -14,8 +14,8 @@ import shiboken6
 
 from compare_desktop import create_comparison
 from live_benchmark_source import SourceProcess
-from depthsbs_app.capture_sources import is_sbs_output, user32
-from depthsbs_app.live_sbs import DEFAULT_STEREO_QUALITY
+from screento3d_app.capture_sources import is_sbs_output, user32
+from screento3d_app.live_sbs import DEFAULT_STEREO_QUALITY
 
 
 def main():
@@ -96,7 +96,7 @@ def main():
         assert is_sbs_output(live.output_window.winId())
         child_code = '''
 import sys
-from depthsbs_app.capture_sources import is_sbs_output, validate_source, windows
+from screento3d_app.capture_sources import is_sbs_output, validate_source, windows
 hwnd = int(sys.argv[1])
 assert is_sbs_output(hwnd)
 assert all(row['id'] != hwnd for row in windows())

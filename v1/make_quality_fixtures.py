@@ -10,7 +10,7 @@ def main():
     repo = Path(__file__).resolve().parents[1]
     root = repo / 'out/quality-fixtures' / uuid.uuid4().hex
     root.mkdir(parents=True)
-    ffmpeg = repo / 'out/release/DepthSBS/_internal/ffmpeg/ffmpeg.exe'
+    ffmpeg = repo / 'out/release/ScreenTo3D/_internal/ffmpeg/ffmpeg.exe'
     for codec, encoder in (('h264', 'libx264'), ('hevc', 'libx265')):
         output = root / f'motion-{codec}.mp4'
         with (root / f'{codec}-encode.log').open('wb') as log:

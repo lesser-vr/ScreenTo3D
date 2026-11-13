@@ -4,8 +4,8 @@ from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
-from depthsbs_app import ovda
-from depthsbs_app.desktop_jobs import ROOT
+from screento3d_app import ovda
+from screento3d_app.desktop_jobs import ROOT
 
 TRIAL = ROOT/'out/ovda-precision-20261109'
 PINS = {
@@ -62,7 +62,7 @@ def create_engine(variant):
 
 
 def trial_sbs_worker(variant, *args, **kwargs):
-    from depthsbs_app.live_sbs import sbs_worker
+    from screento3d_app.live_sbs import sbs_worker
     with selected(variant) as directory:
         kwargs['backend_snapshot']=dict(kwargs['backend_snapshot'],engine=str(directory))
         original=ovda.binding

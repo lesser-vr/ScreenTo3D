@@ -25,11 +25,11 @@ ATTRIBUTION = ('UVG-VCM, Ultra Video Group, Tampere University. CC BY 4.0. '
     'https://tie-ultravideo.rd.tuni.fi/UVG-VCM/index.html ; https://creativecommons.org/licenses/by/4.0/ . '
     'Modified: official compressed previews excerpted at 1-3 seconds, scaled 3840x2160 to 1280x720 '
     'without crop/padding, H264 CRF18, original 60fps and absence of audio preserved; '
-    'DepthSBS AI-estimated SBS derivatives and labeled review crops. No endorsement.')
+    'ScreenTo3D AI-estimated SBS derivatives and labeled review crops. No endorsement.')
 
 
 def worker(args):
-    from depthsbs_app import pipeline
+    from screento3d_app import pipeline
     probe = TemporalProbe()
     original = pipeline.StereoSynthesizer.render
     cut_parity = []
@@ -93,9 +93,9 @@ def main():
     parser.add_argument('--prepared', type=Path)
     args = parser.parse_args()
     if args.one: worker(args); return
-    from depthsbs_app import pipeline
-    from depthsbs_app.resources import configure_media_tools
-    media = ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg'
+    from screento3d_app import pipeline
+    from screento3d_app.resources import configure_media_tools
+    media = ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg'
     configure_media_tools(media)
     root = args.prepared or ROOT/'out/live-action-evaluation'/uuid.uuid4().hex
     if args.prepared:

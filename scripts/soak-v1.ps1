@@ -11,12 +11,12 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'process-tree-memory.ps1')
 $sourceVideo = (Resolve-Path -LiteralPath $SourcePath).Path
-$package = Join-Path $repoRoot 'out/release/DepthSBS'
-$exe = Join-Path $package 'DepthSBS.exe'
+$package = Join-Path $repoRoot 'out/release/ScreenTo3D'
+$exe = Join-Path $package 'ScreenTo3D.exe'
 if ($OutputCodec -ne 'h264' -and -not $GpuPreview) { throw 'HEVC soak requires the updated GPU preview package.' }
 if ($GpuPreview) {
-    $package = Join-Path $repoRoot 'out/gpu-preview/DepthSBS-GPU-Preview'
-    $exe = Join-Path $package 'DepthSBS-GPU-Preview.exe'
+    $package = Join-Path $repoRoot 'out/gpu-preview/ScreenTo3D-GPU-Preview'
+    $exe = Join-Path $package 'ScreenTo3D-GPU-Preview.exe'
 }
 $probe = Join-Path $package '_internal/ffmpeg/ffprobe.exe'
 if (-not (Test-Path -LiteralPath $exe)) { throw 'Build the portable package first.' }

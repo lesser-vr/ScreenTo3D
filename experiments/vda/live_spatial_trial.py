@@ -25,9 +25,9 @@ def trial_record(profile):
 
 
 def spatial_sbs_worker(*args, **kwargs):
-    from depthsbs_app import live_sbs, vda_backend
-    from depthsbs_app.engine_cache import device_identity, device_key
-    from depthsbs_app.optional_models import installed_path
+    from screento3d_app import live_sbs, vda_backend
+    from screento3d_app.engine_cache import device_identity, device_key
+    from screento3d_app.optional_models import installed_path
     import torch
 
     original_init = vda_backend.VdaEngine.__init__
@@ -54,12 +54,12 @@ def spatial_sbs_worker(*args, **kwargs):
 
 def create_comparison(baseline):
     os.environ['LOCALAPPDATA'] = str(LOCAL_CACHE)
-    os.environ['DEPTHSBS_GPU_CAPTURE'] = '1'
-    os.environ['DEPTHSBS_STEREO_RENDERER'] = 'cuda'
-    from depthsbs_app import live_sbs
-    from depthsbs_app.desktop import create_app
-    from depthsbs_app.engine_cache import device_identity, device_key
-    from depthsbs_app.optional_models import available, installed_path
+    os.environ['SCREENTO3D_GPU_CAPTURE'] = '1'
+    os.environ['SCREENTO3D_STEREO_RENDERER'] = 'cuda'
+    from screento3d_app import live_sbs
+    from screento3d_app.desktop import create_app
+    from screento3d_app.engine_cache import device_identity, device_key
+    from screento3d_app.optional_models import available, installed_path
 
     directory = installed_path('vda-small')
     if not available('vda-small', directory) or device_key(device_identity()) != DEVICE_KEY:
@@ -71,7 +71,7 @@ def create_comparison(baseline):
                     if hashlib.file_digest(stream, 'sha256').hexdigest() != record['sha256']:
                         raise ValueError('VDA 시험 엔진 파일의 체크섬이 일치하지 않습니다.')
         live_sbs.sbs_worker = spatial_sbs_worker
-    from depthsbs_app import live_preview
+    from screento3d_app import live_preview
     from PySide6.QtCore import Slot
     sys.path.insert(0, str(ROOT / 'experiments/vfg'))
     from owl_output import OwlOutputLive
@@ -95,7 +95,7 @@ def create_comparison(baseline):
     live.setStrength(0.5)
     live.setPresentationHz(60)
     label = '배포판 v2' if baseline else '공간 어텐션 FP16 시험판'
-    desktop.main_window.setTitle(f'DepthSBS · Owl3D · {label}')
+    desktop.main_window.setTitle(f'ScreenTo3D · Owl3D · {label}')
     return app, scene, desktop
 
 
@@ -107,7 +107,7 @@ def main():
         app, scene, desktop = create_comparison(args.baseline)
     except Exception as error:
         from ctypes import windll
-        windll.user32.MessageBoxW(None, str(error), 'DepthSBS · VDA 실행 오류', 0x10)
+        windll.user32.MessageBoxW(None, str(error), 'ScreenTo3D · VDA 실행 오류', 0x10)
         return 1
     try:
         return app.exec()

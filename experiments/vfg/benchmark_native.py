@@ -10,12 +10,14 @@ import traceback
 import numpy as np
 import shiboken6
 from PySide6.QtCore import Qt
-from depthsbs_app.desktop import create_app
-from depthsbs_app.live_sbs import DEFAULT_STEREO_QUALITY
+from screento3d_app.desktop import create_app
+from screento3d_app.live_sbs import DEFAULT_STEREO_QUALITY
 from live_benchmark_source import SourceProcess
 from benchmark_live_modes import memory_bytes
 from native_path import install
 
+
+from screento3d_app.environment import get as app_env
 
 def main():
     parser = argparse.ArgumentParser()
@@ -32,8 +34,8 @@ def main():
     args = parser.parse_args()
     args.output = args.output.resolve()
     args.output.mkdir(parents=True, exist_ok=False)
-    os.environ["DEPTHSBS_VFG_EVIDENCE"] = str(args.output)
-    os.environ["DEPTHSBS_VFG_TEST_CUT_EVERY"] = str(args.test_cut_every)
+    os.environ["SCREENTO3D_VFG_EVIDENCE"] = str(args.output)
+    os.environ["SCREENTO3D_VFG_TEST_CUT_EVERY"] = str(args.test_cut_every)
     install(args.vfg)
     app, engine, desktop = create_app()
     live = desktop.live
@@ -44,8 +46,8 @@ def main():
     samples = deque(maxlen=30000)
     last_seen = [0]
     report = dict(completed=False, vfg=args.vfg, model=args.model, size=args.size, strength=args.strength,
-                  stereo_quality=os.environ.get('DEPTHSBS_STEREO_QUALITY',DEFAULT_STEREO_QUALITY),
-                  depth_history=os.environ.get('DEPTHSBS_DEPTH_HISTORY','continuous'), rows=[], lifecycle={},
+                  stereo_quality=app_env('SCREENTO3D_STEREO_QUALITY',DEFAULT_STEREO_QUALITY),
+                  depth_history=app_env('SCREENTO3D_DEPTH_HISTORY','continuous'), rows=[], lifecycle={},
                   scope="Actual WGC + selected DA2 FP16 + CUDA SBS + optional Medium VFG + native Qt afterFrameEnd; not physical display latency")
 
     def save():

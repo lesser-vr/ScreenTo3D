@@ -19,8 +19,8 @@ from benchmark_live_guide_candidate import (
     sha256,
     timing_summary,
 )
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.resources import configure_resource_root
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.resources import configure_resource_root
 
 
 class BenchmarkTexturePool:
@@ -138,12 +138,12 @@ def main():
 
     args.output.mkdir(parents=True)
     configure_resource_root(BUNDLE)
-    import depthsbs_app.live_gpu_candidate as gpu_module
-    import depthsbs_app.live_gpu_texture as texture_module
-    from depthsbs_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
-    from depthsbs_app.live_gpu_texture import LiveGpuTexture
-    from depthsbs_app.live_policy import resolve_live
-    from depthsbs_app.trt_backend import DepthEngine
+    import screento3d_app.live_gpu_candidate as gpu_module
+    import screento3d_app.live_gpu_texture as texture_module
+    from screento3d_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
+    from screento3d_app.live_gpu_texture import LiveGpuTexture
+    from screento3d_app.live_policy import resolve_live
+    from screento3d_app.trt_backend import DepthEngine
 
     BenchmarkTexturePool.runtime_path = runtime_path
     BenchmarkTexturePool.runtime_hash = runtime_hash

@@ -6,9 +6,9 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 import numpy as np
-from depthsbs_app import pipeline
-from depthsbs_app.depth_backend import BackendBinding, BackendSpec
-from depthsbs_app.offline_depth import CenteredDepthWindow
+from screento3d_app import pipeline
+from screento3d_app.depth_backend import BackendBinding, BackendSpec
+from screento3d_app.offline_depth import CenteredDepthWindow
 
 
 class PublicationTests(unittest.TestCase):

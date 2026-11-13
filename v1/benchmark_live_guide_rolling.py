@@ -15,8 +15,8 @@ from benchmark_live_guide_candidate import (
     sha256,
     timing_summary,
 )
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.resources import configure_resource_root
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.resources import configure_resource_root
 
 
 def main():
@@ -46,14 +46,14 @@ def main():
 
     args.output.mkdir(parents=True)
     configure_resource_root(BUNDLE)
-    import depthsbs_app.live_gpu_candidate as gpu_module
-    from depthsbs_app.live_gpu_candidate import (
+    import screento3d_app.live_gpu_candidate as gpu_module
+    from screento3d_app.live_gpu_candidate import (
         DLL_PATH,
         DLL_SHA256,
         LiveGpuCandidate,
     )
-    from depthsbs_app.live_policy import resolve_live
-    from depthsbs_app.trt_backend import DepthEngine
+    from screento3d_app.live_policy import resolve_live
+    from screento3d_app.trt_backend import DepthEngine
 
     report = {
         "passed": False,

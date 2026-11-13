@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 
 
-CONTRACT_SCHEMA = 'depthsbs.matched-quality-comparison.v1'
+CONTRACT_SCHEMA = 'screento3d.matched-quality-comparison.v1'
 RATE_KEYS = ('capture_hz', 'model_input_hz', 'fresh_depth_hz', 'base_sbs_hz', 'generated_output_hz')
 REVIEW_KEYS = ('spatial_depth', 'temporal_stability', 'occlusion_edges', 'text', 'cuts',
                'binocular_consistency', 'game_latency')

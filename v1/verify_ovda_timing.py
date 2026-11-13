@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 
 ROOT=Path(__file__).resolve().parents[1]
-MEDIA=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg'
+MEDIA=ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg'
 FOLDER=ROOT/'out/ovda-public-timing'
 
 
@@ -41,8 +41,8 @@ def main():
                 assert a['sample_rate']==b['sample_rate'] and a['channels']==b['channels']
                 assert abs(float(a['duration'])-float(b['duration']))<=.05
             rows.append(dict(name=name,renderer=renderer,frames=len(pts),max_relative_pts_error=delta,audio=bool(audio)))
-    from depthsbs_app.resources import configure_media_tools
-    from depthsbs_app.pipeline import probe_video
+    from screento3d_app.resources import configure_media_tools
+    from screento3d_app.pipeline import probe_video
     from evaluate_depth_models import inspect_media
     configure_media_tools(MEDIA)
     inspect_media(FOLDER/'original-cuda.mp4',probe_video(sources['original']))

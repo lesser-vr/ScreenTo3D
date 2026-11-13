@@ -12,11 +12,11 @@ def main():
     import numpy as np
     import torch
     from runtime import Engine
-    from depthsbs_app.resources import configure_resource_root
-    from depthsbs_app.desktop_jobs import BUNDLE
-    from depthsbs_app.gpu_frame import GpuFrame
-    from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-    from depthsbs_app.live_policy import resolve_live,refresh_live
+    from screento3d_app.resources import configure_resource_root
+    from screento3d_app.desktop_jobs import BUNDLE
+    from screento3d_app.gpu_frame import GpuFrame
+    from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+    from screento3d_app.live_policy import resolve_live,refresh_live
     from public_test_media import PublicFrames
     p=argparse.ArgumentParser();p.add_argument('--tag',required=True);args=p.parse_args()
     out=ROOT/f'out/zipdepth-reuse-{args.tag}.json'

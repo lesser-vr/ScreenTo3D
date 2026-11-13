@@ -25,7 +25,7 @@ def local_engine(name):
     path = ROOT/'out/p1-distill-small-20260909'/f'{name}-small-fp32.plan'
     if digest(path) != PLANS[name]:
         raise ValueError('Local engine integrity mismatch')
-    from depthsbs_app.trt_backend import DepthEngine, _cuda, cudart, trt
+    from screento3d_app.trt_backend import DepthEngine, _cuda, cudart, trt
     if trt.__version__ != '11.2.1.2':
         raise ValueError('Wrong TensorRT runtime')
 
@@ -105,8 +105,8 @@ def main():
     if not 60 <= args.frames <= 360:
         raise ValueError('Expected 60..360 frames per clip')
     args.output.mkdir(parents=True, exist_ok=False)
-    from depthsbs_app.desktop_jobs import BUNDLE
-    from depthsbs_app.resources import configure_resource_root
+    from screento3d_app.desktop_jobs import BUNDLE
+    from screento3d_app.resources import configure_resource_root
     configure_resource_root(BUNDLE)
     ffmpeg, ffprobe = BUNDLE/'ffmpeg/ffmpeg.exe', BUNDLE/'ffmpeg/ffprobe.exe'
     if not ffmpeg.is_file() or not ffprobe.is_file():
@@ -119,9 +119,9 @@ def main():
         input=[3840, 2160], per_eye=[3840, 2160], combined=[7680, 2160],
         precision='Both FP32 / TF32 disabled', sources={})
     with os.add_dll_directory('C:/TensorRT/TensorRT-11.2.1.2/bin'):
-        from depthsbs_app.live_gpu_candidate import LiveGpuCandidate, DLL_SHA256
-        from depthsbs_app.live_policy import resolve_live
-        from depthsbs_app.pipeline import preprocess
+        from screento3d_app.live_gpu_candidate import LiveGpuCandidate, DLL_SHA256
+        from screento3d_app.live_policy import resolve_live
+        from screento3d_app.pipeline import preprocess
         report['gpu_dll_sha256'] = DLL_SHA256
         for source_index, (source, expected) in enumerate(SOURCES.items()):
             path = ROOT/'out/public-video-source/uvg-vcm'/f'{source}.mp4'
@@ -145,7 +145,7 @@ def main():
                                 host_depth = engine.infer(preprocess(frame))
                                 for _ in range(16):
                                     gpu.render(frame, gpu.infer(frame))
-                                from depthsbs_app.trt_backend import _cuda, cudart
+                                from screento3d_app.trt_backend import _cuda, cudart
                                 device_depth = np.empty_like(host_depth)
                                 _cuda(cudart.cudaMemcpy(device_depth.ctypes.data, engine.device_output,
                                     engine.output_bytes, cudart.cudaMemcpyKind.cudaMemcpyDeviceToHost))

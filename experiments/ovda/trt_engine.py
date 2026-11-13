@@ -16,7 +16,7 @@ PLAN = ROOT/'out/ovda-local/518x924-fp16/model.plan'
 
 class OvdaTrt:
     def __init__(self, progress=None, directory=None, runtime_dir=None, profile=(518,924)):
-        from depthsbs_app.ovda import checked_plan, PROFILES, RUNTIME
+        from screento3d_app.ovda import checked_plan, PROFILES, RUNTIME
         if profile not in PROFILES:raise ValueError('Unvalidated oVDA profile')
         self.profile=profile;self.plan_hash=PROFILES[profile][0]
         self.runtime_label=RUNTIME

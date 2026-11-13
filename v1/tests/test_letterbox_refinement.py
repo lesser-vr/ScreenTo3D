@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from depthsbs_app.stereo import refine_flat_background
+from screento3d_app.stereo import refine_flat_background
 from letterbox_refinement import detect_content, refine_padding_background, restore_padding
 
 

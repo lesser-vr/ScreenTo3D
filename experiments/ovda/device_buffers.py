@@ -1,7 +1,7 @@
 # oVDA runtime adaptation, NC-SA-UHDV1.0; see LICENSE and README.md.
 """Fixed inference buffers and same-stream cache/validation operations."""
 import ctypes as ct
-from depthsbs_app.gpu_runtime import GpuExecution
+from screento3d_app.gpu_runtime import GpuExecution
 from .oracle import schedule
 from .gpu_input import runtime_library
 

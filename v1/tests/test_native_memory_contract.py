@@ -1,5 +1,5 @@
 import unittest
-from depthsbs_app.native_memory_contract import allocation_bytes,MAX_ALLOCATION
+from screento3d_app.native_memory_contract import allocation_bytes,MAX_ALLOCATION
 
 class NativeAllocationTests(unittest.TestCase):
     def test_supported_frame_and_history_sizes(self):

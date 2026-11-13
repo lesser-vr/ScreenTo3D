@@ -12,13 +12,13 @@ from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import QWidget, QMessageBox
 import shiboken6
 
-from depthsbs_app.desktop import create_app
+from screento3d_app.desktop import create_app
 
 
 class Oracle(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("DepthSBS generated capture oracle")
+        self.setWindowTitle("ScreenTo3D generated capture oracle")
         self.setWindowFlags(
             Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
         )

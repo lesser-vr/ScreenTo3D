@@ -39,7 +39,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--dll',type=Path,default=Path('out/live-parallel-projection/probe/resolve_probe.dll'))
     args=parser.parse_args()
-    from depthsbs_app.resources import prepare_dll_search_path
+    from screento3d_app.resources import prepare_dll_search_path
 
     prepare_dll_search_path()
     path = args.dll.resolve()

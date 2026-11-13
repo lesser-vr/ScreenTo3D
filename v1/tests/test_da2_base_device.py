@@ -3,7 +3,7 @@ import threading
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from depthsbs_app.da2_base_device import Da2BaseDeviceDepth, Da2BaseDeviceEngine
+from screento3d_app.da2_base_device import Da2BaseDeviceDepth, Da2BaseDeviceEngine
 
 
 class Da2BaseDeviceTokenTests(unittest.TestCase):
@@ -68,7 +68,7 @@ class Da2BaseDeviceTokenTests(unittest.TestCase):
                 getattr(resource, failure).side_effect = RuntimeError('injected graph cleanup')
                 def parent_close():
                     engine.closed = True
-                with patch('depthsbs_app.da2_base.Da2BaseEngine.close', side_effect=parent_close) as parent:
+                with patch('screento3d_app.da2_base.Da2BaseEngine.close', side_effect=parent_close) as parent:
                     with self.assertRaisesRegex(RuntimeError, 'injected graph cleanup'):
                         engine.close()
                     parent.assert_called_once()
@@ -84,7 +84,7 @@ class Da2BaseDeviceTokenTests(unittest.TestCase):
         engine.graph.reset.assert_not_called()
 
     def test_graph_setting_rejects_ambiguous_value_before_loading(self):
-        with patch.dict('os.environ', {'DEPTHSBS_BASE_GRAPH': 'yes'}):
+        with patch.dict('os.environ', {'SCREENTO3D_BASE_GRAPH': 'yes'}):
             with self.assertRaisesRegex(ValueError, 'must be 0 or 1'):
                 Da2BaseDeviceEngine()
 

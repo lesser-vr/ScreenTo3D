@@ -18,13 +18,13 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 import torch
-from depthsbs_app import ovda
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.ovda_geometry import select_profile
-from depthsbs_app.stereo_layout import dimensions
+from screento3d_app import ovda
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.ovda_geometry import select_profile
+from screento3d_app.stereo_layout import dimensions
 from public_test_media import CORPUS
 
 WEIGHTS=(.18,.5,.75,1.)
@@ -41,7 +41,7 @@ class FixtureOwner:
     def complete_device(self,token):
         token.validate();self.stream.synchronize();self.pending_device=None
     def token(self,raw):
-        from _depthsbs_ovda.device_depth import OvdaDeviceDepth
+        from _screento3d_ovda.device_depth import OvdaDeviceDepth
         with torch.cuda.stream(self.stream):value=torch.from_numpy(raw[None]).to(self.device)
         self.device_generation+=1
         token=OvdaDeviceDepth(self,self.device_generation,value,int(self.stream.cuda_stream),(value,))
@@ -89,7 +89,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     cls=ovda.runtime_class(True)
-    from _depthsbs_ovda.postprocess import OvdaGpuTexture
+    from _screento3d_ovda.postprocess import OvdaGpuTexture
     report=dict(contract=__doc__,sources={},synthetic={},natural=[])
     policy=replace(resolve_live('video-quality',.5),stereo_layout='half-tb')
     def make_posts(engine,w,h):

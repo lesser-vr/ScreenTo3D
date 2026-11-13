@@ -12,8 +12,8 @@ from unittest.mock import Mock
 
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
-from depthsbs_app.desktop import DesktopController
-from depthsbs_app.desktop_preferences import DesktopPreferences
+from screento3d_app.desktop import DesktopController
+from screento3d_app.desktop_preferences import DesktopPreferences
 
 
 def main():

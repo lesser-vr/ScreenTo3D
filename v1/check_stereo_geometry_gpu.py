@@ -13,9 +13,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
-from depthsbs_app.live_texture_pool import LiveTexturePool
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
+from screento3d_app.live_texture_pool import LiveTexturePool
 from tests.test_stereo_geometry import geometry_fixture, measure_planes
 
 

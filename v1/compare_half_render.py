@@ -9,12 +9,12 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_texture_pool import LiveTexturePool
-from depthsbs_app.live_gpu_texture import LiveGpuTexture
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_texture_pool import LiveTexturePool
+from screento3d_app.live_gpu_texture import LiveGpuTexture
 from half_render_trial_worker import DLL, SHA256
 from public_test_media import PublicFrames
 
@@ -30,7 +30,7 @@ def main():
     if any(layout not in ("half-sbs", "half-tb") for layout in layouts):
         raise ValueError("Half layout comparison required")
     configure_resource_root(BUNDLE)
-    from depthsbs_app.trt_backend import DepthEngine
+    from screento3d_app.trt_backend import DepthEngine
     rows = []
     report = dict(rows=rows, limits=dict(rgb_mae=1.0, pixel_over8_fraction=.01,
                                         edge_over8_fraction=.05, depth_max=0),

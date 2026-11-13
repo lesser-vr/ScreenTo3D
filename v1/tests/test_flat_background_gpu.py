@@ -7,9 +7,9 @@ from unittest.mock import Mock
 import cv2
 import numpy as np
 
-from depthsbs_app.flat_background_gpu import FlatBackground, color_bounds
-from depthsbs_app.live_gpu_candidate import LiveGpuCandidate
-from depthsbs_app.stereo import uniform_color_mask
+from screento3d_app.flat_background_gpu import FlatBackground, color_bounds
+from screento3d_app.live_gpu_candidate import LiveGpuCandidate
+from screento3d_app.stereo import uniform_color_mask
 
 
 class FlatBackgroundGpuTests(unittest.TestCase):

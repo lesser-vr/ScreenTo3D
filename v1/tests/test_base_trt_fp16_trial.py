@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 import base_trt_fp16_trial as trial
-from depthsbs_app import da2_base as base, da2_base_device as device
+from screento3d_app import da2_base as base, da2_base_device as device
 
 
 class TrialTrustTests(unittest.TestCase):

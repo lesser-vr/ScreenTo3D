@@ -13,12 +13,12 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app import pipeline
-from depthsbs_app.depth_backend import vda_binding
-from depthsbs_app.resources import configure_media_tools
-from depthsbs_app.vda_backend import VdaEngine
-from depthsbs_app.vda_preprocess import preprocess
-from depthsbs_app.vda_artifacts import artifact_profiles, select_artifact, profile_shape
+from screento3d_app import pipeline
+from screento3d_app.depth_backend import vda_binding
+from screento3d_app.resources import configure_media_tools
+from screento3d_app.vda_backend import VdaEngine
+from screento3d_app.vda_preprocess import preprocess
+from screento3d_app.vda_artifacts import artifact_profiles, select_artifact, profile_shape
 from vda_streaming_experiment import ROOT, VdaStreamingEngine
 
 
@@ -32,7 +32,7 @@ def main():
     root = ROOT/'out/vda-application'/uuid.uuid4().hex
     root.mkdir(parents=True)
     report = dict(passed=False, jobs=[], letterbox_refinement=args.letterbox_refinement)
-    media = ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg'
+    media = ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg'
     configure_media_tools(media)
     binding = vda_binding(args.engine_dir, args.runtime_dir)
     try:
@@ -142,7 +142,7 @@ def main():
         subprocess.run([str(media/'ffmpeg.exe'), '-v', 'error', '-i', str(fixture), '-c:v', 'hevc_nvenc',
                         '-y', str(hevc_input)], check=True, creationflags=subprocess.CREATE_NO_WINDOW)
         status = root/'worker.jsonl'
-        process = subprocess.run([sys.executable, '-m', 'depthsbs_app.main', '--worker', '--input', str(hevc_input),
+        process = subprocess.run([sys.executable, '-m', 'screento3d_app.main', '--worker', '--input', str(hevc_input),
             '--output', str(root/'cut-output-hevc.mp4'), '--mode', 'video-quality', '--output-codec', 'hevc',
             '--depth-backend', 'vda-small', '--vda-engine-dir', str(args.engine_dir),
             '--runtime-dir', str(args.runtime_dir), '--media-tools', str(media), '--status-file', str(status),

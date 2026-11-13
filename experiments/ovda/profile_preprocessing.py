@@ -9,7 +9,7 @@ import cv2
 import numpy as np
 import torch
 from preprocessing import FramePreprocessor
-from depthsbs_app.ovda_geometry import select_profile, content_rect
+from screento3d_app.ovda_geometry import select_profile, content_rect
 from public_test_media import CORPUS
 
 

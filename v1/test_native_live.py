@@ -14,8 +14,8 @@ from PySide6.QtCore import QObject, Qt
 from PySide6.QtTest import QTest
 
 from benchmark_live_modes import ClockOracle, memory_bytes
-from depthsbs_app.desktop import create_app
-from depthsbs_app.capture_mailbox import WIDTH
+from screento3d_app.desktop import create_app
+from screento3d_app.capture_mailbox import WIDTH
 
 
 def main():

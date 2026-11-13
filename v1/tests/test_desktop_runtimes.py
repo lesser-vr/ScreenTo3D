@@ -3,8 +3,8 @@ from pathlib import Path
 from unittest.mock import patch,Mock
 from io import BytesIO
 from zipfile import ZipFile
-from depthsbs_app import desktop_runtimes as runtimes,optional_models as models
-from depthsbs_app import download_cache
+from screento3d_app import desktop_runtimes as runtimes,optional_models as models
+from screento3d_app import download_cache
 
 
 class DesktopRuntimeTests(unittest.TestCase):

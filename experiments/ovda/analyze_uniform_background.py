@@ -14,8 +14,10 @@ import time
 from unittest.mock import patch
 
 
+from screento3d_app.environment import get as app_env
+
 def worker(background,*args,history_trace=None,history_policy=None,**kwargs):
-    from depthsbs_app import live_sbs,live_policy
+    from screento3d_app import live_sbs,live_policy
     original=live_policy.resolve_live
     def resolve(*values,**options):
         policy=original(*values,**options)
@@ -44,14 +46,14 @@ def worker(background,*args,history_trace=None,history_policy=None,**kwargs):
         with ExitStack() as scope:
             scope.enter_context(patch.object(live_policy,'resolve_live',resolve))
             if history_policy is not None:
-                scope.enter_context(patch.dict(os.environ,{'DEPTHSBS_DEPTH_HISTORY':history_policy}))
+                scope.enter_context(patch.dict(os.environ,{'SCREENTO3D_DEPTH_HISTORY':history_policy}))
             if history_trace is not None:
                 scope.enter_context(patch.object(live_sbs,'reset_reason',trace_reason))
             return live_sbs.sbs_worker(*args,**kwargs)
     finally:
         if history_trace is not None:
             (Path(history_trace)/f'{os.getpid()}.json').write_text(json.dumps(dict(
-                background=background,history_policy=history_policy or os.environ.get('DEPTHSBS_DEPTH_HISTORY','continuous'),
+                background=background,history_policy=history_policy or app_env('SCREENTO3D_DEPTH_HISTORY','continuous'),
                 seen=seen,retained=len(samples),samples=list(samples)),indent=2))
 
 
@@ -69,9 +71,9 @@ def main():
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     trace_directory=args.output/'history' if args.trace_history else None
     if trace_directory is not None:trace_directory.mkdir()
-    from depthsbs_app import live_sbs
-    from depthsbs_app.desktop import create_app
-    from depthsbs_app.desktop_preferences import DesktopPreferences
+    from screento3d_app import live_sbs
+    from screento3d_app.desktop import create_app
+    from screento3d_app.desktop_preferences import DesktopPreferences
     from PySide6.QtCore import QSettings
     from live_benchmark_source import SourceProcess
     import shiboken6
@@ -81,7 +83,7 @@ def main():
     live.output_placement.path=args.output/'placement.json'
     errors=[];live.errorOccurred.connect(errors.append)
     report=dict(rows=[],model=args.model,layout='half-tb',cap=0,vfg=False,
-                history_policy=args.history_policy or os.environ.get('DEPTHSBS_DEPTH_HISTORY','continuous'),
+                history_policy=args.history_policy or app_env('SCREENTO3D_DEPTH_HISTORY','continuous'),
                 history_trace=bool(args.trace_history),
                 source='user OLED clip: 64.0s lava, 65.2s flower; explicit SDR tone-mapped derivatives',
                 fps_scope='distinct native output submissions, not display scans',media_hashes={})

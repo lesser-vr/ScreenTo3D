@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock, patch
-from depthsbs_app import trt_backend as backend
+from screento3d_app import trt_backend as backend
 
 
 class BackendCleanupTests(unittest.TestCase):

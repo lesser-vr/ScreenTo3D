@@ -10,7 +10,7 @@ from da2_base_experiment import ROOT
 def main():
     root=ROOT/'out/da2-base-matrix'/uuid.uuid4().hex
     root.mkdir(parents=True)
-    ffmpeg=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg/ffmpeg.exe'
+    ffmpeg=ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg/ffmpeg.exe'
     ffprobe=ffmpeg.with_name('ffprobe.exe')
     original=ROOT/'out/public-live-default/FloorballGame.mp4'
     report=dict(passed=False,runs=[])

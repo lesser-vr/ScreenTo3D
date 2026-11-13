@@ -18,7 +18,7 @@ class ScrollFrames:
             y = line * 56 - (index * 9) % 56
             cv2.putText(
                 frame,
-                f"DepthSBS 0123456789 / SCROLL {line}",
+                f"ScreenTo3D 0123456789 / SCROLL {line}",
                 (35, y),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.8,

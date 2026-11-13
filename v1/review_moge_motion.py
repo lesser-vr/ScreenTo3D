@@ -8,7 +8,7 @@ import subprocess
 import cv2
 import numpy as np
 
-from depthsbs_app.desktop_jobs import BUNDLE
+from screento3d_app.desktop_jobs import BUNDLE
 from compare_small_aspect import digest
 
 

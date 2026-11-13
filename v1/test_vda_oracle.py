@@ -83,8 +83,8 @@ def main():
         report['checks'].append('default 518 single-frame CUDA smoke')
         print('PASS: oracle equality, cache, reset and default-size smoke', flush=True)
 
-        from depthsbs_app import pipeline
-        with patch('depthsbs_app.resources.bundle_root', return_value=ROOT / 'out/gpu-preview/DepthSBS-GPU-Preview/_internal'):
+        from screento3d_app import pipeline
+        with patch('screento3d_app.resources.bundle_root', return_value=ROOT / 'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal'):
             fixture = ROOT / 'out/quality-fixtures/6a90bee5354946c39182fa459cb2f611/motion-hevc.mp4'
             with (root / 'pipeline.jsonl').open('w', encoding='utf-8') as stream:
                 def progress(event):

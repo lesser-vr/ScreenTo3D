@@ -12,12 +12,12 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.resources import configure_resource_root
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.resources import configure_resource_root
 from public_test_media import PublicFrames, ATTRIBUTION, CORPUS
 
 
@@ -29,8 +29,8 @@ def main():
     configure_resource_root(BUNDLE)
     cv2.setNumThreads(1)
     torch.set_num_threads(4)
-    os.environ["DEPTHSBS_BASE_GRAPH"] = "0"
-    os.environ["DEPTHSBS_BASE_INPUT"] = "gpu"
+    os.environ["SCREENTO3D_BASE_GRAPH"] = "0"
+    os.environ["SCREENTO3D_BASE_INPUT"] = "gpu"
     policy = replace(resolve_live("balanced"), depth_backend="da2-base")
     clips = ("FloorballGame", "OfficeWalk", "ParkingGarage")
     width, height = 3840, 2160

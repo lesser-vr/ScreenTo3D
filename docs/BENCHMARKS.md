@@ -1,4 +1,4 @@
-# Measuring DepthSBS
+# Measuring ScreenTo3D
 
 Use a bounded experiment sufficient for the question. Development probes may be
 short; stronger performance/support claims need repeatable representative evidence.

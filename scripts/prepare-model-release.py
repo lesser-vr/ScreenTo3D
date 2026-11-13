@@ -11,7 +11,7 @@ from zipfile import ZipFile
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'v1'))
-from depthsbs_app.optional_models import GRAPH_HASHES,PACKS,MODEL_RELEASE,MODEL_REPOSITORY,model_downloads
+from screento3d_app.optional_models import GRAPH_HASHES,PACKS,MODEL_RELEASE,MODEL_REPOSITORY,model_downloads
 
 
 def digest(path):

@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock
 from PySide6.QtCore import QRect,QSize,QMargins
-from depthsbs_app.output_placement import OutputPlacement, fit_rect,control_geometry
+from screento3d_app.output_placement import OutputPlacement, fit_rect,control_geometry
 
 
 class OutputPlacementTests(unittest.TestCase):

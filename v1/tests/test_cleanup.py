@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-from depthsbs_app.pipeline import _cleanup_processes
-from depthsbs_app import pipeline
+from screento3d_app.pipeline import _cleanup_processes
+from screento3d_app import pipeline
 
 
 class ProcessCleanupTests(unittest.TestCase):

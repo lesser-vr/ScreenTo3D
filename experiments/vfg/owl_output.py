@@ -1,14 +1,14 @@
 from ctypes import wintypes as wt
 import ctypes as ct
 
-from depthsbs_app.live_preview import LivePreview
+from screento3d_app.live_preview import LivePreview
 
 
 class OwlOutputLive(LivePreview):
     def configureOutputCapture(self, window):
         # Only this owned SBS output is exposed to the user's Owl3D compositor.
         # Main/tools/errors retain the normal application's capture exclusion.
-        from depthsbs_app.capture_sources import mark_sbs_output, user32
+        from screento3d_app.capture_sources import mark_sbs_output, user32
 
         self.output_excluded = False
         hwnd = int(window.winId())

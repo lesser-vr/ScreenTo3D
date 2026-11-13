@@ -10,10 +10,10 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from depthsbs_app import pipeline
-from depthsbs_app.depth_backend import resolve_backend, vda_binding
-from depthsbs_app.resources import configure_media_tools
-from depthsbs_app.vda_artifacts import sha256
+from screento3d_app import pipeline
+from screento3d_app.depth_backend import resolve_backend, vda_binding
+from screento3d_app.resources import configure_media_tools
+from screento3d_app.vda_artifacts import sha256
 from vda_comparison import BoundedEngine, validate_metadata, validate_runs, inspection_sheet
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,7 +27,7 @@ def main():
     parser.add_argument('--max-frames', type=int, default=124)
     parser.add_argument('--da2-model', type=Path, default=ROOT/'out/models/da2-small/model_fp16.onnx')
     args = parser.parse_args()
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     metadata = pipeline.probe_video(args.input)
     validate_metadata(metadata, args.max_frames)
     vda = vda_binding(args.engine_dir, args.runtime_dir)
@@ -44,7 +44,7 @@ def main():
     try:
         # Retain the DLL directory handle until both sequential backends are closed.
         with os.add_dll_directory(str(args.runtime_dir.resolve())):
-            from depthsbs_app import trt_backend
+            from screento3d_app import trt_backend
             def da2_factory(progress):
                 # Diagnostic-only explicit model location; production lookup stays unchanged.
                 with patch.object(trt_backend, '_model_path', return_value=model):

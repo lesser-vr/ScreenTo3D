@@ -7,10 +7,10 @@ from unittest.mock import Mock, patch
 import numpy as np
 import cv2
 
-from depthsbs_app import vda_artifacts as artifacts
-from depthsbs_app.depth_backend import vda_binding
-from depthsbs_app.pipeline import convert_video
-from depthsbs_app.vda_preprocess import preprocess
+from screento3d_app import vda_artifacts as artifacts
+from screento3d_app.depth_backend import vda_binding
+from screento3d_app.pipeline import convert_video
+from screento3d_app.vda_preprocess import preprocess
 import test_vda_application as helpers
 
 
@@ -71,7 +71,7 @@ class VdaProfileTests(unittest.TestCase):
             source, output = root/'input.mp4', root/'output.mp4'
             source.touch()
             output.write_bytes(b'prior')
-            with patch('depthsbs_app.pipeline.probe_video', return_value=dict(width=1920, height=1080)):
+            with patch('screento3d_app.pipeline.probe_video', return_value=dict(width=1920, height=1080)):
                 with self.assertRaisesRegex(ValueError, 'No matching'):
                     convert_video(source, output, 'video-quality', Mock(), depth_backend=binding)
             self.assertEqual(output.read_bytes(), b'prior')

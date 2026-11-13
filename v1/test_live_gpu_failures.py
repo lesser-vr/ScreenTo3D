@@ -5,8 +5,8 @@ import json
 import threading
 from pathlib import Path
 import numpy as np
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.resources import configure_resource_root
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.resources import configure_resource_root
 
 
 def main():
@@ -23,38 +23,38 @@ def main():
     if args.pinned_input and not args.native:
         parser.error("--pinned-input requires --native")
     configure_resource_root(BUNDLE)
-    from depthsbs_app.trt_backend import DepthEngine, _cuda, cudart
-    from depthsbs_app import live_gpu_candidate as gpu_module
-    from depthsbs_app.live_policy import resolve_live
+    from screento3d_app.trt_backend import DepthEngine, _cuda, cudart
+    from screento3d_app import live_gpu_candidate as gpu_module
+    from screento3d_app.live_policy import resolve_live
 
     if args.guide_candidate == "hybrid":
-        from depthsbs_app.live_guide_hybrid_worker import candidate_manifest
+        from screento3d_app.live_guide_hybrid_worker import candidate_manifest
 
     elif args.guide_candidate == "promoted":
-        from depthsbs_app.live_guide_promoted_worker import candidate_manifest
+        from screento3d_app.live_guide_promoted_worker import candidate_manifest
 
     input_candidate = None
     if args.pinned_input:
-        from depthsbs_app.live_pinned_input_worker import candidate_manifest as pinned
+        from screento3d_app.live_pinned_input_worker import candidate_manifest as pinned
 
         input_candidate = pinned()
     if args.guide_candidate:
         candidate = candidate_manifest()
         gpu_module.DLL_PATH = Path(candidate["dll"])
         gpu_module.DLL_SHA256 = candidate["dll_sha256"]
-    from depthsbs_app.live_gpu_candidate import LiveGpuCandidate
+    from screento3d_app.live_gpu_candidate import LiveGpuCandidate
 
     if args.native:
         if args.guide_candidate:
-            from depthsbs_app import live_gpu_texture as texture_module
+            from screento3d_app import live_gpu_texture as texture_module
 
             texture_module.DLL_SHA256 = candidate["dll_sha256"]
             texture_module.BORROWED_LAYOUT_SHA256 = candidate["dll_sha256"]
-        from depthsbs_app.live_gpu_texture import LiveGpuTexture
+        from screento3d_app.live_gpu_texture import LiveGpuTexture
 
         LiveGpuCandidate = LiveGpuTexture
         if args.pinned_input:
-            from depthsbs_app.live_pinned_input import LiveGpuPinnedTexture
+            from screento3d_app.live_pinned_input import LiveGpuPinnedTexture
 
             LiveGpuCandidate = LiveGpuPinnedTexture
 

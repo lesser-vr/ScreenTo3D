@@ -10,8 +10,8 @@ import numpy as np
 import torch
 
 from da2_base_experiment import Da2BaseOracle, WEIGHT_SHA256
-from depthsbs_app.da2_base import binding, preprocess
-from depthsbs_app.desktop_jobs import ROOT
+from screento3d_app.da2_base import binding, preprocess
+from screento3d_app.desktop_jobs import ROOT
 from public_test_media import PublicFrames
 from base_trt_fp16_trial import installed
 

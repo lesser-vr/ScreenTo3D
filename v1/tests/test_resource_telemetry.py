@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-from depthsbs_app.resource_telemetry import ResourceMetrics
-from depthsbs_app import trt_backend as backend
+from screento3d_app.resource_telemetry import ResourceMetrics
+from screento3d_app import trt_backend as backend
 
 
 class ResourceMetricsTests(unittest.TestCase):

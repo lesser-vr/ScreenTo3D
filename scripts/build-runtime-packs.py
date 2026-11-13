@@ -9,7 +9,7 @@ from zipfile import ZipFile,ZipInfo,ZIP_STORED
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'v1'))
-from depthsbs_app.builder_resources import PACKS,verify
+from screento3d_app.builder_resources import PACKS,verify
 
 
 def digest(path):
@@ -17,7 +17,7 @@ def digest(path):
 
 
 def build(output,runtime=None,license=None):
-    base=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview'
+    base=ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview'
     runtime=Path(runtime) if runtime else base/'_internal/runtime'
     license=Path(license) if license else base/'TENSORRT-LICENSE.txt'
     output=Path(output);output.mkdir(parents=True,exist_ok=True)

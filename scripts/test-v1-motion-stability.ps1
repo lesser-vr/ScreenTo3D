@@ -12,7 +12,7 @@ $source = Join-Path $fixture 'motion-h264.mp4'
 $runRoot = Join-Path $repoRoot ('out/motion-stability/' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runRoot | Out-Null
 $longSource = Join-Path $runRoot 'motion-30s.mp4'
-$ffmpeg = Join-Path $repoRoot 'out/release/DepthSBS/_internal/ffmpeg/ffmpeg.exe'
+$ffmpeg = Join-Path $repoRoot 'out/release/ScreenTo3D/_internal/ffmpeg/ffmpeg.exe'
 & $ffmpeg -n -v error -stream_loop 14 -i $source -map 0:v:0 -vf fps=24 -frames:v 720 `
     -an -c:v libx264 -preset fast -crf 18 -pix_fmt yuv420p $longSource
 if ($LASTEXITCODE -ne 0) { throw 'CFR stability fixture generation failed.' }

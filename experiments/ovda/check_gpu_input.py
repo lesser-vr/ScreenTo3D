@@ -9,10 +9,10 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 import torch
-from depthsbs_app import ovda
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.ovda_geometry import CANVASES, SUPPORTED_CANVASES, select_profile
+from screento3d_app import ovda
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.ovda_geometry import CANVASES, SUPPORTED_CANVASES, select_profile
 from public_test_media import CORPUS
 
 
@@ -20,7 +20,7 @@ class InputOwner:
     def __init__(self):
         self.torch=torch;self.device=torch.cuda.current_device()
         self.stream=torch.cuda.Stream();self.owner=threading.get_ident();self.closed=False
-        from _depthsbs_ovda.gpu_input import OvdaGpuInput
+        from _screento3d_ovda.gpu_input import OvdaGpuInput
         self.gpu_input=OvdaGpuInput(self)
     def _check(self):
         if self.closed or threading.get_ident()!=self.owner or torch.cuda.current_device()!=self.device:
@@ -36,7 +36,7 @@ def main():
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     cls=ovda.runtime_class(True)
-    from _depthsbs_ovda.preprocessing import FramePreprocessor
+    from _screento3d_ovda.preprocessing import FramePreprocessor
     cap=cv2.VideoCapture(str(CORPUS/'FloorballGame.mp4'))
     ok,bgr=cap.read();cap.release()
     if not ok:raise ValueError('Missing public source')
@@ -48,7 +48,7 @@ def main():
             try:operation()
             except error:report['rejections'].append(name)
             else:raise AssertionError('Missing rejection: '+name)
-        from _depthsbs_ovda import gpu_input as native_input
+        from _screento3d_ovda import gpu_input as native_input
         with patch.object(native_input,'DLL_SHA256','0'*64):
             rejected('DLL checksum',ValueError,lambda:native_input.OvdaGpuInput(owner))
         with torch.cuda.stream(owner.stream):
@@ -93,8 +93,8 @@ def main():
         owner.stream.synchronize();owner.closed=True
         (args.output/'report.json').write_text(json.dumps(report,indent=2))
     if not args.preprocess_only:
-        from depthsbs_app.live_policy import resolve_live
-        from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
+        from screento3d_app.live_policy import resolve_live
+        from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
         profiles=ovda.profiles(ROOT/'out/ovda-local')
         policy=replace(resolve_live('video-quality',.5),stereo_layout='half-tb')
         for w,h,count in ((1280,720,20),(3840,2160,18),(3440,1440,18),(1080,1920,18),(1024,1024,18),(1056,608,18)):
@@ -138,7 +138,7 @@ def main():
                             assert gpu.last_input_bytes==0 and frame.readback_bytes==0
                             # Actual native texture synthesis and readback, then complete owned tokens.
                             outputs=[]
-                            from depthsbs_app.stereo_layout import dimensions
+                            from screento3d_app.stereo_layout import dimensions
                             ow,oh=dimensions(w,h,policy.stereo_layout)
                             for post,original,token in zip(posts,(reference_frame,frame),(a,b)):
                                 post.slot=index%2

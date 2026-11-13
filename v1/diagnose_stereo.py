@@ -5,9 +5,9 @@ from pathlib import Path
 from unittest.mock import patch
 import cv2
 import numpy as np
-from depthsbs_app.pipeline import preprocess
-from depthsbs_app.config import MODES
-from depthsbs_app.trt_backend import DepthEngine
+from screento3d_app.pipeline import preprocess
+from screento3d_app.config import MODES
+from screento3d_app.trt_backend import DepthEngine
 
 
 class StereoSynthesizer:
@@ -45,7 +45,7 @@ def main():
         height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
         ema = StereoSynthesizer(width, height, MODES['balanced'])
         current = StereoSynthesizer(width, height, replace(MODES['balanced'], temporal_alpha=1.0))
-        with patch('depthsbs_app.resources.bundle_root', return_value=root / 'out/release/DepthSBS/_internal'):
+        with patch('screento3d_app.resources.bundle_root', return_value=root / 'out/release/ScreenTo3D/_internal'):
             with DepthEngine() as engine:
                 for index in range(args.frame + 1):
                     ok, bgr = capture.read()

@@ -4,10 +4,10 @@ import ctypes as ct
 import hashlib
 import math
 import weakref
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.live_source_gpu_candidate import LiveSourceGpuCandidate
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.live_source_gpu_candidate import LiveSourceGpuCandidate
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
 
 DLL_PATH=ROOT/'out/ovda-postprocess-range/ovda_postprocess.dll'
 DLL_SHA256='b4873fc3b2b479a825526b1a3fd397e4b255ca1ecc3b3ddbfeec442763372629'
@@ -31,12 +31,12 @@ class OvdaPostBridge:
         self.post_source.restype=ct.c_int
         self.range_parameters=range_parameters
         if self.range_parameters is None and renderer.policy.stabilize_depth_range:
-            from depthsbs_app.depth_range import RangeParameters
+            from screento3d_app.depth_range import RangeParameters
             self.range_parameters=RangeParameters()
         self.anchors=None;self.range_clock=None;self.range_ready=False
         if self.range_parameters is not None:
-            from depthsbs_app.depth_range import RangeParameters
-            from depthsbs_app.stereo_stability import DepthRangeClock
+            from screento3d_app.depth_range import RangeParameters
+            from screento3d_app.stereo_stability import DepthRangeClock
             if not isinstance(self.range_parameters,RangeParameters):raise ValueError('Invalid range parameters')
             self.range_source=self.post_library.ovda_post_source_range
             self.range_source.argtypes=self.post_source.argtypes+[ct.c_void_p]+[ct.c_double]*4

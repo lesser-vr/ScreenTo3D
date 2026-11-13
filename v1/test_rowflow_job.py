@@ -14,7 +14,7 @@ def main():
     kernel.CloseHandle.argtypes = [ct.c_void_p]
     helper = """
 import subprocess,sys,time,os
-from depthsbs_app.rowflow import bridge,check
+from screento3d_app.rowflow import bridge,check
 dll=bridge();check(dll,dll.rowflow_protect_worker())
 child=subprocess.Popen([sys.executable,'-c','import time;time.sleep(120)'],creationflags=subprocess.CREATE_NO_WINDOW)
 print(str(os.getpid())+' '+str(child.pid),flush=True)

@@ -8,7 +8,7 @@ import uuid
 import numpy as np
 from cuda.bindings import runtime as cudart
 from cuda_projection_experiment import CudaProjection
-from depthsbs_app.stereo import project_eye
+from screento3d_app.stereo import project_eye
 
 
 def memory_used():

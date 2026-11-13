@@ -6,8 +6,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from depthsbs_app import pipeline
-from depthsbs_app.trt_backend import DepthEngine, _cuda, cudart
+from screento3d_app import pipeline
+from screento3d_app.trt_backend import DepthEngine, _cuda, cudart
 
 
 def main():
@@ -92,8 +92,8 @@ def main():
 
 if __name__ == '__main__':
     # Exercise current source with the same model/FFmpeg assets as the package.
-    assets = Path(__file__).resolve().parents[1] / 'out/release/DepthSBS/_internal'
+    assets = Path(__file__).resolve().parents[1] / 'out/release/ScreenTo3D/_internal'
     if not (assets / 'models/da2-small/model_fp16.onnx').is_file():
         raise RuntimeError('Build the portable package assets first')
-    with patch('depthsbs_app.resources.bundle_root', return_value=assets):
+    with patch('screento3d_app.resources.bundle_root', return_value=assets):
         main()

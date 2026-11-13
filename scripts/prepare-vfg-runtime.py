@@ -11,7 +11,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'v1'))
-from depthsbs_app.vfg_runtime import PINS, SDK  # noqa: E402
+from screento3d_app.vfg_runtime import PINS, SDK  # noqa: E402
 
 WHEEL_SHA256 = '5aaf6a42bc6b6dbbf52fcb714194c994a6893cbbf7ada38bc2165a1f83e4a6fc'
 

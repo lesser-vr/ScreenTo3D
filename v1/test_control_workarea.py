@@ -12,8 +12,8 @@ def main():
     from PySide6.QtCore import QSettings,QPointF,QRect
     from PySide6.QtQuick import QQuickItem,QQuickWindow
     import shiboken6
-    from depthsbs_app.desktop import create_app
-    from depthsbs_app.desktop_preferences import DesktopPreferences
+    from screento3d_app.desktop import create_app
+    from screento3d_app.desktop_preferences import DesktopPreferences
     QSettings.setDefaultFormat(QSettings.IniFormat);QSettings.setPath(QSettings.IniFormat,QSettings.UserScope,str(out/'settings'))
     app,engine,c=create_app(DesktopPreferences(QSettings(str(out/'prefs.ini'),QSettings.IniFormat)))
     warnings=[];engine.warnings.connect(lambda errors:warnings.extend(e.toString() for e in errors))

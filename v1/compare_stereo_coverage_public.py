@@ -11,11 +11,11 @@ import numpy as np
 import torch
 
 from check_stereo_geometry_gpu import load,check_cuda
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_scene_history import LiveSceneHistory
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_scene_history import LiveSceneHistory
 from public_test_media import PublicFrames,SOURCES,ATTRIBUTION
 
 

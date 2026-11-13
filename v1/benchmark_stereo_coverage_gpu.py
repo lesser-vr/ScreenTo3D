@@ -10,8 +10,8 @@ import numpy as np
 import torch
 
 from check_stereo_geometry_gpu import load,context,check_cuda
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
 from native_path import BRIDGE,BRIDGE_HASH
 from tests.test_stereo_geometry import geometry_fixture
 

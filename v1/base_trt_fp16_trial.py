@@ -8,7 +8,7 @@ import json
 import os
 from pathlib import Path
 
-from depthsbs_app.desktop_jobs import ROOT
+from screento3d_app.desktop_jobs import ROOT
 
 ARTIFACTS = ROOT / 'out/base-trt-fp16-20261105'
 PINS = {
@@ -37,7 +37,7 @@ def manifest(recipe):
 def installed(recipe):
     """Only inside an explicit trial process; restore module bindings afterward."""
     info = manifest(recipe)
-    from depthsbs_app import da2_base as base, da2_base_device as device
+    from screento3d_app import da2_base as base, da2_base_device as device
     if recipe == 'fp32':
         original = base.PROFILES, base.PRECISION
         try:
@@ -72,9 +72,11 @@ def installed(recipe):
         base.checked_plan, base.profiles, base.PROFILES, device.Da2BaseDeviceEngine = old
 
 
+from screento3d_app.environment import required as app_env_required
+
 def trial_worker(*args, **kwargs):
-    from depthsbs_app.live_sbs import sbs_worker
-    recipe = os.environ['DEPTHSBS_FP16_TRIAL']
+    from screento3d_app.live_sbs import sbs_worker
+    recipe = app_env_required('SCREENTO3D_FP16_TRIAL')
     with installed(recipe):
         return sbs_worker(*args, **kwargs)
 

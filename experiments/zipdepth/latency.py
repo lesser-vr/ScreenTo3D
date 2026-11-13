@@ -34,12 +34,12 @@ def main():
     if a.baseline and a.guide_baseline:p.error('Choose one baseline')
     out=ROOT/(f'out/public-hfr/{a.clip}-{a.model}-{a.tag}.json' if a.clip else f'out/zipdepth-latency-{a.model}.json')
     if out.exists():raise FileExistsError(out)
-    os.environ['DEPTHSBS_GPU_CAPTURE']='1'
-    os.environ['DEPTHSBS_STEREO_RENDERER']='cuda'
-    os.environ['DEPTHSBS_STEREO_QUALITY']=a.quality
+    os.environ['SCREENTO3D_GPU_CAPTURE']='1'
+    os.environ['SCREENTO3D_STEREO_RENDERER']='cuda'
+    os.environ['SCREENTO3D_STEREO_QUALITY']=a.quality
     with installed() if a.model=='zipdepth' else nullcontext():
-        from depthsbs_app import desktop,live_sbs
-        from depthsbs_app.output_placement import OutputPlacement
+        from screento3d_app import desktop,live_sbs
+        from screento3d_app.output_placement import OutputPlacement
         from live_benchmark_source import SourceProcess
         from PySide6.QtCore import Qt
         import numpy as np
@@ -57,18 +57,18 @@ def main():
         if a.timing_trace:
             if a.baseline or a.guide_baseline:p.error('Timing trace uses current artifacts')
             from pacing_probe import worker as traced_worker
-            os.environ['DEPTHSBS_TIMING_TRACE']=str(out.with_suffix('.worker.json'))
-            os.environ['DEPTHSBS_TIMING_MODEL']=a.model
+            os.environ['SCREENTO3D_TIMING_TRACE']=str(out.with_suffix('.worker.json'))
+            os.environ['SCREENTO3D_TIMING_MODEL']=a.model
             live_sbs.sbs_worker=traced_worker
         if a.pacing!='production':
             if a.baseline or a.guide_baseline:p.error('Pacing candidate uses current artifacts')
             from pacing_candidate import DELIVERY,polling_wakeup_type,worker as pacing_worker
-            from depthsbs_app import live_preview
+            from screento3d_app import live_preview
             live_preview.delivery_cadence=lambda hz,**kwargs: DELIVERY[a.pacing](hz)
             live_preview.FrameWakeup=polling_wakeup_type()
-            os.environ['DEPTHSBS_PACING_CANDIDATE']=a.pacing
-            os.environ['DEPTHSBS_PACING_MODEL']=a.model
-            os.environ['DEPTHSBS_PACING_TRACE']='1' if a.timing_trace else '0'
+            os.environ['SCREENTO3D_PACING_CANDIDATE']=a.pacing
+            os.environ['SCREENTO3D_PACING_MODEL']=a.model
+            os.environ['SCREENTO3D_PACING_TRACE']='1' if a.timing_trace else '0'
             live_sbs.sbs_worker=pacing_worker
         app,qml,controller=desktop.create_app();live=controller.live
         live.output_placement=OutputPlacement(ROOT/f'out/zipdepth-latency-placement-{a.model}.json')

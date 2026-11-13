@@ -35,10 +35,10 @@ def load_frames(path, limit=60):
 
 
 def engine_classes():
-    from depthsbs_app import ovda
+    from screento3d_app import ovda
 
     host = ovda.runtime_class()
-    from _depthsbs_ovda.device_depth import OvdaBufferedDeviceTrt, OvdaDeviceTrt
+    from _screento3d_ovda.device_depth import OvdaBufferedDeviceTrt, OvdaDeviceTrt
 
     return host, OvdaDeviceTrt, OvdaBufferedDeviceTrt
 
@@ -52,7 +52,7 @@ def create_engine(engine):
 
 
 def reset_flags(frames, threshold):
-    from depthsbs_app.live_scene_history import LiveSceneHistory
+    from screento3d_app.live_scene_history import LiveSceneHistory
 
     history = LiveSceneHistory(threshold)
     flags = []
@@ -244,7 +244,7 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     source = load_frames(args.input)
     height, width = source[0].shape[:2]
-    from depthsbs_app.live_policy import resolve_live
+    from screento3d_app.live_policy import resolve_live
 
     policy = resolve_live("video-quality")
     flags = reset_flags(source, policy.scene_cut_threshold)

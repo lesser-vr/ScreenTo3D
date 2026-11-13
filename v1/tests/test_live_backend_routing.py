@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from depthsbs_app.live_backend import binding, choices, default_model, validate_snapshot
+from screento3d_app.live_backend import binding, choices, default_model, validate_snapshot
 
 
 class LiveBackendRoutingTests(unittest.TestCase):
@@ -52,7 +52,7 @@ class LiveBackendRoutingTests(unittest.TestCase):
         backend = Mock()
         backend.spec.model_id = "ovda-small-c16"
         backend.input_validator = Mock()
-        with patch("depthsbs_app.ovda.binding", return_value=backend) as create:
+        with patch("screento3d_app.ovda.binding", return_value=backend) as create:
             result = binding(
                 self.snapshot("ovda-small-c16", noncommercial=True),
                 "video-quality",
@@ -71,7 +71,7 @@ class LiveBackendRoutingTests(unittest.TestCase):
         backend.spec.model_id = "vda-small"
         backend.input_validator = Mock()
         with patch(
-            "depthsbs_app.depth_backend.vda_binding", return_value=backend
+            "screento3d_app.depth_backend.vda_binding", return_value=backend
         ) as create:
             result = binding(
                 self.snapshot("vda-small"),
@@ -85,7 +85,7 @@ class LiveBackendRoutingTests(unittest.TestCase):
 
     def test_live_base_requests_device_depth_without_changing_file_default(self):
         backend = Mock()
-        with patch("depthsbs_app.da2_base.binding", return_value=backend) as create:
+        with patch("screento3d_app.da2_base.binding", return_value=backend) as create:
             self.assertIs(binding(self.snapshot("da2-base"), "balanced",
                                   {"width": 3440, "height": 1440}, Mock(), Mock()), backend)
         self.assertTrue(create.call_args.kwargs["device_depth"])

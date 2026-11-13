@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from depthsbs_app.capture_telemetry import (
+from screento3d_app.capture_telemetry import (
     CAPACITY,
     FIELDS,
     CaptureTelemetry,
@@ -88,8 +88,8 @@ class CaptureTelemetryTests(unittest.TestCase):
                 child.join(5)
 
     def test_callback_counts_publication_and_lock_drop_independently(self):
-        from depthsbs_app.capture_mailbox import Mailbox, RECEIVED
-        from depthsbs_app.capture_worker import capture_worker
+        from screento3d_app.capture_mailbox import Mailbox, RECEIVED
+        from screento3d_app.capture_worker import capture_worker
 
         mailbox = Mailbox.create(mp.get_context("spawn"))
         frame = SimpleNamespace(
@@ -125,8 +125,8 @@ class CaptureTelemetryTests(unittest.TestCase):
                 "sys.modules",
                 {"windows_capture": SimpleNamespace(WindowsCapture=Capture)},
             ),
-            patch("depthsbs_app.capture_sources.enable_capture_dpi"),
-            patch("depthsbs_app.capture_sources.validate_source"),
+            patch("screento3d_app.capture_sources.enable_capture_dpi"),
+            patch("screento3d_app.capture_sources.validate_source"),
         ):
             capture_worker(
                 {"kind": "window", "id": 1},

@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import numpy as np
-from depthsbs_app.stereo import refine_flat_background
+from screento3d_app.stereo import refine_flat_background
 from uniform_background_tc import load_case,verify_asset,fixture_path,generated_frames,observe_pattern,assess_performance
 
 

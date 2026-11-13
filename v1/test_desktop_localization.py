@@ -12,9 +12,9 @@ from PySide6.QtGui import QImage
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtTest import QTest
 
-from depthsbs_app.desktop import create_app
-from depthsbs_app.desktop_preferences import DesktopPreferences
-from depthsbs_app.messages import Message as M, ErrorMessage as E
+from screento3d_app.desktop import create_app
+from screento3d_app.desktop_preferences import DesktopPreferences
+from screento3d_app.messages import Message as M, ErrorMessage as E
 
 
 def main():
@@ -24,7 +24,7 @@ def main():
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     prefs=DesktopPreferences(QSettings(str(args.output/'preferences.ini'),QSettings.IniFormat))
     prefs.store.setValue('ui/language','ko')
-    sources=patch('depthsbs_app.live_preview.windows',return_value=[dict(kind='window',id=11,pid=1,
+    sources=patch('screento3d_app.live_preview.windows',return_value=[dict(kind='window',id=11,pid=1,
         label='Test video / 한글 테스트',width=1280,height=720)])
     sources.start()
     app,engine,desktop=create_app(prefs)

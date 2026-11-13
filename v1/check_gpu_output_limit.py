@@ -13,7 +13,7 @@ def check(source):
     output, status = root / 'output.mp4', root / 'events.jsonl'
     sentinel = b'prior-output-must-survive'
     output.write_bytes(sentinel)
-    exe = repo / 'out/gpu-preview/DepthSBS-GPU-Preview/DepthSBS-GPU-Preview.exe'
+    exe = repo / 'out/gpu-preview/ScreenTo3D-GPU-Preview/ScreenTo3D-GPU-Preview.exe'
     process = subprocess.run([str(exe), '--worker', '--input', str(source.resolve()),
         '--output', str(output), '--status-file', str(status)], timeout=30)
     events = list(map(json.loads, status.read_text(encoding='utf-8').splitlines()))

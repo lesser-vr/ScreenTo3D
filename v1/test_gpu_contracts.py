@@ -7,8 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
-from depthsbs_app.local_projection import checked_dll, factory
-from depthsbs_app.stereo import project_eye
+from screento3d_app.local_projection import checked_dll, factory
+from screento3d_app.stereo import project_eye
 
 
 def main():

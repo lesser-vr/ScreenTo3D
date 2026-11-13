@@ -11,13 +11,13 @@ $ffmpeg = (Get-Command ffmpeg.exe -ErrorAction Stop).Source
 $ffprobe = (Get-Command ffprobe.exe -ErrorAction Stop).Source
 $distRoot = Join-Path $repoRoot 'out\release'
 $workRoot = Join-Path $repoRoot 'out\pyinstaller'
-$appName = 'DepthSBS'
-$entryPoint = Join-Path $repoRoot 'v1\depthsbs.py'
+$appName = 'ScreenTo3D'
+$entryPoint = Join-Path $repoRoot 'v1\screento3d.py'
 if ($GpuPreview) {
     $distRoot = Join-Path $repoRoot 'out\gpu-preview'
     $workRoot = Join-Path $repoRoot 'out\pyinstaller-gpu-preview'
-    $appName = 'DepthSBS-GPU-Preview'
-    $entryPoint = Join-Path $repoRoot 'v1\depthsbs_gpu_preview.py'
+    $appName = 'ScreenTo3D-GPU-Preview'
+    $entryPoint = Join-Path $repoRoot 'v1\screento3d_gpu_preview.py'
     & (Join-Path $PSScriptRoot 'build-cuda-projection-spike.ps1') -GpuPreview
 }
 

@@ -9,8 +9,8 @@ from types import SimpleNamespace
 import numpy as np
 import torch
 
-from depthsbs_app import rowflow
-from depthsbs_app.live_policy import resolve_live
+from screento3d_app import rowflow
+from screento3d_app.live_policy import resolve_live
 from tests.test_stereo_geometry import geometry_fixture
 
 

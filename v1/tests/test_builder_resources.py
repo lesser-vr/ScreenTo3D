@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import Mock,patch
 from zipfile import ZipFile
 
-from depthsbs_app import builder_resources as resources,optional_models as models
+from screento3d_app import builder_resources as resources,optional_models as models
 
 
 class BuilderResourcesTests(unittest.TestCase):
@@ -77,10 +77,10 @@ class BuilderMappingTests(unittest.TestCase):
                 self.assertEqual(resources.required_key(root,dict(compute_capability=cc)),key)
 
     def test_dll_directory_handles_close_when_later_registration_fails(self):
-        from depthsbs_app.resources import prepare_dll_search_path
+        from screento3d_app.resources import prepare_dll_search_path
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);extra=root/'gpu';extra.mkdir();first=Mock()
-            with patch.object(resources,'prepare',return_value=[extra]),patch('depthsbs_app.resources.os.add_dll_directory',side_effect=[first,OSError('fixture')],create=True),patch.dict('os.environ'):
+            with patch.object(resources,'prepare',return_value=[extra]),patch('screento3d_app.resources.os.add_dll_directory',side_effect=[first,OSError('fixture')],create=True),patch.dict('os.environ'):
                 import os
                 original=os.environ.get('PATH','')
                 with self.assertRaises(OSError):prepare_dll_search_path(root)

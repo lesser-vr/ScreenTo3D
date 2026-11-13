@@ -9,21 +9,23 @@ import time
 
 import cv2
 import numpy as np
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.live_policy import resolve_live
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.live_policy import resolve_live
 from public_test_media import CORPUS
 
+
+from screento3d_app.environment import get as app_env
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--output', type=Path, required=True)
     args = p.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
-    os.environ['DEPTHSBS_BASE_STAGE_PROFILE'] = '1'
+    os.environ['SCREENTO3D_BASE_STAGE_PROFILE'] = '1'
     configure_resource_root(BUNDLE)
     video = cv2.VideoCapture(str(CORPUS/'FloorballGame.mp4'))
     ok, bgr = video.read()
@@ -66,7 +68,7 @@ def main():
             print(json.dumps({k:v for k,v in row.items() if k!='samples'}),flush=True)
     (args.output/'report.json').write_text(json.dumps(dict(
         scope='Isolated CUDA stage probe; not capture/display FPS',
-        cuda_graph=os.environ.get('DEPTHSBS_BASE_GRAPH', '0'), rows=rows),indent=2))
+        cuda_graph=app_env('SCREENTO3D_BASE_GRAPH', '0'), rows=rows),indent=2))
 
 
 if __name__ == '__main__':

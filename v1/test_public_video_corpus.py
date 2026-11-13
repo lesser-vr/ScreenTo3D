@@ -7,8 +7,8 @@ import uuid
 import cv2
 import numpy as np
 from evaluate_depth_models import ROOT, sha, inspect_media
-from depthsbs_app import pipeline
-from depthsbs_app.resources import configure_media_tools
+from screento3d_app import pipeline
+from screento3d_app.resources import configure_media_tools
 from vda_comparison import validate_runs, inspection_sheet
 
 
@@ -18,8 +18,8 @@ def main():
         raise ValueError('Public video does not match the recorded official source')
     root=ROOT/'out/public-video-tests'/uuid.uuid4().hex
     root.mkdir(parents=True)
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
-    ffmpeg=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg/ffmpeg.exe'
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
+    ffmpeg=ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg/ffmpeg.exe'
     attribution='(c) copyright 2008, Blender Foundation / www.bigbuckbunny.org; CC BY 3.0. Four-second excerpts transcoded to H.264/AAC and converted to SBS for local model comparison.'
     report=dict(passed=False,attribution=attribution,license_url='https://peach.blender.org/about/',
         source_url='https://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_720p_h264.mov.zip',

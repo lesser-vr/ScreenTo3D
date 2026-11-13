@@ -16,13 +16,13 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 import torch
-from depthsbs_app import ovda
-from depthsbs_app.depth_range import DepthRangeTracker,RangeParameters
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.ovda_geometry import select_profile
-from depthsbs_app.stereo_layout import dimensions
+from screento3d_app import ovda
+from screento3d_app.depth_range import DepthRangeTracker,RangeParameters
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.ovda_geometry import select_profile
+from screento3d_app.stereo_layout import dimensions
 from evaluate_pixel_ema import FixtureOwner,readers
 from public_test_media import CORPUS
 
@@ -31,9 +31,9 @@ NEW=('out/ovda-postprocess-range/ovda_postprocess.dll','b4873fc3b2b479a825526b1a
 
 
 def make_posts(engine,w,h,product=False):
-    from _depthsbs_ovda import postprocess as module
-    from depthsbs_app.live_model import model_adapter
-    from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
+    from _screento3d_ovda import postprocess as module
+    from screento3d_app.live_model import model_adapter
+    from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
     policy=replace(resolve_live('video-quality',.5),stereo_layout='half-tb',depth_backend='ovda-small-c16')
     posts={}
     try:

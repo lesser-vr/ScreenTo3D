@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import shiboken6
-from depthsbs_app.desktop import create_app
+from screento3d_app.desktop import create_app
 from PySide6.QtWidgets import QMessageBox
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +29,7 @@ def main():
     window.setProperty("page", 1)
     controller.add_paths([str(args.input)])
     evidence = []
-    sentinel = b"DepthSBS test prior output; must survive failure/cancellation"
+    sentinel = b"ScreenTo3D test prior output; must survive failure/cancellation"
 
     def wait_until(predicate, timeout=90):
         deadline = time.monotonic() + timeout

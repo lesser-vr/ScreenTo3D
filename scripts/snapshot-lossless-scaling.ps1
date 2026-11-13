@@ -69,7 +69,7 @@ try {
 
 $version = (Get-Item -LiteralPath $executable).VersionInfo
 $report = [ordered]@{
-    schema = 'depthsbs.lossless-scaling-baseline-snapshot.v1'
+    schema = 'screento3d.lossless-scaling-baseline-snapshot.v1'
     status = 'captured'
     captured_utc = [DateTime]::UtcNow.ToString('o')
     scope = 'Read-only installed baseline configuration; not proof that a profile was active during a capture.'

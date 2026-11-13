@@ -1,6 +1,6 @@
 # Maintaining languages and errors
 
-Language definitions live in `v1/depthsbs_app/translations/languages.json`.
+Language definitions live in `v1/screento3d_app/translations/languages.json`.
 Each entry specifies its stable code, native display name, BCP-47 locale,
 bundled catalog basename and optional Qt standard catalogs. The default language
 provides English source fallback without a catalog. Only bundled basenames are

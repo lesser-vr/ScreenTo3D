@@ -8,9 +8,9 @@ from unittest.mock import patch
 
 import numpy as np
 
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.capture_mailbox import (
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.capture_mailbox import (
     Mailbox,
     SEQ,
     WIDTH,
@@ -19,22 +19,22 @@ from depthsbs_app.capture_mailbox import (
     RUNNING,
     FAILED,
 )
-from depthsbs_app.live_sbs import sbs_worker, STAT_COUNT
+from screento3d_app.live_sbs import sbs_worker, STAT_COUNT
 
 configure_resource_root(BUNDLE)
 
 
 class LiveWorkerFailures(unittest.TestCase):
     def test_zero_capture_interval_reuse_and_gap(self):
-        with patch.dict("os.environ", {"DEPTHSBS_LIVE_CAPTURE_INTERVAL_MS": "0"}):
+        with patch.dict("os.environ", {"SCREENTO3D_LIVE_CAPTURE_INTERVAL_MS": "0"}):
             self.test_performance_reuse_gap_and_single_pixel_refresh()
 
     def test_legacy_bridge_reuse_and_gap(self):
-        with patch.dict("os.environ", {"DEPTHSBS_LIVE_HOST_BRIDGE": "legacy"}):
+        with patch.dict("os.environ", {"SCREENTO3D_LIVE_HOST_BRIDGE": "legacy"}):
             self.test_performance_reuse_gap_and_single_pixel_refresh()
 
     def test_performance_reuse_gap_and_single_pixel_refresh(self):
-        from depthsbs_app.live_sbs import INFERRED, REUSED, PROCESSED
+        from screento3d_app.live_sbs import INFERRED, REUSED, PROCESSED
 
         context = mp.get_context("spawn")
         output = Mailbox.create(context, sbs=True)
@@ -81,11 +81,11 @@ class LiveWorkerFailures(unittest.TestCase):
             mailbox.stop.set()
 
         with (
-            patch("depthsbs_app.trt_backend.DepthEngine", return_value=Engine()),
+            patch("screento3d_app.trt_backend.DepthEngine", return_value=Engine()),
             patch(
-                "depthsbs_app.live_projection.LiveProjection", return_value=Projection()
+                "screento3d_app.live_projection.LiveProjection", return_value=Projection()
             ),
-            patch("depthsbs_app.capture_worker.capture_worker", side_effect=capture),
+            patch("screento3d_app.capture_worker.capture_worker", side_effect=capture),
         ):
             sbs_worker({}, False, output, stats, 1.0, "performance")
         self.assertEqual(stats[PROCESSED], 6)
@@ -132,11 +132,11 @@ class LiveWorkerFailures(unittest.TestCase):
         output = Mailbox.create(context, sbs=True)
         stats = context.RawArray(ctypes.c_longlong, STAT_COUNT)
         with (
-            patch("depthsbs_app.trt_backend.DepthEngine", return_value=Engine()),
+            patch("screento3d_app.trt_backend.DepthEngine", return_value=Engine()),
             patch(
-                "depthsbs_app.live_projection.LiveProjection", return_value=Projection()
+                "screento3d_app.live_projection.LiveProjection", return_value=Projection()
             ),
-            patch("depthsbs_app.capture_worker.capture_worker", side_effect=capture),
+            patch("screento3d_app.capture_worker.capture_worker", side_effect=capture),
         ):
             sbs_worker({}, False, output, stats, 1.0)
         self.assertEqual(output.meta[STATE], FAILED)

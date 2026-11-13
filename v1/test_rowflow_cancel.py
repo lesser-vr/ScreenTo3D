@@ -6,7 +6,7 @@ import time
 
 import shiboken6
 from benchmark_live_modes import ClockOracle
-from depthsbs_app.desktop import create_app
+from screento3d_app.desktop import create_app
 
 
 def main():

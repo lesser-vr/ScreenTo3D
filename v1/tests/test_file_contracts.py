@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from depthsbs_app import pipeline
+from screento3d_app import pipeline
 
 
 class InputProtectionTests(unittest.TestCase):

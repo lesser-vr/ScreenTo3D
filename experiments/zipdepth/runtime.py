@@ -84,8 +84,8 @@ class Engine:
                 raise RuntimeError('Context creation failed')
             self.stream = torch.cuda.Stream(device=self.device)
             self.output = torch.empty((1,1,*SHAPE),device=f'cuda:{self.device}')
-            from depthsbs_app.gpu_runtime import GpuInputSupport
-            from depthsbs_app.base_gpu_input import DLL_PATH, DLL_SHA256
+            from screento3d_app.gpu_runtime import GpuInputSupport
+            from screento3d_app.base_gpu_input import DLL_PATH, DLL_SHA256
             # Reuse only the model-independent thumbnail kernel/stream support.
             self.gpu_input = GpuInputSupport(self,DLL_PATH,DLL_SHA256,stream=self.stream)
         except BaseException:
@@ -98,7 +98,7 @@ class Engine:
             raise RuntimeError('CUDA device changed')
 
     def infer_device(self, frame):
-        from depthsbs_app.gpu_frame import GpuFrame
+        from screento3d_app.gpu_frame import GpuFrame
         import numpy as np
         self._check()
         if self.pending_device is not None:

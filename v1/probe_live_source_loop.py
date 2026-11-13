@@ -11,7 +11,7 @@ import shiboken6
 from PySide6.QtWidgets import QApplication
 
 from benchmark_live_modes import ClockOracle
-from depthsbs_app.desktop import create_app
+from screento3d_app.desktop import create_app
 
 
 def main():

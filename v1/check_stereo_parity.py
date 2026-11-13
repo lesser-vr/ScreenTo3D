@@ -2,13 +2,13 @@
 import subprocess
 import types
 import numpy as np
-from depthsbs_app import stereo
+from screento3d_app import stereo
 
 
 def main():
     baseline = types.ModuleType('baseline')
     exec(subprocess.check_output([
-        'git', 'show', '55112b6:v1/depthsbs_app/stereo.py'
+        'git', 'show', '55112b6:v1/screento3d_app/stereo.py'
     ], text=True), baseline.__dict__)
     rng = np.random.default_rng(2048)
     for height, width in ((1, 1), (4, 16), (32, 64), (100, 100)):

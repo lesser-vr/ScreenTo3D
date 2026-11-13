@@ -12,10 +12,10 @@ import numpy as np
 import torch
 
 from check_stereo_geometry_gpu import load, check_cuda
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_scene_history import LiveSceneHistory
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_scene_history import LiveSceneHistory
 from public_test_media import PublicFrames, SOURCES, ATTRIBUTION
 
 OLD = ROOT/'out/live-depth-coverage/live_depth.dll'
@@ -150,9 +150,9 @@ def main():
                 engine=stack.enter_context(backend.engine_factory(None))
                 stream=engine.stream.cuda_stream
             else:
-                from depthsbs_app.resources import configure_resource_root
-                from depthsbs_app.trt_backend import DepthEngine
-                from depthsbs_app.pipeline import preprocess
+                from screento3d_app.resources import configure_resource_root
+                from screento3d_app.trt_backend import DepthEngine
+                from screento3d_app.pipeline import preprocess
                 configure_resource_root(BUNDLE)
                 engine=stack.enter_context(DepthEngine())
                 stream=int(engine.stream)

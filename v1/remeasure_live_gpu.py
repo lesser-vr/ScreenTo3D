@@ -66,7 +66,7 @@ def main():
                 )
             target = ROOT / f"{mode}-{path}"
             env = os.environ.copy()
-            env["DEPTHSBS_LIVE_GPU_CANDIDATE"] = str(int(path == "candidate"))
+            env["SCREENTO3D_LIVE_GPU_CANDIDATE"] = str(int(path == "candidate"))
             command = [
                 sys.executable,
                 "v1/benchmark_live_modes.py",

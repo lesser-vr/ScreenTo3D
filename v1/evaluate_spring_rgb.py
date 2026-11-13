@@ -16,11 +16,11 @@ import torch
 from evaluate_sbs_quality import open_session,Session,MODES
 from evaluate_spring_quality import read_gt,model_identity
 from evaluate_sbs_rgb import Metrics,LAYOUTS,read_pool,configure_camera_comparison,dashboard,summarize
-from depthsbs_app.desktop_jobs import ROOT,BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.live_texture_pool import LiveTexturePool
-from depthsbs_app.spring_quality import fit_affine,truth_edges
-from depthsbs_app.sbs_rgb_quality import restored_eyes,reference_eyes
+from screento3d_app.desktop_jobs import ROOT,BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.live_texture_pool import LiveTexturePool
+from screento3d_app.spring_quality import fit_affine,truth_edges
+from screento3d_app.sbs_rgb_quality import restored_eyes,reference_eyes
 
 W,H=1920,1080
 CONTRACT=dict(scope='Spring left-camera input -> held-out right-camera RGB; only right native eye scored, not full binocular reference',
@@ -64,8 +64,8 @@ def score_right(metrics,pixels,layout,truth,masks):
 
 def oracle(root,scene,metrics,output):
     from check_stereo_geometry_gpu import load,context,check_cuda
-    from depthsbs_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
-    from depthsbs_app.portable_cuda import binary
+    from screento3d_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
+    from screento3d_app.portable_cuda import binary
     path,pin=binary(DLL_PATH,DLL_SHA256);dll=load(path,pin)
     for name in ('live_set_detail','live_set_subpixel','live_set_coverage','live_set_disparity_budget'):
         getattr(dll,name).argtypes=[ct.c_void_p,ct.c_int]

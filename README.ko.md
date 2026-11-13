@@ -140,8 +140,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev.ps1 `
 ## CLI
 
 ```text
-depthsbs capability [--compact]
-depthsbs mode <performance|balanced|video-quality|offline-quality> [--compact]
+screento3d capability [--compact]
+screento3d mode <performance|balanced|video-quality|offline-quality> [--compact]
 ```
 
 모든 모드는 현재 실험적 기능으로 표시됩니다. 모드별 프레임 속도는 벤치마크

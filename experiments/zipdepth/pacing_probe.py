@@ -6,10 +6,12 @@ from pathlib import Path
 import time
 
 
+from screento3d_app.environment import required as app_env_required
+
 def worker(*args, **kwargs):
-    from depthsbs_app import presentation_policy
-    from depthsbs_app.texture_mailbox import TextureMailbox
-    from depthsbs_app.live_sbs import sbs_worker
+    from screento3d_app import presentation_policy
+    from screento3d_app.texture_mailbox import TextureMailbox
+    from screento3d_app.live_sbs import sbs_worker
     from trial import worker as zip_worker
 
     rows = deque(maxlen=16384)
@@ -37,8 +39,8 @@ def worker(*args, **kwargs):
     presentation_policy.WorkCadence = TracedWorkCadence
     TextureMailbox.publish = publish
     try:
-        target = zip_worker if os.environ['DEPTHSBS_TIMING_MODEL'] == 'zipdepth' else sbs_worker
+        target = zip_worker if app_env_required('SCREENTO3D_TIMING_MODEL') == 'zipdepth' else sbs_worker
         return target(*args, **kwargs)
     finally:
-        Path(os.environ['DEPTHSBS_TIMING_TRACE']).write_text(json.dumps(
+        Path(app_env_required('SCREENTO3D_TIMING_TRACE')).write_text(json.dumps(
             dict(columns=['sequence', 'callback_ns', 'started_ns', 'ready_ns'], rows=list(rows))), encoding='utf-8')

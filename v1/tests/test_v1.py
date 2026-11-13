@@ -2,8 +2,8 @@ import unittest
 
 import numpy as np
 
-from depthsbs_app.config import MODES
-from depthsbs_app.pipeline import StereoSynthesizer, preprocess
+from screento3d_app.config import MODES
+from screento3d_app.pipeline import StereoSynthesizer, preprocess
 
 
 class ModePolicyTests(unittest.TestCase):

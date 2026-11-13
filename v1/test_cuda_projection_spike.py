@@ -8,7 +8,7 @@ import subprocess
 import time
 import uuid
 import numpy as np
-from depthsbs_app.stereo import project_eye, guide_depth, refine_flat_background
+from screento3d_app.stereo import project_eye, guide_depth, refine_flat_background
 
 
 def main():

@@ -3,7 +3,7 @@ import random
 import unittest
 
 from pacing_candidate import CANDIDATES, GuardedDelivery
-from depthsbs_app.presentation_policy import PresentationCadence
+from screento3d_app.presentation_policy import PresentationCadence
 
 
 class CandidateContracts(unittest.TestCase):

@@ -2,8 +2,8 @@ import unittest
 from dataclasses import replace
 from unittest.mock import patch
 import numpy as np
-from depthsbs_app.pipeline import depth_refresh_reason, StereoSynthesizer
-from depthsbs_app.config import MODES
+from screento3d_app.pipeline import depth_refresh_reason, StereoSynthesizer
+from screento3d_app.config import MODES
 from quality_scenes import motion_frame
 
 
@@ -31,7 +31,7 @@ class MotionRefreshTests(unittest.TestCase):
     def test_cut_and_cadence_skip_motion_work(self):
         frame, _ = motion_frame(0)
         for index, cut, reason in ((0, False, 'cadence'), (1, True, 'cut')):
-            with patch('depthsbs_app.pipeline.color_change', side_effect=AssertionError('unexpected scan')):
+            with patch('screento3d_app.pipeline.color_change', side_effect=AssertionError('unexpected scan')):
                 self.assertEqual(depth_refresh_reason(frame, frame, index, MODES['performance'], cut), reason)
         self.assertEqual(depth_refresh_reason(frame, None, 0, MODES['performance'], False), 'initial')
 

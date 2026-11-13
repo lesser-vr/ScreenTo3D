@@ -22,16 +22,16 @@ import numpy as np
 from evaluate_depth_models import inspect_media, sha
 
 ROOT=Path(__file__).resolve().parents[1]
-MEDIA=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg'
+MEDIA=ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg'
 RUNTIME=Path('C:/TensorRT/TensorRT-11.2.1.2/bin')
 
 
 def worker(args):
     import torch
-    from depthsbs_app import pipeline, ovda, da2_base, trt_backend
-    from depthsbs_app.depth_backend import resolve_backend, vda_binding
-    from depthsbs_app.resources import configure_media_tools
-    from depthsbs_app.local_projection import factory as projection
+    from screento3d_app import pipeline, ovda, da2_base, trt_backend
+    from screento3d_app.depth_backend import resolve_backend, vda_binding
+    from screento3d_app.resources import configure_media_tools
+    from screento3d_app.local_projection import factory as projection
     from temporal_diagnostics import TemporalProbe
     configure_media_tools(MEDIA)
     torch.backends.cuda.matmul.allow_tf32=False
@@ -65,9 +65,9 @@ def worker(args):
         if args.quality: result['temporal']=probe.report()
         result['input_sha256']=sha(args.input)
         result['source_hashes']={p:sha(ROOT/p) for p in ('v1/evaluate_ovda_expansion.py',
-            'v1/depthsbs_app/pipeline.py','v1/depthsbs_app/stereo.py','v1/depthsbs_app/ovda.py',
+            'v1/screento3d_app/pipeline.py','v1/screento3d_app/stereo.py','v1/screento3d_app/ovda.py',
             'experiments/ovda/trt_engine.py','experiments/ovda/oracle.py','experiments/ovda/preprocessing.py',
-            'v1/depthsbs_app/local_projection.py','v1/depthsbs_app/config.py','v1/cuda_projection_experiment.py')}
+            'v1/screento3d_app/local_projection.py','v1/screento3d_app/config.py','v1/cuda_projection_experiment.py')}
         args.output.with_suffix('.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
 
 
@@ -93,7 +93,7 @@ def run(root,source,name,model,renderer,quality=False,codec='h264'):
     result=json.loads(output.with_suffix('.json').read_text(encoding='utf-8'))
     result['process_wall_seconds']=time.perf_counter()-start
     result['command']=command
-    from depthsbs_app.pipeline import probe_video
+    from screento3d_app.pipeline import probe_video
     metadata=probe_video(source, output_codec=codec)
     inspect_media(output,metadata)
     output.with_suffix('.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
@@ -138,7 +138,7 @@ def main():
     parser.add_argument('--benchmark-only',action='store_true')
     args=parser.parse_args()
     if args.worker: worker(args); return
-    from depthsbs_app.resources import configure_media_tools
+    from screento3d_app.resources import configure_media_tools
     configure_media_tools(MEDIA)
     root=ROOT/'out/ovda-expansion-evaluation'/uuid.uuid4().hex;root.mkdir(parents=True)
     print(root,flush=True)

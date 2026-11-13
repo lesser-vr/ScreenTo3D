@@ -5,7 +5,7 @@ import os
 import time
 import unittest
 
-from depthsbs_app.texture_mailbox import (
+from screento3d_app.texture_mailbox import (
     TexturePool,
     TextureFrame,
     TextureMailbox,

@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 from PySide6.QtCore import QObject, QPointF, QSettings, Qt
 from PySide6.QtTest import QTest
-from depthsbs_app.desktop import create_app, DesktopController
-from depthsbs_app.desktop_preferences import DesktopPreferences
-from depthsbs_app.live_preview import LivePreview
+from screento3d_app.desktop import create_app, DesktopController
+from screento3d_app.desktop_preferences import DesktopPreferences
+from screento3d_app.live_preview import LivePreview
 import shiboken6
 
 
@@ -31,7 +31,7 @@ def main():
                               vfg=live.vfgEnabled)))
         return
     args.output.mkdir(parents=True, exist_ok=False)
-    with patch('depthsbs_app.live_preview.windows', return_value=[]):
+    with patch('screento3d_app.live_preview.windows', return_value=[]):
         app, engine, desktop = create_app(prefs)
     root, live = desktop.main_window, desktop.live
     tools = root.findChild(QObject, 'toolsWindow')

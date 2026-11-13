@@ -4,9 +4,9 @@ import json
 import unittest
 from unittest.mock import patch
 
-from depthsbs_app.main import build_parser, run_worker
-from depthsbs_app.messages import ErrorMessage as E,from_payload
-from depthsbs_app.error_reporting import error_event
+from screento3d_app.main import build_parser, run_worker
+from screento3d_app.messages import ErrorMessage as E,from_payload
+from screento3d_app.error_reporting import error_event
 
 
 class WorkerErrorPrivacyTests(unittest.TestCase):
@@ -31,7 +31,7 @@ class WorkerErrorPrivacyTests(unittest.TestCase):
             'Decode failed: C:/private/secret.mp4 frame-bytes-SECRET')
         error.add_note('cleanup private user/path SECRET')
         stdout, stderr = io.StringIO(), io.StringIO()
-        with patch('depthsbs_app.pipeline.convert_video', side_effect=error), \
+        with patch('screento3d_app.pipeline.convert_video', side_effect=error), \
                 contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
             status = run_worker(args)
         return status, stdout.getvalue(), stderr.getvalue()

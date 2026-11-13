@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from depthsbs_app.live_policy import StaticSbsReuse
+from screento3d_app.live_policy import StaticSbsReuse
 
 
 class StaticSbsTests(unittest.TestCase):

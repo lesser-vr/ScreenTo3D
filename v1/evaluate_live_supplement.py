@@ -17,10 +17,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--live-root', required=True, type=Path)
     args = parser.parse_args()
-    from depthsbs_app.resources import configure_media_tools
-    from depthsbs_app import pipeline
-    from depthsbs_app.depth_backend import vda_binding
-    media = ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg'
+    from screento3d_app.resources import configure_media_tools
+    from screento3d_app import pipeline
+    from screento3d_app.depth_backend import vda_binding
+    media = ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg'
     configure_media_tools(media)
     root = ROOT/'out/live-action-supplement'/uuid.uuid4().hex
     root.mkdir(parents=True)

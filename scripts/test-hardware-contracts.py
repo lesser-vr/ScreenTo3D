@@ -29,7 +29,7 @@ def main():
     environment['PYTHONPATH'] = os.pathsep.join(str(p) for p in paths if p.exists())
     if args.runtime_dir:
         environment['PATH'] = str(args.runtime_dir.resolve()) + os.pathsep + environment.get('PATH', '')
-    bundle = ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal'
+    bundle = ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal'
     definitions = {
         'runtime': [('runtime', 'scripts/test-contracts.py', '--group', 'runtime', '--resource-root', str(bundle), '--report', str(args.output/'runtime.json'))],
         'projection': [('projection', 'v1/test_gpu_contracts.py', '--fault-fixture', str(args.fault_fixture.resolve()) if args.fault_fixture else '', '--output', str(args.output/'projection'))],

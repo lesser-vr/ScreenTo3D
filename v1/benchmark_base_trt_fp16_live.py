@@ -13,11 +13,11 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args, remaining = parser.parse_known_args()
     manifest(args.candidate)
-    os.environ['DEPTHSBS_FP16_TRIAL'] = args.candidate
-    os.environ['DEPTHSBS_BASE_GRAPH'] = '0'
-    os.environ['DEPTHSBS_BASE_INPUT'] = 'gpu'
-    os.environ['DEPTHSBS_STEREO_RENDERER'] = 'cuda'
-    from depthsbs_app import live_sbs
+    os.environ['SCREENTO3D_FP16_TRIAL'] = args.candidate
+    os.environ['SCREENTO3D_BASE_GRAPH'] = '0'
+    os.environ['SCREENTO3D_BASE_INPUT'] = 'gpu'
+    os.environ['SCREENTO3D_STEREO_RENDERER'] = 'cuda'
+    from screento3d_app import live_sbs
     live_sbs.sbs_worker = trial_worker
     from benchmark_live_modes import main as benchmark
     sys.argv = [sys.argv[0], '--output', str(args.output), *remaining]

@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import numpy as np
 
-from depthsbs_app.capture_mailbox import Mailbox, SEQ, ACK, WIDTH, HEIGHT
+from screento3d_app.capture_mailbox import Mailbox, SEQ, ACK, WIDTH, HEIGHT
 
 from probe_capture_only import event_metrics, consume_host
 

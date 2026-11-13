@@ -45,7 +45,7 @@ def cadence_decision(index, cut, last_fresh):
 
 
 def scene_flags(frames, threshold):
-    from depthsbs_app.live_scene_history import LiveSceneHistory
+    from screento3d_app.live_scene_history import LiveSceneHistory
 
     history = LiveSceneHistory(threshold)
     flags = []
@@ -495,7 +495,7 @@ def main():
 
     save()
     _, DeviceEngine, _ = engine_classes()
-    from depthsbs_app.live_policy import resolve_live
+    from screento3d_app.live_policy import resolve_live
 
     policy = resolve_live("video-quality")
     with ExitStack() as stack:

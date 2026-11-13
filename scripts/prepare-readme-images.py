@@ -26,9 +26,9 @@ def prepare_example(args):
     import numpy as np
     import torch
     from evaluate_sbs_quality import open_session,Session
-    from depthsbs_app.desktop_jobs import BUNDLE
-    from depthsbs_app.resources import configure_resource_root
-    from depthsbs_app.stereo_layout import dimensions
+    from screento3d_app.desktop_jobs import BUNDLE
+    from screento3d_app.resources import configure_resource_root
+    from screento3d_app.stereo_layout import dimensions
 
     source=args.source/'spring/train/0001/frame_left'
     assert args.frames>=32,'Use enough ordinary temporal updates before capture.'
@@ -90,17 +90,17 @@ def capture_ui(args):
     from PySide6.QtGui import QImage,QPainter
     from PySide6.QtTest import QTest
     from PySide6.QtWidgets import QWidget
-    from depthsbs_app.desktop import create_app
-    from depthsbs_app.desktop_preferences import DesktopPreferences
-    from depthsbs_app.output_placement import OutputPlacement
-    from depthsbs_app.desktop_jobs import BUNDLE
+    from screento3d_app.desktop import create_app
+    from screento3d_app.desktop_preferences import DesktopPreferences
+    from screento3d_app.output_placement import OutputPlacement
+    from screento3d_app.desktop_jobs import BUNDLE
 
     scratch=ROOT/'out/readme-capture-20261111';scratch.mkdir(exist_ok=True)
     args.output.mkdir(parents=True,exist_ok=True)
     prefs=DesktopPreferences(QSettings(str(scratch/'preferences.ini'),QSettings.IniFormat))
     prefs.store.clear();prefs.store.setValue('ui/language','en')
     owned=[]
-    with patch('depthsbs_app.live_preview.windows',side_effect=lambda:list(owned)):
+    with patch('screento3d_app.live_preview.windows',side_effect=lambda:list(owned)):
         app,engine,desktop=create_app(prefs)
         live=desktop.live;window=desktop.main_window;language=desktop.language
         desktop.shutdown.command=Mock(side_effect=AssertionError('Documentation capture cannot shut down Windows'))

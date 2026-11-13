@@ -21,11 +21,11 @@ import cv2
 import shiboken6
 from PySide6.QtGui import QColor, QPainter, QImage
 from test_live_preview import Oracle
-from depthsbs_app.desktop import create_app
-from depthsbs_app.live_policy import LIVE_MODES
-from depthsbs_app.live_sbs import DEFAULT_CAPTURE_INTERVAL_MS
-from depthsbs_app.live_gpu_candidate import DLL_PATH, DEFAULT_RESOLVE
-from depthsbs_app.capture_telemetry import observation_rates
+from screento3d_app.desktop import create_app
+from screento3d_app.live_policy import LIVE_MODES
+from screento3d_app.live_sbs import DEFAULT_CAPTURE_INTERVAL_MS
+from screento3d_app.live_gpu_candidate import DLL_PATH, DEFAULT_RESOLVE
+from screento3d_app.capture_telemetry import observation_rates
 from benchmark_guard import OutputRateGuard
 
 
@@ -45,7 +45,7 @@ class ClockOracle(Oracle):
             self.video = cv2.VideoCapture(str(path))
             if not self.video.isOpened():
                 raise ValueError("Prepared public video unavailable")
-            self.setWindowTitle(f"DepthSBS public test: {source}")
+            self.setWindowTitle(f"ScreenTo3D public test: {source}")
 
     def advance(self):
         if self.video is not None:
@@ -137,7 +137,7 @@ def decode_output(image, width, height, dpi, layout="full-sbs"):
         .reshape(image.height(), image.bytesPerLine())[:, : image.width() * 3]
         .reshape(image.height(), image.width(), 3)
     )
-    from depthsbs_app.stereo_layout import dimensions
+    from screento3d_app.stereo_layout import dimensions
     packed_width, packed_height = dimensions(width, height, layout)
     fit = min(image.width() / packed_width, image.height() / packed_height)
     ox, oy = (image.width() - packed_width * fit) / 2, (image.height() - packed_height * fit) / 2
@@ -188,6 +188,8 @@ def summary(values):
         else None
     )
 
+
+from screento3d_app.environment import get as app_env
 
 def main():
     parser = argparse.ArgumentParser()
@@ -256,9 +258,9 @@ def main():
     args = parser.parse_args()
     if args.half_render_trial:
         if (args.path != "gpu-texture" or args.stereo_layout not in ("half-sbs", "half-tb")
-                or args.gpu_replay or os.environ.get("DEPTHSBS_STEREO_RENDERER", "cuda") != "cuda"):
+                or args.gpu_replay or app_env("SCREENTO3D_STEREO_RENDERER", "cuda") != "cuda"):
             raise ValueError("Half render trial requires native Half output and ordinary capture")
-        from depthsbs_app import live_sbs as live_sbs_module
+        from screento3d_app import live_sbs as live_sbs_module
         from half_render_trial_worker import sbs_worker_trial
         live_sbs_module.sbs_worker = sbs_worker_trial
     if args.gpu_replay:
@@ -268,16 +270,16 @@ def main():
                 any(mode not in ('performance','balanced') for mode in args.modes.split(','))):
             raise ValueError('GPU replay requires uncapped native Small/Base, isolated public source and no other candidate')
         from benchmark_gpu_replay import sbs_worker_replay
-        from depthsbs_app import live_sbs as live_sbs_module
-        os.environ['DEPTHSBS_BENCH_REPLAY_SOURCE'] = args.source
-        os.environ['DEPTHSBS_GPU_CAPTURE'] = '1'
+        from screento3d_app import live_sbs as live_sbs_module
+        os.environ['SCREENTO3D_BENCH_REPLAY_SOURCE'] = args.source
+        os.environ['SCREENTO3D_GPU_CAPTURE'] = '1'
         live_sbs_module.sbs_worker = sbs_worker_replay
     if args.startup_timeout <= 0:
         raise ValueError("Positive startup timeout required")
     if args.abort_output_below_fps is not None and args.abort_output_below_fps <= 0:
         raise ValueError("Positive output guard threshold required")
     if args.capture_telemetry:
-        os.environ["DEPTHSBS_CAPTURE_TELEMETRY"] = "1"
+        os.environ["SCREENTO3D_CAPTURE_TELEMETRY"] = "1"
     if args.guide_candidate and args.path != "gpu-texture":
         raise ValueError("Guide candidate integration is scoped to gpu-texture")
     if args.input_candidate and args.path != "gpu-texture":
@@ -290,8 +292,8 @@ def main():
         raise ValueError("Run one isolated candidate at a time")
     guide_candidate = None
     if args.guide_candidate == "rolling":
-        from depthsbs_app import live_sbs as live_sbs_module
-        from depthsbs_app.live_guide_rolling_worker import (
+        from screento3d_app import live_sbs as live_sbs_module
+        from screento3d_app.live_guide_rolling_worker import (
             candidate_manifest,
             sbs_worker_rolling,
         )
@@ -299,8 +301,8 @@ def main():
         guide_candidate = candidate_manifest()
         live_sbs_module.sbs_worker = sbs_worker_rolling
     elif args.guide_candidate == "hybrid":
-        from depthsbs_app import live_sbs as live_sbs_module
-        from depthsbs_app.live_guide_hybrid_worker import (
+        from screento3d_app import live_sbs as live_sbs_module
+        from screento3d_app.live_guide_hybrid_worker import (
             candidate_manifest,
             sbs_worker_hybrid,
         )
@@ -308,8 +310,8 @@ def main():
         guide_candidate = candidate_manifest()
         live_sbs_module.sbs_worker = sbs_worker_hybrid
     elif args.guide_candidate == "promoted":
-        from depthsbs_app import live_sbs as live_sbs_module
-        from depthsbs_app.live_guide_promoted_worker import (
+        from screento3d_app import live_sbs as live_sbs_module
+        from screento3d_app.live_guide_promoted_worker import (
             candidate_manifest,
             sbs_worker_promoted,
         )
@@ -318,8 +320,8 @@ def main():
         live_sbs_module.sbs_worker = sbs_worker_promoted
     input_candidate = None
     if args.input_candidate == "pinned":
-        from depthsbs_app import live_sbs as live_sbs_module
-        from depthsbs_app.live_pinned_input_worker import (
+        from screento3d_app import live_sbs as live_sbs_module
+        from screento3d_app.live_pinned_input_worker import (
             candidate_manifest,
             sbs_worker_pinned_input,
         )
@@ -328,8 +330,8 @@ def main():
         live_sbs_module.sbs_worker = sbs_worker_pinned_input
     capture_candidate = None
     if args.capture_candidate == "retained":
-        from depthsbs_app import live_sbs as live_sbs_module
-        from depthsbs_app.live_retained_capture_worker import (
+        from screento3d_app import live_sbs as live_sbs_module
+        from screento3d_app.live_retained_capture_worker import (
             candidate_manifest,
             sbs_worker_retained_capture,
         )
@@ -565,7 +567,7 @@ def main():
                         if args.source_process
                         else elapsed
                     )
-                    from depthsbs_app.stereo_layout import dimensions
+                    from screento3d_app.stereo_layout import dimensions
                     assert (after["width"], after["height"]) == dimensions(width, height, args.stereo_layout)
                     if gpu_sampler is not None:
                         assert gpu_sampler.poll() is None, "GPU sampler exited"
@@ -784,7 +786,7 @@ def main():
                 (args.output / "runs.json").write_text(
                     json.dumps(rows, indent=2), encoding="utf-8"
                 )
-        from depthsbs_app.desktop_jobs import BUNDLE
+        from screento3d_app.desktop_jobs import BUNDLE
         import PySide6
 
         selected_models = sorted(
@@ -792,8 +794,8 @@ def main():
         )
         texture_runtime_hash = None
         if live.nativeEnabled:
-            from depthsbs_app.live_texture_pool import LiveTexturePool
-            from depthsbs_app.portable_cuda import binary
+            from screento3d_app.live_texture_pool import LiveTexturePool
+            from screento3d_app.portable_cuda import binary
             texture_path, _ = binary(LiveTexturePool.library_path, LiveTexturePool.library_sha256)
             if args.half_render_trial:
                 from half_render_trial_worker import DLL
@@ -850,22 +852,22 @@ def main():
             diagnostic_poll_ms=args.poll_ms,
             diagnostic_hide_main=args.hide_main,
             live_capture_interval_ms=int(
-                os.environ.get(
-                    "DEPTHSBS_LIVE_CAPTURE_INTERVAL_MS",
+                app_env(
+                    "SCREENTO3D_LIVE_CAPTURE_INTERVAL_MS",
                     str(DEFAULT_CAPTURE_INTERVAL_MS),
                 )
             ),
             profile_source="live_policy.py",
-            host_bridge=os.environ.get("DEPTHSBS_LIVE_HOST_BRIDGE", "fused"),
-            base_input_preprocessing=os.environ.get('DEPTHSBS_BASE_INPUT', 'gpu'),
-            gpu_capture=os.environ.get('DEPTHSBS_GPU_CAPTURE', 'model/source default'),
+            host_bridge=app_env("SCREENTO3D_LIVE_HOST_BRIDGE", "fused"),
+            base_input_preprocessing=app_env('SCREENTO3D_BASE_INPUT', 'gpu'),
+            gpu_capture=app_env('SCREENTO3D_GPU_CAPTURE', 'model/source default'),
             base_input_dll_sha256=hashlib.sha256(Path('out/base-input/base_input.dll').read_bytes()).hexdigest()
-                if 'da2-base' in selected_models and os.environ.get('DEPTHSBS_BASE_INPUT', 'gpu') == 'gpu' else None,
+                if 'da2-base' in selected_models and app_env('SCREENTO3D_BASE_INPUT', 'gpu') == 'gpu' else None,
             small_input_dll_sha256=hashlib.sha256(Path('out/small-input/small_input.dll').read_bytes()).hexdigest()
-                if 'da2-small' in selected_models and os.environ.get('DEPTHSBS_GPU_CAPTURE', '1') == '1' and live.processingPath != 'reference' else None,
+                if 'da2-small' in selected_models and app_env('SCREENTO3D_GPU_CAPTURE', '1') == '1' and live.processingPath != 'reference' else None,
             gpu_capture_dll_sha256=hashlib.sha256(Path('out/gpu-capture/gpu_capture.dll').read_bytes()).hexdigest()
-                if any(model in selected_models for model in ('da2-base','da2-small')) and os.environ.get('DEPTHSBS_GPU_CAPTURE', '1') == '1' and live.processingPath != 'reference' else None,
-            diagnostic_profile=bool(os.environ.get("DEPTHSBS_LIVE_PROFILE")),
+                if any(model in selected_models for model in ('da2-base','da2-small')) and app_env('SCREENTO3D_GPU_CAPTURE', '1') == '1' and live.processingPath != 'reference' else None,
+            diagnostic_profile=bool(app_env("SCREENTO3D_LIVE_PROFILE")),
             live_path=live.processingPath,
             live_dll_sha256=(
                 guide_candidate["dll_sha256"]
@@ -881,19 +883,19 @@ def main():
             if live.nativeEnabled
             else None,
             texture_runtime_sha256=texture_runtime_hash,
-            resolve_impl=os.environ.get("DEPTHSBS_LIVE_RESOLVE", DEFAULT_RESOLVE),
-            base_cuda_graph=os.environ.get('DEPTHSBS_BASE_GRAPH', '0'),
-            stereo_renderer=os.environ.get('DEPTHSBS_STEREO_RENDERER','cuda'),
+            resolve_impl=app_env("SCREENTO3D_LIVE_RESOLVE", DEFAULT_RESOLVE),
+            base_cuda_graph=app_env('SCREENTO3D_BASE_GRAPH', '0'),
+            stereo_renderer=app_env('SCREENTO3D_STEREO_RENDERER','cuda'),
             learned_renderer_artifacts=(dict(
                 source_revision='0d3d92c8f4396da564c44524b6390ee5c76b9668',
                 weight_sha256=hashlib.sha256(Path('out/iw3-render-models-20261105/iw3_row_flow_v3_sym_20250628.pth').read_bytes()).hexdigest(),
                 bridge_sha256=hashlib.sha256(Path('out/rowflow-bridge/rowflow_bridge.dll').read_bytes()).hexdigest(),
-            ) if os.environ.get('DEPTHSBS_STEREO_RENDERER')=='rowflow-sym' else None),
-            base_stage_profile=os.environ.get('DEPTHSBS_BASE_STAGE_PROFILE', '0'),
+            ) if app_env('SCREENTO3D_STEREO_RENDERER')=='rowflow-sym' else None),
+            base_stage_profile=app_env('SCREENTO3D_BASE_STAGE_PROFILE', '0'),
             source_sha256={
                 str(path): hashlib.sha256(path.read_bytes()).hexdigest()
                 for path in [
-                    Path("v1/depthsbs_app") / name
+                    Path("v1/screento3d_app") / name
                     for name in (
                         "live_sbs.py",
                         "rowflow.py",
@@ -932,7 +934,7 @@ def main():
                 ]
             },
             qml_sha256=hashlib.sha256(
-                Path("v1/depthsbs_app/qml/Main.qml").read_bytes()
+                Path("v1/screento3d_app/qml/Main.qml").read_bytes()
             ).hexdigest(),
             warmup_seconds=args.seconds,
             gpu_sample_scope="Device-wide 1s samples, includes desktop/source and other workloads; not process attribution"
@@ -943,7 +945,7 @@ def main():
                 if args.source_process
                 else "GUI process includes public source decode/paint; worker CPU is owned SBS process; seconds/elapsed is core-equivalent usage"
             ),
-            capture_telemetry=os.environ.get("DEPTHSBS_CAPTURE_TELEMETRY", "0") == "1",
+            capture_telemetry=app_env("SCREENTO3D_CAPTURE_TELEMETRY", "0") == "1",
             diagnostic_gui_profile=args.profile_gui,
             abort_output_below_fps=args.abort_output_below_fps,
             qsg_no_vsync=os.environ.get("QSG_NO_VSYNC"),

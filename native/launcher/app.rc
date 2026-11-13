@@ -1,5 +1,5 @@
 #include <windows.h>
-1 ICON "depthsbs.ico"
+1 ICON "screento3d.ico"
 1 RT_MANIFEST "app.manifest"
 1 VERSIONINFO
  FILEVERSION 1,0,0,0

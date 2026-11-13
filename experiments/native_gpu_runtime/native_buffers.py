@@ -6,13 +6,13 @@ import threading
 import time
 
 import numpy as np
-from depthsbs_app.trt_backend import DepthEngine,_cuda,cudart
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.live_gpu_candidate import LiveGpuCandidate
-from depthsbs_app.live_gpu_texture import TextureOutputMixin
-from depthsbs_app.small_gpu_input import cubic_coefficients,DLL_PATH,DLL_SHA256
-from depthsbs_app.capture_sources import enable_capture_dpi,validate_source
-from depthsbs_app.gpu_capture import DLL_PATH as CAPTURE_DLL,DLL_SHA256 as CAPTURE_SHA
+from screento3d_app.trt_backend import DepthEngine,_cuda,cudart
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.live_gpu_candidate import LiveGpuCandidate
+from screento3d_app.live_gpu_texture import TextureOutputMixin
+from screento3d_app.small_gpu_input import cubic_coefficients,DLL_PATH,DLL_SHA256
+from screento3d_app.capture_sources import enable_capture_dpi,validate_source
+from screento3d_app.gpu_capture import DLL_PATH as CAPTURE_DLL,DLL_SHA256 as CAPTURE_SHA
 
 ROOT=Path(__file__).resolve().parents[2]
 UTILITY=ROOT/'out/native-gpu-runtime/native_rgb.dll'

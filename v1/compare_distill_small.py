@@ -61,9 +61,9 @@ def main():
     import torch
     import onnxruntime as ort
     from public_test_media import SOURCES
-    from depthsbs_app.pipeline import StereoSynthesizer
-    from depthsbs_app.live_policy import resolve_live
-    from depthsbs_app.live_projection import LiveProjection, DLL_SHA256
+    from screento3d_app.pipeline import StereoSynthesizer
+    from screento3d_app.live_policy import resolve_live
+    from screento3d_app.live_projection import LiveProjection, DLL_SHA256
     torch.set_num_threads(1)
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False

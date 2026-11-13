@@ -8,7 +8,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject, QMetaObject, Qt
 import shiboken6
 
-from depthsbs_app.desktop import create_app
+from screento3d_app.desktop import create_app
 from live_benchmark_source import SourceProcess
 
 
@@ -54,7 +54,7 @@ def main():
     try:
         pump(.2)
         assert live.vfgEnabled is False and live.native is None
-        assert 'torch' not in sys.modules and 'depthsbs_app.vfg_renderer' not in sys.modules
+        assert 'torch' not in sys.modules and 'screento3d_app.vfg_renderer' not in sys.modules
         desktop.main_window.setProperty('page', 3)
         pump(.3)
         toggle = desktop.main_window.findChild(QObject, 'vfgEnabled')

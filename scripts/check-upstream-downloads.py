@@ -6,10 +6,10 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'v1'))
-from depthsbs_app.official_sources import ARTIFACTS,fetch_artifact
-from depthsbs_app.upstream_check import check
-from depthsbs_app.optional_models import model_downloads,PACKS
-from depthsbs_app.download_cache import fetch
+from screento3d_app.official_sources import ARTIFACTS,fetch_artifact
+from screento3d_app.upstream_check import check
+from screento3d_app.optional_models import model_downloads,PACKS
+from screento3d_app.download_cache import fetch
 
 
 def main():

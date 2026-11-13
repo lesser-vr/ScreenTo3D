@@ -19,8 +19,8 @@ def main():
     parser.add_argument('--diagnostics-only', action='store_true')
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
-    package = repo / 'out/gpu-preview/DepthSBS-GPU-Preview'
-    exe = package / 'DepthSBS-GPU-Preview.exe'
+    package = repo / 'out/gpu-preview/ScreenTo3D-GPU-Preview'
+    exe = package / 'ScreenTo3D-GPU-Preview.exe'
     root = repo / 'out/packaged-comparison' / uuid.uuid4().hex
     root.mkdir(parents=True)
     env = os.environ.copy()

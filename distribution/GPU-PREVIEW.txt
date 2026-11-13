@@ -1,6 +1,6 @@
-DepthSBS GPU Preview - experimental, local evaluation only
+ScreenTo3D GPU Preview - experimental, local evaluation only
 
-Launch DepthSBS-GPU-Preview.exe. This separate package accelerates stereo
+Launch ScreenTo3D-GPU-Preview.exe. This separate package accelerates stereo
 projection; preprocessing and other stages still perform CPU work and copies.
 It is NOT screen capture, NOT zero-copy, and NOT a public stable release.
 Output codec defaults to H.264 (Full SBS width <= 4096, input width <= 2048).
@@ -12,7 +12,7 @@ Requires NVIDIA compute capability 12.0 and CUDA driver API >= 13.1.
 Only RTX 5090 / driver 616.56 has been tested. Other hardware is unverified.
 CUDA Toolkit, Python and TensorRT SDK are not intended end-user dependencies.
 Clean-machine validation is still pending. No automatic CPU fallback occurs;
-use the separate standard DepthSBS package if this preview cannot run.
+use the separate standard ScreenTo3D package if this preview cannot run.
 
 All four modes keep the DA2 Small model and existing quality policy.
 The standard CPU-stereo release remains separate and unchanged.

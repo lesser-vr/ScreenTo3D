@@ -10,12 +10,12 @@ import unittest
 import tempfile
 from unittest.mock import patch
 
-from depthsbs_app.messages import Message as M, ErrorMessage as E, as_error, decode_message, encode_message, from_payload, joined, payload
+from screento3d_app.messages import Message as M, ErrorMessage as E, as_error, decode_message, encode_message, from_payload, joined, payload
 
 
 class MessageTests(unittest.TestCase):
     def test_error_identity_survives_serialization_pickle_and_rewording(self):
-        from depthsbs_app.catalogs import ERRORS
+        from screento3d_app.catalogs import ERRORS
         value=E('E_OUTPUT_FRAME_DELIVERY',v0='driver {opaque}',details='native code 5')
         for restored in (decode_message(encode_message(ValueError(value))),pickle.loads(pickle.dumps(value))):
             self.assertEqual(restored.error_id,value.error_id)
@@ -51,7 +51,7 @@ class MessageTests(unittest.TestCase):
             self.assertEqual(decode_message(encoded),encoded)
 
     def test_error_boundary_and_mailbox_keep_id_without_qt_or_exception_owners(self):
-        from depthsbs_app.capture_mailbox import Mailbox
+        from screento3d_app.capture_mailbox import Mailbox
         import multiprocessing as mp
         mailbox=Mailbox.create(mp.get_context('spawn'),metadata_only=True)
         mailbox.fail(ValueError(E('E_CAPTURE_SOURCE_CLOSED')))
@@ -60,7 +60,7 @@ class MessageTests(unittest.TestCase):
         self.assertEqual(as_error('native failure').details,'native failure')
 
     def test_registry_rejects_escaping_paths_and_duplicate_languages(self):
-        from depthsbs_app.catalogs import load_languages,load_errors
+        from screento3d_app.catalogs import load_languages,load_errors
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'registry.json'
             def language(catalog):return dict(code='en',name='English',locale='en-US',catalog=catalog)
@@ -146,7 +146,7 @@ class MessageTests(unittest.TestCase):
     def test_worker_messages_do_not_import_qt(self):
         source=Path(__file__).resolve().parents[1]
         command=(f'import sys; sys.path.insert(0,{str(source)!r}); '
-                 'from depthsbs_app.messages import ErrorMessage; ErrorMessage("E_UNKNOWN"); '
+                 'from screento3d_app.messages import ErrorMessage; ErrorMessage("E_UNKNOWN"); '
                  'assert not any(n.startswith("PySide6") for n in sys.modules)')
         subprocess.run([sys.executable,'-I','-S','-c',command],check=True)
 
@@ -154,4 +154,4 @@ class MessageTests(unittest.TestCase):
         root=Path(__file__).resolve().parents[2]
         spec=importlib.util.spec_from_file_location('translation_build',root/'scripts/build-translations.py')
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-        self.assertGreater(module.validate(root/'v1/depthsbs_app/translations/screento3d_ko.ts'),300)
+        self.assertGreater(module.validate(root/'v1/screento3d_app/translations/screento3d_ko.ts'),300)

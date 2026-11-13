@@ -9,13 +9,13 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from depthsbs_app import ovda, pipeline
-from depthsbs_app.main import build_parser, run_worker
-from depthsbs_app.resources import configure_media_tools
+from screento3d_app import ovda, pipeline
+from screento3d_app.main import build_parser, run_worker
+from screento3d_app.resources import configure_media_tools
 from evaluate_depth_models import inspect_media, sha
 
 ROOT = Path(__file__).resolve().parents[1]
-MEDIA = ROOT / "out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg"
+MEDIA = ROOT / "out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg"
 RUNTIME = Path("C:/TensorRT/TensorRT-11.2.1.2/bin")
 ENGINES = ROOT / "out/ovda-local"
 

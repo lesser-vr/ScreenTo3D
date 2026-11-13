@@ -15,12 +15,12 @@ def range_sbs_worker(mode,*args,**kwargs):
     import os
     from dataclasses import replace
     from unittest.mock import patch
-    from depthsbs_app import live_model
+    from screento3d_app import live_model
     if mode not in ('range-legacy','range-stable'):raise ValueError('Invalid range comparison')
     kwargs['gpu_capture_snapshot']=True
     adapter=replace(live_model.model_adapter('ovda-small-c16'),temporal_depth_alpha=.5,
                     stabilize_depth_range=mode=='range-stable')
-    with patch.dict(live_model._MODELS,{'ovda-small-c16':adapter}),patch.dict(os.environ,{'DEPTHSBS_DEPTH_HISTORY':'continuous'}):
+    with patch.dict(live_model._MODELS,{'ovda-small-c16':adapter}),patch.dict(os.environ,{'SCREENTO3D_DEPTH_HISTORY':'continuous'}):
         return trial_sbs_worker('fp32-current',*args,**kwargs)
 
 
@@ -28,12 +28,12 @@ def ema_sbs_worker(mode,*args,**kwargs):
     import os
     from dataclasses import replace
     from unittest.mock import patch
-    from depthsbs_app import live_model
+    from screento3d_app import live_model
     weights={'ema-0.18':.18,'ema-0.5':.5}
     if mode not in weights:raise ValueError('Invalid EMA comparison')
     kwargs['gpu_capture_snapshot']=True
     adapter=replace(live_model.model_adapter('ovda-small-c16'),temporal_depth_alpha=weights[mode],stabilize_depth_range=False)
-    with patch.dict(live_model._MODELS,{'ovda-small-c16':adapter}),patch.dict(os.environ,{'DEPTHSBS_DEPTH_HISTORY':'continuous'}):
+    with patch.dict(live_model._MODELS,{'ovda-small-c16':adapter}),patch.dict(os.environ,{'SCREENTO3D_DEPTH_HISTORY':'continuous'}):
         return trial_sbs_worker('fp32-current',*args,**kwargs)
 
 
@@ -42,7 +42,7 @@ def history_sbs_worker(mode,*args,**kwargs):
     from unittest.mock import patch
     if mode not in ('history-strict','history-short-skip'):raise ValueError('Invalid history comparison')
     kwargs['gpu_capture_snapshot']=True
-    with patch.dict(os.environ,{'DEPTHSBS_DEPTH_HISTORY':'legacy' if mode=='history-strict' else 'continuous'}):
+    with patch.dict(os.environ,{'SCREENTO3D_DEPTH_HISTORY':'legacy' if mode=='history-strict' else 'continuous'}):
         return trial_sbs_worker('fp32-current',*args,**kwargs)
 
 
@@ -87,9 +87,9 @@ def main():
     args=parser.parse_args()
     if sum((args.capture_comparison,args.runtime_comparison,args.history_comparison,args.ema_comparison,args.range_comparison,args.resolution_comparison))>1:parser.error('Choose one comparison')
     args.output.mkdir(parents=True,exist_ok=False)
-    from depthsbs_app import live_sbs
-    from depthsbs_app.desktop import create_app
-    from depthsbs_app.desktop_preferences import DesktopPreferences
+    from screento3d_app import live_sbs
+    from screento3d_app.desktop import create_app
+    from screento3d_app.desktop_preferences import DesktopPreferences
     from PySide6.QtCore import QSettings
     from live_benchmark_source import SourceProcess
     import shiboken6
@@ -160,7 +160,7 @@ def main():
                                      width=width,height=height)]
                     live.select(0);live.startMinimal()
                     wait(lambda:count()>=5)
-                    from depthsbs_app.stereo_layout import dimensions
+                    from screento3d_app.stereo_layout import dimensions
                     assert live.active and live.meta[2:4]==list(dimensions(width,height,args.layout)),live.meta
                     pump(3)
                     rows=[]

@@ -10,14 +10,14 @@ from unittest.mock import patch
 from PySide6.QtCore import QEventLoop, QTimer, Qt
 import shiboken6
 
-from depthsbs_app import live_sbs
-from depthsbs_app.capture_mailbox import RECEIVED
-from depthsbs_app.desktop import create_app
+from screento3d_app import live_sbs
+from screento3d_app.capture_mailbox import RECEIVED
+from screento3d_app.desktop import create_app
 from live_benchmark_source import SourceProcess
 
 
 def baseline_worker(*args, **kwargs):
-    with patch('depthsbs_app.live_policy.StaticSbsReuse', return_value=None):
+    with patch('screento3d_app.live_policy.StaticSbsReuse', return_value=None):
         return live_sbs.sbs_worker(*args, **kwargs)
 
 

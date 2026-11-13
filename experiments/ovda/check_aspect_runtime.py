@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 import cv2
 import numpy as np
-from depthsbs_app import ovda
-from depthsbs_app.desktop_jobs import ROOT
+from screento3d_app import ovda
+from screento3d_app.desktop_jobs import ROOT
 from public_test_media import CORPUS
 
 

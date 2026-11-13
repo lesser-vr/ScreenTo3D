@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from depthsbs_app.stereo import color_change, uniform_color_mask
+from screento3d_app.stereo import color_change, uniform_color_mask
 
 
 class ExactMaskTests(unittest.TestCase):

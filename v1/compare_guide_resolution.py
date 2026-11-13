@@ -10,9 +10,9 @@ import cv2
 
 from check_da2_radius8 import BUILDS, Build, edge_frames, renderer
 from compare_live_guide_radii import HFR, SOURCES, run_case
-from depthsbs_app import motion_history
-from depthsbs_app.desktop_jobs import BUNDLE, ROOT
-from depthsbs_app.resources import configure_resource_root
+from screento3d_app import motion_history
+from screento3d_app.desktop_jobs import BUNDLE, ROOT
+from screento3d_app.resources import configure_resource_root
 
 
 CANDIDATE = Build('guide-two-thirds',
@@ -29,10 +29,10 @@ def make_renderer(build):
 
 def native_worker(*args, **kwargs):
     """Select the candidate only in the owned capture benchmark's child process."""
-    from depthsbs_app.live_sbs import sbs_worker
-    from depthsbs_app.live_small_gpu_input import LiveSmallGpuInputTexture
-    from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-    from depthsbs_app.live_texture_pool import LiveTexturePool
+    from screento3d_app.live_sbs import sbs_worker
+    from screento3d_app.live_small_gpu_input import LiveSmallGpuInputTexture
+    from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+    from screento3d_app.live_texture_pool import LiveTexturePool
 
     directory = ROOT / 'out' / CANDIDATE.directory
     with ExitStack() as stack:

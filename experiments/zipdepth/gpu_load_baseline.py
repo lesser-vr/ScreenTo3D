@@ -9,11 +9,11 @@ def guide_worker(*args,**kwargs):
     return _worker(True,*args,**kwargs)
 
 def _worker(guide,*args,**kwargs):
-    from depthsbs_app.live_gpu_candidate import LiveGpuCandidate
-    from depthsbs_app.live_gpu_texture import TextureOutputMixin
-    from depthsbs_app.live_texture_pool import LiveTexturePool
-    from depthsbs_app.live_small_gpu_input import LiveSmallGpuInput,LiveSmallGpuInputTexture
-    from depthsbs_app.live_sbs import sbs_worker
+    from screento3d_app.live_gpu_candidate import LiveGpuCandidate
+    from screento3d_app.live_gpu_texture import TextureOutputMixin
+    from screento3d_app.live_texture_pool import LiveTexturePool
+    from screento3d_app.live_small_gpu_input import LiveSmallGpuInput,LiveSmallGpuInputTexture
+    from screento3d_app.live_sbs import sbs_worker
     from trial import installed
     root=Path(__file__).resolve().parents[2]
     LiveGpuCandidate.library_path=root/'out/live-depth-detail/live_depth.dll'

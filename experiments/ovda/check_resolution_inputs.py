@@ -7,15 +7,15 @@ import json
 from pathlib import Path
 import numpy as np
 import torch
-from depthsbs_app import ovda
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.ovda_geometry import CANVASES,content_rect
+from screento3d_app import ovda
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.ovda_geometry import CANVASES,content_rect
 
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
     ovda.runtime_class(True)
-    from _depthsbs_ovda.preprocessing import FramePreprocessor
+    from _screento3d_ovda.preprocessing import FramePreprocessor
     from check_gpu_input import InputOwner
     old_path=ROOT/'out/ovda-gpu-input/ovda_input.dll'
     assert hashlib.sha256(old_path.read_bytes()).hexdigest()=='89c5caea88cf1f074855fa0a97d833626f3b6666b11405313b8005a8d4b8375e'

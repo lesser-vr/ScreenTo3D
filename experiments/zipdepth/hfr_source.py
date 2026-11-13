@@ -32,13 +32,13 @@ class Source:
         if self.sha256!=CLIP_SHA256[clip]:raise ValueError('Public clip hash changed')
         player=MEDIA/'mpv/mpv.exe'
         if hashlib.sha256(player.read_bytes()).hexdigest()!=PLAYER_SHA256:raise ValueError('Player hash changed')
-        from depthsbs_app.capture_sources import enable_capture_dpi
+        from screento3d_app.capture_sources import enable_capture_dpi
         enable_capture_dpi()
         self.command=[str(player),'--no-config','--no-audio','--loop-file=inf',
                       '--hwdec=d3d11va','--vo=gpu','--gpu-api=d3d11','--d3d11-sync-interval=0',
                       '--video-sync=audio','--interpolation=no','--no-border','--ontop',
                       '--geometry=3840x2160+0+0','--hidpi-window-scale=no','--no-osc','--osd-level=0',
-                      f'--title=DepthSBS owned UVG 120fps {clip}',str(self.path)]
+                      f'--title=ScreenTo3D owned UVG 120fps {clip}',str(self.path)]
         try:
             self.log=Path(log).open('wb')
             self.process=subprocess.Popen(self.command,stdout=self.log,stderr=self.log,
@@ -81,8 +81,8 @@ class Source:
 
 def preflight(clip):
     import torch
-    from depthsbs_app.gpu_capture import GpuCapture
-    from depthsbs_app.capture_sources import validate_source
+    from screento3d_app.gpu_capture import GpuCapture
+    from screento3d_app.capture_sources import validate_source
     output=MEDIA/f'{clip}-source-preflight-mpv.json'
     report=dict(completed=False,clip=clip)
     source=None

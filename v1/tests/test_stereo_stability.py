@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from depthsbs_app.stereo_stability import ScreenPlane, DepthRangeClock, sample_depth
+from screento3d_app.stereo_stability import ScreenPlane, DepthRangeClock, sample_depth
 
 
 class DepthRangeClockTests(unittest.TestCase):

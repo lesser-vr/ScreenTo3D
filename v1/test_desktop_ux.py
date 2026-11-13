@@ -10,8 +10,8 @@ from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QImage
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtTest import QTest
-from depthsbs_app.desktop import create_app
-from depthsbs_app.desktop_preferences import DesktopPreferences
+from screento3d_app.desktop import create_app
+from screento3d_app.desktop_preferences import DesktopPreferences
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
     warnings = []
     previous = qInstallMessageHandler(lambda kind, context, message: warnings.append(message))
     rows = [dict(kind='window', id=11, pid=1, label='영상 플레이어 — 여행 영상.mp4')]
-    with patch('depthsbs_app.live_preview.windows', side_effect=lambda: [dict(r) for r in rows]) as enumerate_windows:
+    with patch('screento3d_app.live_preview.windows', side_effect=lambda: [dict(r) for r in rows]) as enumerate_windows:
         app, engine, desktop = create_app(DesktopPreferences(QSettings(str(args.output/'preferences.ini'), QSettings.IniFormat)))
         window = desktop.main_window
         live = desktop.live
@@ -179,7 +179,7 @@ def main():
             assert not dialog.isVisible()
             # A failed affinity call must never expose the error text to capture.
             live.process = Mock(); live.mailbox = Mock()
-            with patch('depthsbs_app.capture_sources.exclude_preview', return_value=False):
+            with patch('screento3d_app.capture_sources.exclude_preview', return_value=False):
                 live.reportError('Original processing failure'); pump()
                 assert not dialog.isVisible() and live.stopping
                 assert 'Original processing failure' in live.status
@@ -188,7 +188,7 @@ def main():
             # Auxiliary windows are excluded from capture as well as the main UI.
             import ctypes as C
             from ctypes import wintypes as W
-            from depthsbs_app.capture_sources import user32
+            from screento3d_app.capture_sources import user32
             user32.GetWindowDisplayAffinity.argtypes = [W.HWND, C.POINTER(W.DWORD)]
             window.setProperty('page', 2); pump()
             for target in (window, tools):

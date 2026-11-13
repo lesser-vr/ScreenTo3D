@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import tkinter as tk
 from unittest.mock import patch
-from depthsbs_app.gui import DepthSbsGui
+from screento3d_app.gui import ScreenTo3DGui
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -12,7 +12,7 @@ def main():
     root = tk.Tk()
     root.withdraw()
     try:
-        gui = DepthSbsGui(root, backend='ovda-small-c16', mode='video-quality',
+        gui = ScreenTo3DGui(root, backend='ovda-small-c16', mode='video-quality',
                           engine_dir=ROOT/'out/ovda-local', runtime_dir=Path('C:/TensorRT/TensorRT-11.2.1.2/bin'), stereo_renderer='cuda')
         root.update_idletasks()
         panel = root.winfo_children()[0]
@@ -20,8 +20,8 @@ def main():
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp)/'input.mp4'; source.touch()
             gui.input_value.set(str(source)); gui.output_value.set(str(Path(tmp)/'output.mp4'))
-            with patch('depthsbs_app.gui.subprocess.Popen') as spawn, patch('depthsbs_app.gui.threading.Thread.start'), \
-                    patch('depthsbs_app.gui.messagebox.showerror') as error:
+            with patch('screento3d_app.gui.subprocess.Popen') as spawn, patch('screento3d_app.gui.threading.Thread.start'), \
+                    patch('screento3d_app.gui.messagebox.showerror') as error:
                 gui.start(); spawn.assert_not_called()
                 assert 'non-commercial' in error.call_args.args[1]
                 gui.ovda_noncommercial.set(True); error.reset_mock()

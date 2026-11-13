@@ -23,8 +23,8 @@ class ComparisonMetricsTests(unittest.TestCase):
     def test_vfg_reuses_each_models_input_path(self):
         from native_path import VfgRenderer, VfgOutputMixin, vfg_renderer, SUPPORTED_MODELS
         SmallVfgRenderer=vfg_renderer('da2-small')
-        from depthsbs_app.live_small_gpu_input import LiveSmallGpuInput
-        from depthsbs_app.live_source_gpu_candidate import LiveSourceGpuCandidate
+        from screento3d_app.live_small_gpu_input import LiveSmallGpuInput
+        from screento3d_app.live_source_gpu_candidate import LiveSourceGpuCandidate
         self.assertIs(SmallVfgRenderer.infer,LiveSmallGpuInput.infer)
         self.assertIs(SmallVfgRenderer._post,LiveSmallGpuInput._post)
         self.assertIs(VfgRenderer.infer,LiveSourceGpuCandidate.infer)
@@ -59,13 +59,13 @@ class ComparisonMetricsTests(unittest.TestCase):
     def test_normal_output_stays_excluded_and_marker_failure_fails_closed(self):
         live = SimpleNamespace(output_excluded=False)
         window = SimpleNamespace(winId=lambda: 123)
-        with patch('depthsbs_app.capture_sources.mark_sbs_output', return_value=True), \
-                patch('depthsbs_app.capture_sources.exclude_preview', return_value=True) as exclude:
+        with patch('screento3d_app.capture_sources.mark_sbs_output', return_value=True), \
+                patch('screento3d_app.capture_sources.exclude_preview', return_value=True) as exclude:
             self.assertTrue(LivePreview.configureOutputCapture(live, window))
             self.assertTrue(live.output_excluded)
             exclude.assert_called_once_with(123)
-        with patch('depthsbs_app.capture_sources.mark_sbs_output', return_value=False), \
-                patch('depthsbs_app.capture_sources.exclude_preview') as exclude:
+        with patch('screento3d_app.capture_sources.mark_sbs_output', return_value=False), \
+                patch('screento3d_app.capture_sources.exclude_preview') as exclude:
             self.assertFalse(LivePreview.configureOutputCapture(live, window))
             self.assertFalse(live.output_excluded)
             exclude.assert_not_called()

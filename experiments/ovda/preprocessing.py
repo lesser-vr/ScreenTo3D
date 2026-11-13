@@ -1,9 +1,9 @@
 # Adapted from Heidelberg University oVDA VideoPreprocessor, NC-SA-UHDV1.0.
 # Original authors and full license: README.md and LICENSE in this directory.
-# DepthSBS change: one owned uint8 RGB frame only; no source checkout dependency.
+# ScreenTo3D change: one owned uint8 RGB frame only; no source checkout dependency.
 import numpy as np
 import torch
-from depthsbs_app.ovda_geometry import content_rect, validate_dimensions, SUPPORTED_CANVASES
+from screento3d_app.ovda_geometry import content_rect, validate_dimensions, SUPPORTED_CANVASES
 
 
 def validate_frame(frame):

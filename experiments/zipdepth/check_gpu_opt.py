@@ -12,9 +12,9 @@ def main():
     from check_stereo_geometry_gpu import load,context,check_cuda,texture
     from check_stereo_detail import setup
     from check_stereo_window import settings
-    from depthsbs_app.live_texture_pool import LiveTexturePool
+    from screento3d_app.live_texture_pool import LiveTexturePool
     from public_test_media import PublicFrames
-    from depthsbs_app import rowflow
+    from screento3d_app import rowflow
     borrowed=rowflow.bridge()
     out=ROOT/'out/gpu-load-opt'
     sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()

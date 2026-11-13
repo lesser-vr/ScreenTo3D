@@ -4,9 +4,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from depthsbs_app import ovda
-from depthsbs_app.config import MODES
-from depthsbs_app.main import build_parser
+from screento3d_app import ovda
+from screento3d_app.config import MODES
+from screento3d_app.main import build_parser
 
 
 class OvdaTests(unittest.TestCase):
@@ -79,7 +79,7 @@ class OvdaTests(unittest.TestCase):
         self.assertTrue(parsed.ovda_noncommercial)
 
     def test_adopted_artifact_and_description_require_mixed_fp16(self):
-        from depthsbs_app.model_presentation import model_info
+        from screento3d_app.model_presentation import model_info
         self.assertEqual(set(ovda.PROFILES),{(518,924)})
         self.assertEqual(ovda.PROFILE_SUFFIX,'fp16')
         self.assertEqual(ovda.RUNTIME,'tensorrt-mixed-fp16')

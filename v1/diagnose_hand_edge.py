@@ -4,7 +4,7 @@ import inspect
 import types
 import cv2
 import numpy as np
-from depthsbs_app import stereo
+from screento3d_app import stereo
 
 root = Path('out/stereo-ghost-diagnosis')
 sample = np.load(root / 'sample.npz')

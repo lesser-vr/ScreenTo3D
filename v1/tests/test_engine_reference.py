@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 from pathlib import Path
 import numpy as np
-from depthsbs_app.engine_reference import build_validated,check_samples,ReferenceMismatch
+from screento3d_app.engine_reference import build_validated,check_samples,ReferenceMismatch
 
 
 class EngineReferenceTests(unittest.TestCase):

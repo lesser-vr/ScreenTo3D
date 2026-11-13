@@ -4,7 +4,7 @@ import hashlib
 import json
 import subprocess
 import cv2
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
 
 SOURCES = {
     "FloorballGame": "e68fce59944a9099df25dc81b145f871f2c370f21fa7b6c81e43fc7d9bceca00",

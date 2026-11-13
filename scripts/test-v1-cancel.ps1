@@ -3,7 +3,7 @@ param([string]$SourcePath = 'out/media-smoke/soak-cfr-720p30-300s.mp4')
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $sourceVideo = (Resolve-Path $SourcePath).Path
-$exe = Join-Path $repoRoot 'out/release/DepthSBS/DepthSBS.exe'
+$exe = Join-Path $repoRoot 'out/release/ScreenTo3D/ScreenTo3D.exe'
 $runRoot = Join-Path $repoRoot ('out/cleanup/package-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runRoot -Force | Out-Null
 $statusPath = Join-Path $runRoot 'events.jsonl'

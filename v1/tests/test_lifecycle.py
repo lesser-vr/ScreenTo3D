@@ -1,5 +1,5 @@
 import unittest
-from depthsbs_app.lifecycle import Lifecycle
+from screento3d_app.lifecycle import Lifecycle
 
 
 class LifecycleTests(unittest.TestCase):

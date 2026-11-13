@@ -1,5 +1,5 @@
 import unittest
-from depthsbs_app.live_device import DeviceDepth
+from screento3d_app.live_device import DeviceDepth
 
 
 class Owner:

@@ -25,7 +25,7 @@
 소스 빌더의 기본 출력은 **Small 동봉·Base/VDA 공개 다운로드·공식 런타임 직접 다운로드형**입니다.
 TensorRT 11.2.1.2, CUDA Runtime 13.1.80, FFmpeg 9.0.1, VFG 0.2.0.0의
 고정 원본 URL·크기·해시는 `upstream_sources.json`이 소유합니다. 전체 원본은
-`%LOCALAPPDATA%\DepthSBS\downloads`에 보관하고 같은 파일을 다시 받지 않습니다.
+`%LOCALAPPDATA%\ScreenTo3D\downloads`에 보관하고 같은 파일을 다시 받지 않습니다.
 `--export-runtime-packs`를 지정한 경우에만 기존 오프라인 런타임 ZIP을 추가로 만듭니다.
 오프라인 팩을 함께 전달할 때 `runtime-packs/`는
 `ScreenTo3D-1.0.0/`와 나란히 둡니다. 추출 도구는 내려받은 런타임 ZIP을 풀지
@@ -54,7 +54,7 @@ Base·VDA는 최초 설치 중 준비된 TensorRT로 현재 보이는 첫 번째
 포터블 빌더는 MSVC 2022 도구로 콘솔 없는 `ScreenTo3D.exe`를 함께 빌드한다.
 소스 체크아웃에서는 `scripts/build-desktop-launcher.ps1`로 만든
 `out/desktop-launcher/ScreenTo3D.exe`를 저장소 루트에 복사해 실행할 수 있다.
-실행 오류창은 `%LOCALAPPDATA%\DepthSBS\logs` 아래의 해당 실행 로그를 안내한다.
+실행 오류창은 `%LOCALAPPDATA%\ScreenTo3D\logs` 아래의 해당 실행 로그를 안내한다.
 
 네이티브 DLL은 준비된 MSVC·CUDA 개발 환경에서 `scripts/build-portable-cuda.ps1`로 만든다. 패키저는 VDA 입력 모듈을 포함한 각 DLL의 해시를 확인한다. DLL을 새로 빌드하면 결과를 검증한 뒤 릴리스 해시를 갱신한다.
 
@@ -85,14 +85,21 @@ python scripts/check-upstream-downloads.py --models --full --report out/upstream
 
 오프라인 전달 시 앱과 `packs/`, 필요한 `runtime-packs/`를 나란히 둔다. 모델은 **로컬 팩 설치**로 가져오고 공통·미디어·GPU 런타임은 첫 작업 전에 검증·설치한다. 별도로 받은 파일은 **파일에서 설치**로 선택한다. VFG는 동일한 버전의 원본 NVIDIA wheel을 선택할 수 있다.
 
-설치는 `%LOCALAPPDATA%\DepthSBS\models` 아래에서 진행한다. SHA-256과 크기가 고정값과 일치해야 압축을 풀고, 취소나 오류 뒤에는 작업 폴더를 정리한다. 최종 폴더는 설치가 완료된 시점에 공개한다. 런타임은 기존 엔진·DLL 검증을 수행한다.
+설치는 `%LOCALAPPDATA%\ScreenTo3D\models` 아래에서 진행한다. SHA-256과 크기가 고정값과 일치해야 압축을 풀고, 취소나 오류 뒤에는 작업 폴더를 정리한다. 최종 폴더는 설치가 완료된 시점에 공개한다. 런타임은 기존 엔진·DLL 검증을 수행한다.
+앱 시작 시 임시 오타 이름 `StereoTo3D`, 기존 `DepthSBS` 순으로 새 루트에
+데이터를 이관한다. 이미 있는 새 파일은
+덮어쓰지 않고 충돌한 이전 파일은 원래 위치에 보존한다. 모델·다운로드·엔진 캐시와
+로그가 함께 이동하며, QSettings에 저장한 언어·모델·출력 선택은 새
+`ScreenTo3D/ScreenTo3D` 저장소로 가져온다. 새 값이 있으면 우선하며 옛 설정은
+보존한다. Qt 화면 캐시도 새 이름으로 생성한다. 새 소스 모듈은
+`screento3d_app`이며 기존 실행 명령은 얇은 호환 진입점으로 연결한다.
 
 빌더는 개발용 라이브러리·헤더·CMake 파일과 C/C++·CUDA·Cython 소스
 (`.c`, `.cc`, `.cpp`, `.cxx`, `.cu`, `.pyx`, `.pxd`, `.pxi`), 미사용 Qt WebEngine을
 제외한다. 사용자 빌드 경로를 포함할 수 있는 `__pycache__`·`.pyc`·`.pyo`는
 라이선스 폴더 안에서도 우선 제외한다. 실제 라이선스 문서의 보존은 나머지 확장자
 제외 규칙보다 우선한다. Qt는
-`v1/depthsbs_app/qt_portable_profile.json`에 기록한 **PySide6 6.10.2** 구성만
+`v1/screento3d_app/qt_portable_profile.json`에 기록한 **PySide6 6.10.2** 구성만
 포함하며, 빌더는 다른 버전이나 필수 DLL·PYD가 빠진 입력을 거부한다. 실제 앱의
 Python import, QML import scanner와 DLL 의존성을 기준으로 미사용 3D·차트·
 멀티미디어·개발 도구 등을 제외한다. QtQuick이 간접 로드하는 QtOpenGL, 파일

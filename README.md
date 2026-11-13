@@ -142,8 +142,8 @@ The build output is written under `out/build/` and is ignored by git.
 ## CLI
 
 ```text
-depthsbs capability [--compact]
-depthsbs mode <performance|balanced|video-quality|offline-quality> [--compact]
+screento3d capability [--compact]
+screento3d mode <performance|balanced|video-quality|offline-quality> [--compact]
 ```
 
 All modes are currently marked experimental. Their frame-rate numbers are

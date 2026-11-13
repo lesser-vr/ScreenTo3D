@@ -7,8 +7,8 @@ from unittest.mock import patch,Mock
 
 from PySide6.QtCore import QProcess, QUrl, QSettings
 from PySide6.QtWidgets import QApplication, QMessageBox
-from depthsbs_app.desktop import DesktopController
-from depthsbs_app.desktop_preferences import DesktopPreferences
+from screento3d_app.desktop import DesktopController
+from screento3d_app.desktop_preferences import DesktopPreferences
 
 APP = QApplication.instance() or QApplication([])
 
@@ -57,11 +57,11 @@ class ControllerTests(unittest.TestCase):
                 self.c.downloads.dismissSetup()
                 self.c.values['vfg']=missing=='vfg'
                 with patch.object(self.c.downloads,'needed',side_effect=lambda key:key==missing),\
-                     patch('depthsbs_app.model_downloads.source_for',side_effect=FileNotFoundError('No origin')),\
+                     patch('screento3d_app.model_downloads.source_for',side_effect=FileNotFoundError('No origin')),\
                      patch.object(self.c,'showLiveError') as error,\
                      patch.object(self.c,'showModelError') as model_error,\
                      patch.object(self.c,'_spawn') as spawn,\
-                     patch('depthsbs_app.model_downloads.BRIDGE') as bridge:
+                     patch('screento3d_app.model_downloads.BRIDGE') as bridge:
                     bridge.is_file.return_value=True
                     self.c.start()
                     self.assertTrue(self.c.downloads.setupVisible)
@@ -171,14 +171,14 @@ class ControllerTests(unittest.TestCase):
     def _start_queue(self):
         source=self.root/'second.mp4';source.touch();self.c.add_paths([str(source)])
         def spawn(*ignored):self.c.process=QProcess(self.c)
-        with patch('depthsbs_app.desktop.Job.validate'),patch.object(self.c.downloads,'needed',return_value=False),patch.object(self.c,'_spawn',side_effect=spawn):
+        with patch('screento3d_app.desktop.Job.validate'),patch.object(self.c.downloads,'needed',return_value=False),patch.object(self.c,'_spawn',side_effect=spawn):
             self.c.start()
         return source
 
     def _finish_success(self):
         Path(self.c.active.output).touch();self.c._event({'event':'complete'})
         def spawn(*ignored):self.c.process=QProcess(self.c)
-        with patch('depthsbs_app.desktop.Job.validate'),patch.object(self.c,'_spawn',side_effect=spawn):
+        with patch('screento3d_app.desktop.Job.validate'),patch.object(self.c,'_spawn',side_effect=spawn):
             self.c._finished(0,QProcess.NormalExit)
 
     def test_queue_continues_in_order_with_one_lease_and_frozen_settings(self):
@@ -225,7 +225,7 @@ class ControllerTests(unittest.TestCase):
         self.c.setOption('stereo_layout','full-sbs')
         self.assertTrue(self.c.destination.endswith('_Full_SBS.mp4'))
         custom=str(self.root/'custom.mp4')
-        with patch('depthsbs_app.desktop.QFileDialog.getSaveFileName',return_value=(custom,'')):
+        with patch('screento3d_app.desktop.QFileDialog.getSaveFileName',return_value=(custom,'')):
             self.c.chooseOutput()
         self.c.setOption('stereo_layout','half-sbs');self.assertEqual(self.c.destination,custom)
 

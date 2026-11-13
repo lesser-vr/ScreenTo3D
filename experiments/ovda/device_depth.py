@@ -86,7 +86,7 @@ class OvdaDeviceTrt(OvdaTrt):
         self.check()
         if self.pending_device is not None:
             raise RuntimeError("Complete oVDA device depth before another inference")
-        from depthsbs_app.gpu_frame import GpuFrame
+        from screento3d_app.gpu_frame import GpuFrame
         if isinstance(frame, GpuFrame):
             frame.validate(self)
         else:

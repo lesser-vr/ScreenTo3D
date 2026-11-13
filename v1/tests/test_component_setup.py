@@ -6,8 +6,8 @@ from pathlib import Path
 from zipfile import ZipFile
 from unittest.mock import Mock,patch
 from PySide6.QtCore import QObject,QCoreApplication
-from depthsbs_app.model_downloads import ModelDownloads
-from depthsbs_app.desktop_jobs import ProcessingLease
+from screento3d_app.model_downloads import ModelDownloads
+from screento3d_app.desktop_jobs import ProcessingLease
 
 
 class Desktop(QObject):
@@ -73,7 +73,7 @@ class BrowserSetupTests(unittest.TestCase):
         self.addCleanup(self.downloads.dismissSetup)
         self.missing={'trt-core'}
         self.enterContext(patch.object(self.downloads,'needed',side_effect=lambda key:key in self.missing))
-        self.enterContext(patch('depthsbs_app.model_downloads.source_for',side_effect=FileNotFoundError('No configured origin')))
+        self.enterContext(patch('screento3d_app.model_downloads.source_for',side_effect=FileNotFoundError('No configured origin')))
         self.resume=Mock()
 
     def test_missing_origin_opens_download_guidance_without_error_or_worker(self):
@@ -87,15 +87,15 @@ class BrowserSetupTests(unittest.TestCase):
             self.assertFalse(self.desktop.busy);self.resume.assert_not_called()
 
     def start_browser(self,directory):
-        from depthsbs_app.optional_models import PACKS
+        from screento3d_app.optional_models import PACKS
         self.downloads.ensure(['trt-core'],self.resume)
-        with patch('depthsbs_app.model_downloads.QStandardPaths.writableLocation',return_value=str(directory)),\
-             patch('depthsbs_app.model_downloads.QDesktopServices.openUrl',return_value=True) as opened:
+        with patch('screento3d_app.model_downloads.QStandardPaths.writableLocation',return_value=str(directory)),\
+             patch('screento3d_app.model_downloads.QDesktopServices.openUrl',return_value=True) as opened:
             self.downloads.downloadInBrowser('trt-core')
             self.assertTrue(opened.call_args.args[0].toString().endswith('/'+PACKS['trt-core'].filename))
 
     def test_completed_browser_file_enters_existing_verified_installer(self):
-        from depthsbs_app.optional_models import PACKS,Pack
+        from screento3d_app.optional_models import PACKS,Pack
         with tempfile.TemporaryDirectory() as directory,patch.dict(PACKS,{'trt-core':Pack('Fixture','fixture.zip',4,'unused','')}):
             self.start_browser(directory)
             self.assertEqual(self.downloads.waitingKey,'trt-core')
@@ -128,27 +128,27 @@ class BrowserSetupTests(unittest.TestCase):
         self.assertIs(self.downloads.resume,self.resume)
         self.missing.add('media-tools')
         with patch.object(self.downloads,'_install') as install,\
-             patch('depthsbs_app.model_downloads.QDesktopServices.openUrl') as opened:
+             patch('screento3d_app.model_downloads.QDesktopServices.openUrl') as opened:
             self.downloads.begin('media-tools',False)
             self.downloads.downloadInBrowser('media-tools')
             install.assert_not_called();opened.assert_not_called()
             self.assertEqual(self.downloads.setupKey,'trt-core')
 
     def test_invalid_configured_origin_and_browser_launch_failure_are_real_errors(self):
-        with patch('depthsbs_app.model_downloads.source_for',side_effect=ValueError('Invalid HTTPS origin')):
+        with patch('screento3d_app.model_downloads.source_for',side_effect=ValueError('Invalid HTTPS origin')):
             self.downloads.begin('trt-core',False)
             self.desktop.showModelError.assert_called_once()
         self.desktop.showModelError.reset_mock()
         self.downloads.ensure(['trt-core'],self.resume)
-        with patch('depthsbs_app.model_downloads.QStandardPaths.writableLocation',return_value='Downloads'),\
-             patch('depthsbs_app.model_downloads.QDesktopServices.openUrl',return_value=False):
+        with patch('screento3d_app.model_downloads.QStandardPaths.writableLocation',return_value='Downloads'),\
+             patch('screento3d_app.model_downloads.QDesktopServices.openUrl',return_value=False):
             self.downloads.downloadInBrowser('trt-core')
         self.desktop.showModelError.assert_called_once()
         self.assertFalse(self.downloads.download_timer.isActive())
         self.assertIsNone(self.downloads.resume)
 
     def test_browser_handoff_verifies_payload_before_resume_and_rejects_corruption(self):
-        from depthsbs_app import optional_models as models,desktop_runtimes as runtimes
+        from screento3d_app import optional_models as models,desktop_runtimes as runtimes
         for corrupt in (False,True):
             with self.subTest(corrupt=corrupt),tempfile.TemporaryDirectory() as directory:
                 self.downloads.dismissSetup();self.desktop.showModelError.reset_mock();self.resume.reset_mock()
@@ -161,7 +161,7 @@ class BrowserSetupTests(unittest.TestCase):
                 if corrupt:archive.write_bytes(bytes([data[0]^1])+data[1:])
                 with patch.dict(runtimes.PACKS,{'trt-core':pin}),\
                      patch.dict(models.PACKS,{'trt-core':models.Pack('Fixture',archive.name,len(data),sha,'')}),\
-                     patch('depthsbs_app.model_downloads.installed_path',return_value=target),\
+                     patch('screento3d_app.model_downloads.installed_path',return_value=target),\
                      patch.object(self.downloads,'needed',side_effect=lambda key:key=='trt-core' and not models.available(key,target)):
                     self.start_browser(directory)
                     self.downloads._downloadReady();self.downloads._downloadReady()
@@ -180,7 +180,7 @@ class BrowserSetupTests(unittest.TestCase):
 
 class DownloadHandoffTests(unittest.TestCase):
     def test_only_stable_completed_named_files_are_accepted_and_wait_is_bounded(self):
-        from depthsbs_app.browser_download import DownloadHandoff,release_url
+        from screento3d_app.browser_download import DownloadHandoff,release_url
         with tempfile.TemporaryDirectory() as directory:
             handoff=DownloadHandoff(directory,'pack.zip',4,0)
             root=Path(directory)

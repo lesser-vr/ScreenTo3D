@@ -10,8 +10,8 @@ import numpy as np
 import onnx
 import torch
 
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
-from depthsbs_app.resources import configure_resource_root
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.resources import configure_resource_root
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     configure_resource_root(BUNDLE)
-    from depthsbs_app.trt_backend import DepthEngine, _model_path, _engine_path, trt
+    from screento3d_app.trt_backend import DepthEngine, _model_path, _engine_path, trt
     path = _model_path()
     pin = json.loads((ROOT / 'models/da2-small/model-manifest.json').read_text())
     digest = hashlib.sha256(path.read_bytes()).hexdigest()

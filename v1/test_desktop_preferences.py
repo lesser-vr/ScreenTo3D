@@ -5,11 +5,11 @@ from unittest.mock import Mock, patch
 
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
-from depthsbs_app.config import MODES
-from depthsbs_app.desktop import DesktopController
-from depthsbs_app.desktop_preferences import DesktopPreferences
-from depthsbs_app.live_policy import LIVE_MODES
-from depthsbs_app.live_preview import LivePreview
+from screento3d_app.config import MODES
+from screento3d_app.desktop import DesktopController
+from screento3d_app.desktop_preferences import DesktopPreferences
+from screento3d_app.live_policy import LIVE_MODES
+from screento3d_app.live_preview import LivePreview
 
 APP = QApplication.instance() or QApplication([])
 
@@ -115,22 +115,22 @@ class PreferenceTests(unittest.TestCase):
         self.assertEqual(desktop.settings['mode'], 'offline-quality')
 
     def test_vda_precision_distinguishes_installed_legacy_and_download_target(self):
-        from depthsbs_app.model_presentation import model_info
-        with patch('depthsbs_app.model_presentation.available', return_value=True), patch(
-            'depthsbs_app.vda_artifacts.uses_mixed_fp16', return_value=False
+        from screento3d_app.model_presentation import model_info
+        with patch('screento3d_app.model_presentation.available', return_value=True), patch(
+            'screento3d_app.vda_artifacts.uses_mixed_fp16', return_value=False
         ):
             self.assertEqual(model_info('vda-small', 'legacy')[1], 'FP32')
-        with patch('depthsbs_app.model_presentation.available', return_value=True), patch(
-            'depthsbs_app.vda_artifacts.uses_mixed_fp16', return_value=True
+        with patch('screento3d_app.model_presentation.available', return_value=True), patch(
+            'screento3d_app.vda_artifacts.uses_mixed_fp16', return_value=True
         ):
             name, precision, help_text = model_info('vda-small', 'managed')
             self.assertEqual(precision, 'Mixed FP16')
             self.assertIn('history, input and output remain FP32', help_text)
-        with patch('depthsbs_app.model_presentation.available', return_value=False):
+        with patch('screento3d_app.model_presentation.available', return_value=False):
             self.assertIn('not installed', model_info('vda-small', '')[2])
 
     def test_portable_model_choices_and_order(self):
-        from depthsbs_app.model_presentation import selection_choices
+        from screento3d_app.model_presentation import selection_choices
         choices = selection_choices(LIVE_MODES, {}, portable=True)
         self.assertEqual([c['model'] for c in choices], ['da2-small', 'da2-base', 'vda-small'])
         self.assertEqual(len({c['key'] for c in choices}), len(choices))

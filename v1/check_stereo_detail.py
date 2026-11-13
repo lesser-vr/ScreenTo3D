@@ -15,8 +15,8 @@ from check_stereo_geometry_gpu import load, context, check_cuda
 from check_stereo_stability_gpu import project
 from check_stereo_window import setup as window_setup, settings
 from check_disparity_budget import oracle
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
 
 
 def setup(path, digest):
@@ -124,7 +124,7 @@ def synthetic(dll):
 
 
 def shapes(dll):
-    from depthsbs_app.live_texture_pool import LiveTexturePool
+    from screento3d_app.live_texture_pool import LiveTexturePool
     old=window_setup(load(ROOT/'out/live-depth-budget/live_depth.dll',
                          '6d37f9b85e5a72e53b2ce693e51a51f9911a609bbdc9e4885cccdff35e5a228e'))
     old.live_set_disparity_budget.argtypes=[ct.c_void_p,ct.c_int]
@@ -171,9 +171,9 @@ def shapes(dll):
 
 def public(dll,model,output):
     from check_depth_range import allocate,post
-    from depthsbs_app.live_policy import resolve_live
-    from depthsbs_app.live_scene_history import LiveSceneHistory
-    from depthsbs_app.motion_history import MotionHistory
+    from screento3d_app.live_policy import resolve_live
+    from screento3d_app.live_scene_history import LiveSceneHistory
+    from screento3d_app.motion_history import MotionHistory
     from public_test_media import PublicFrames,SOURCES
     policy=resolve_live('balanced' if model=='base' else 'performance',strength=.25)
     results=[]
@@ -181,15 +181,15 @@ def public(dll,model,output):
         runtime=Path('C:/TensorRT/TensorRT-11.2.1.2/bin')
         stack.enter_context(os.add_dll_directory(str(runtime)))
         if model=='base':
-            from depthsbs_app.da2_base import binding
+            from screento3d_app.da2_base import binding
             backend=binding(ROOT/'out/da2-base-local',runtime)
             backend.input_validator(dict(width=1920,height=1080))
             engine=stack.enter_context(backend.engine_factory(None));stream=engine.stream
         else:
-            from depthsbs_app.desktop_jobs import BUNDLE
-            from depthsbs_app.resources import configure_resource_root
-            from depthsbs_app.small_gpu_input import SmallGpuCaptureEngine
-            from depthsbs_app.pipeline import preprocess
+            from screento3d_app.desktop_jobs import BUNDLE
+            from screento3d_app.resources import configure_resource_root
+            from screento3d_app.small_gpu_input import SmallGpuCaptureEngine
+            from screento3d_app.pipeline import preprocess
             configure_resource_root(BUNDLE)
             engine=stack.enter_context(SmallGpuCaptureEngine());stream=engine.torch_stream
         for name in SOURCES:
@@ -251,7 +251,7 @@ def public(dll,model,output):
 
 
 def benchmark(dll):
-    from depthsbs_app.live_texture_pool import LiveTexturePool
+    from screento3d_app.live_texture_pool import LiveTexturePool
     from public_test_media import PublicFrames
     stream=torch.cuda.Stream();rows=[]
     for width,height in ((1920,1080),(3840,2160)):

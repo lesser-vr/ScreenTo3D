@@ -16,9 +16,9 @@ def main():
     parser.add_argument('--output',type=Path)
     args=parser.parse_args()
     with selected(args.variant):pass # Verify pinned bytes before creating a UI.
-    from depthsbs_app.desktop_jobs import ROOT
-    from depthsbs_app import desktop as desktop_module,live_sbs,model_presentation
-    from depthsbs_app.desktop_preferences import DesktopPreferences
+    from screento3d_app.desktop_jobs import ROOT
+    from screento3d_app import desktop as desktop_module,live_sbs,model_presentation
+    from screento3d_app.desktop_preferences import DesktopPreferences
     from PySide6.QtCore import QSettings
     import shiboken6
     folder=args.output or ROOT/'out/ovda-resolution-20261109/manual'/args.variant

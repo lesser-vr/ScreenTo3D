@@ -12,11 +12,11 @@ import numpy as np
 import torch
 
 from check_stereo_geometry_gpu import load, context, check_cuda
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
-from depthsbs_app.small_gpu_input import DLL_PATH as SMALL, DLL_SHA256 as SMALL_HASH
-from depthsbs_app.live_texture_pool import LiveTexturePool
-from depthsbs_app.stereo_stability import sample_depth
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
+from screento3d_app.small_gpu_input import DLL_PATH as SMALL, DLL_SHA256 as SMALL_HASH
+from screento3d_app.live_texture_pool import LiveTexturePool
+from screento3d_app.stereo_stability import sample_depth
 
 
 def project(dll, handle, frame, refined, convergence, scale):

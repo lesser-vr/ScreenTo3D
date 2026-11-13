@@ -4,7 +4,7 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from depthsbs_app.live_scene_history import LiveSceneHistory
+from screento3d_app.live_scene_history import LiveSceneHistory
 
 
 class LiveSceneHistoryTests(unittest.TestCase):
@@ -45,7 +45,7 @@ class LiveSceneHistoryTests(unittest.TestCase):
         frame = np.full((1080, 1920, 3), 123, np.uint8)
         history = LiveSceneHistory(0.18)
         with patch(
-            "depthsbs_app.live_scene_history.cv2.resize", wraps=cv2.resize
+            "screento3d_app.live_scene_history.cv2.resize", wraps=cv2.resize
         ) as resize:
             sample = history.inspect(frame)
             history.validate(sample, frame)

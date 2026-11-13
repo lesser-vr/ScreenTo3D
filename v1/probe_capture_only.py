@@ -11,7 +11,7 @@ import time
 import numpy as np
 
 from live_benchmark_source import SourceProcess
-from depthsbs_app.capture_mailbox import (
+from screento3d_app.capture_mailbox import (
     Mailbox,
     STATE,
     FAILED,
@@ -21,9 +21,9 @@ from depthsbs_app.capture_mailbox import (
     SEQ,
     ACK,
 )
-from depthsbs_app.capture_telemetry import CaptureTelemetry, observation_rates
-from depthsbs_app.capture_worker import capture_worker
-from depthsbs_app.live_sbs import sbs_worker, STAT_COUNT, PROCESSED
+from screento3d_app.capture_telemetry import CaptureTelemetry, observation_rates
+from screento3d_app.capture_worker import capture_worker
+from screento3d_app.live_sbs import sbs_worker, STAT_COUNT, PROCESSED
 
 
 def consume_host(mailbox, buffer):
@@ -127,7 +127,7 @@ def main():
         )
         report["source"] = descriptor
         if args.sbs_host:
-            os.environ["DEPTHSBS_LIVE_CAPTURE_INTERVAL_MS"] = str(args.interval)
+            os.environ["SCREENTO3D_LIVE_CAPTURE_INTERVAL_MS"] = str(args.interval)
         capture = context.Process(
             target=sbs_worker if args.sbs_host else capture_worker,
             args=(descriptor, False, mailbox, stats, 1.0, "balanced", True)
@@ -247,8 +247,8 @@ def main():
                 for p in (
                     Path(__file__),
                     Path("v1/live_benchmark_source.py"),
-                    Path("v1/depthsbs_app/capture_worker.py"),
-                    Path("v1/depthsbs_app/live_sbs.py"),
+                    Path("v1/screento3d_app/capture_worker.py"),
+                    Path("v1/screento3d_app/live_sbs.py"),
                 )
             }
             (args.output / "report.json").write_text(

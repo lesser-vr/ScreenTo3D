@@ -5,8 +5,8 @@ from zipfile import ZipFile,ZipInfo,ZIP_DEFLATED
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'v1'))
-from depthsbs_app.desktop_runtimes import PACKS
-from depthsbs_app.builder_resources import LAYOUT
+from screento3d_app.desktop_runtimes import PACKS
+from screento3d_app.builder_resources import LAYOUT
 
 
 def digest(path):
@@ -15,7 +15,7 @@ def digest(path):
 
 def build(output,media=None,cuda_runtime=None):
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
-    bundle=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview'
+    bundle=ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview'
     media=Path(media) if media else ROOT/'out/ffmpeg-shared-9.0.1'
     cuda_runtime=Path(cuda_runtime) if cuda_runtime else Path('C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.1/bin/x64/cudart64_13.dll')
     for key,pack in PACKS.items():

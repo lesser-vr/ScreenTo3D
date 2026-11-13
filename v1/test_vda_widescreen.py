@@ -9,10 +9,10 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app import pipeline
-from depthsbs_app.resources import configure_media_tools
-from depthsbs_app.vda_backend import VdaEngine
-from depthsbs_app.vda_preprocess import preprocess
+from screento3d_app import pipeline
+from screento3d_app.resources import configure_media_tools
+from screento3d_app.vda_backend import VdaEngine
+from screento3d_app.vda_preprocess import preprocess
 from vda_streaming_experiment import ROOT, VdaStreamingEngine
 
 
@@ -23,7 +23,7 @@ def main():
     args = parser.parse_args()
     root = ROOT/'out/vda-widescreen'/uuid.uuid4().hex
     root.mkdir(parents=True)
-    media = ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg'
+    media = ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg'
     configure_media_tools(media)
     report = dict(passed=False, jobs=[], scope='Short upscaled 4K compatibility fixture, not native 4K quality or performance')
     try:

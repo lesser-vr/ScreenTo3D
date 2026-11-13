@@ -7,12 +7,12 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-from depthsbs_app import vda_artifacts as artifacts
-from depthsbs_app.config import MODES
-from depthsbs_app.depth_backend import BackendBinding, BackendSpec
-from depthsbs_app.main import build_parser
-from depthsbs_app.pipeline import convert_video
-from depthsbs_app.vda_preprocess import preprocess
+from screento3d_app import vda_artifacts as artifacts
+from screento3d_app.config import MODES
+from screento3d_app.depth_backend import BackendBinding, BackendSpec
+from screento3d_app.main import build_parser
+from screento3d_app.pipeline import convert_video
+from screento3d_app.vda_preprocess import preprocess
 
 
 class VdaApplicationTests(unittest.TestCase):
@@ -103,7 +103,7 @@ class VdaApplicationTests(unittest.TestCase):
             source, output = root/'input.mp4', root/'output.mp4'
             source.touch()
             output.write_bytes(b'preserve')
-            with patch('depthsbs_app.pipeline.probe_video', return_value=dict(width=640, height=360)):
+            with patch('screento3d_app.pipeline.probe_video', return_value=dict(width=640, height=360)):
                 with self.assertRaisesRegex(ValueError, '518x896'):
                     convert_video(source, output, 'video-quality', Mock(), depth_backend=backend)
             self.assertEqual(output.read_bytes(), b'preserve')

@@ -19,12 +19,12 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_projection import LiveProjection
-from depthsbs_app.pipeline import StereoSynthesizer
-from depthsbs_app.resources import configure_resource_root
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_projection import LiveProjection
+from screento3d_app.pipeline import StereoSynthesizer
+from screento3d_app.resources import configure_resource_root
 from public_test_media import CORPUS, SOURCES, ATTRIBUTION
 
 REVISION = '0d3d92c8f4396da564c44524b6390ee5c76b9668'
@@ -113,7 +113,7 @@ def main():
     policy = resolve_live('balanced')
     report = dict(revision=REVISION, weights=WEIGHTS, attribution=ATTRIBUTION,
                   precision='iw3 upstream autocast FP16; RGB/depth FP32; TF32 disabled',
-                  mapping='iw3 divergence = 100 * DepthSBS divergence = 2.6; convergence=.45; standard left/right eye order; both eyes; no mapper; no border forcing',
+                  mapping='iw3 divergence = 100 * ScreenTo3D divergence = 2.6; convergence=.45; standard left/right eye order; both eyes; no mapper; no border forcing',
                   scope='Renderer comparison only. Same final depth; no new depth model, GUI integration or headset acceptance.',
                   timings=[], quality=[], calibration=[])
     torch.backends.cuda.matmul.allow_tf32 = False

@@ -68,7 +68,7 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $mediaTools = ./scripts/prepare-contract-media.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'depthsbs-contract-media')
+          $mediaTools = ./scripts/prepare-contract-media.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'screento3d-contract-media')
           python v1/test_media_contracts.py --media-tools $mediaTools --output artifacts/media
           if ($LASTEXITCODE -ne 0) { throw 'Media contracts failed' }
           python v1/compare_quality_regression.py --media-tools $mediaTools --source artifacts/media/source-h264.mp4 --baseline artifacts/media/h264-success.mp4 --candidate artifacts/media/h264-success.mp4 --output artifacts/comparison --max-rgb-mae 0 --max-temporal-change-increase 0

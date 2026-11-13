@@ -12,9 +12,9 @@ from unittest.mock import patch
 
 from PySide6.QtCore import QObject, QTimer, Qt, Slot
 
-from depthsbs_app.desktop_jobs import ROOT
+from screento3d_app.desktop_jobs import ROOT
 from owl_output import OwlOutputLive
-from depthsbs_app.output_placement import OutputPlacement
+from screento3d_app.output_placement import OutputPlacement
 from native_path import install
 
 
@@ -71,6 +71,8 @@ def summarize(samples, began, ended, base_frames):
                 generated_oldest_age_p50_ms=age(generated, 4))
 
 
+from screento3d_app.environment import get as app_env
+
 class ComparisonObserver(QObject):
     def __init__(self, desktop, output, enabled):
         super().__init__(desktop)
@@ -97,11 +99,11 @@ class ComparisonObserver(QObject):
         self.error_seen = True
 
     def set_title(self, detail):
-        self.desktop.main_window.setTitle(f"DepthSBS · {self.label} · {detail}")
-        self.live.output_window.setTitle(f"DepthSBS · {self.label} · {detail} · F11 전체 화면")
+        self.desktop.main_window.setTitle(f"ScreenTo3D · {self.label} · {detail}")
+        self.live.output_window.setTitle(f"ScreenTo3D · {self.label} · {detail} · F11 전체 화면")
 
     def begin(self):
-        from depthsbs_app.live_sbs import DEFAULT_STEREO_QUALITY
+        from screento3d_app.live_sbs import DEFAULT_STEREO_QUALITY
         if self.record is not None:
             self.finish()
         live = self.live
@@ -112,7 +114,7 @@ class ComparisonObserver(QObject):
         self.record = dict(session=live.session, variant="vfg" if self.enabled else "baseline",
                            output_capture="allowed-for-external-display",
                            model=live.live_model, strength=live.strength, output_cap=live.cadence.hz,
-                           stereo_quality=os.environ.get('DEPTHSBS_STEREO_QUALITY',DEFAULT_STEREO_QUALITY),
+                           stereo_quality=app_env('SCREENTO3D_STEREO_QUALITY',DEFAULT_STEREO_QUALITY),
                            cursor=live.cursor, state="preparing", rows=[],
                            scope="Recent Qt completion windows after observer attachment; not physical scanout; no frames or source identities saved")
         live.native.visible = lambda: live.output_window.isVisible()
@@ -197,13 +199,13 @@ class ComparisonObserver(QObject):
 def create_comparison(output: Path, enabled: bool, model: str = 'da2-base'):
     """One mode per process; capture remains explicit through the ordinary UI."""
     mode = comparison_mode(model, enabled)
-    os.environ["DEPTHSBS_VFG_EVIDENCE"] = str(output)
-    os.environ["DEPTHSBS_VFG_TEST_CUT_EVERY"] = "0"
-    os.environ["DEPTHSBS_STEREO_RENDERER"] = "cuda"
-    os.environ["DEPTHSBS_LIVE_GPU_CANDIDATE"] = "1"
-    os.environ["DEPTHSBS_CAPTURE_TELEMETRY"] = "0"
+    os.environ["SCREENTO3D_VFG_EVIDENCE"] = str(output)
+    os.environ["SCREENTO3D_VFG_TEST_CUT_EVERY"] = "0"
+    os.environ["SCREENTO3D_STEREO_RENDERER"] = "cuda"
+    os.environ["SCREENTO3D_LIVE_GPU_CANDIDATE"] = "1"
+    os.environ["SCREENTO3D_CAPTURE_TELEMETRY"] = "0"
     install(enabled)
-    from depthsbs_app import desktop, live_preview
+    from screento3d_app import desktop, live_preview
     with patch.object(live_preview, "LivePreview", ComparisonLive):
         app, engine, controller = desktop.create_app()
     controller.live.comparison_model = model

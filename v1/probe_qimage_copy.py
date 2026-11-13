@@ -7,7 +7,7 @@ import multiprocessing as mp
 import time
 from pathlib import Path
 import numpy as np
-from depthsbs_app.owned_preview_image import copy_image, PreviewCopyPool
+from screento3d_app.owned_preview_image import copy_image, PreviewCopyPool
 
 
 def main():

@@ -9,7 +9,7 @@ short 4K HEVC compatibility, with no 124-frame user-job limit. See
 The older `run.ps1` in this directory remains a <=124-frame diagnostic tool.
 oVDA-derived adapter/cache code here is governed by the accompanying
 NC-SA-UHDV1.0 LICENSE, not the repository's general license. This does not
-relicense unrelated DepthSBS files. It is source-available with non-commercial
+relicense unrelated ScreenTo3D files. It is source-available with non-commercial
 restrictions, not unrestricted open source. No commercial clearance is implied.
 
 Credit: Heidelberg University; Johann-Friedrich Feiden, Tim Kuechler, Denis

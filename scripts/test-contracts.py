@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # Current-profile expectations may change with an intentional product change.
 # Keep all test modules classified so additions cannot silently miss CI.
 GROUPS = {'core': ['test_cleanup.py',
+          'test_user_data.py',
           'test_media_process.py',
           'test_download_cache.py',
           'test_engine_reference.py',
@@ -102,7 +103,8 @@ GROUPS = {'core': ['test_cleanup.py',
              'test_temporal_diagnostics.py',
              'test_temporal_depth_experiment.py',
              'test_quality_regression.py'],
- 'qt': ['test_frame_wakeup.py',
+ 'qt': ['test_name_migration.py',
+        'test_frame_wakeup.py',
         'test_component_setup.py',
         'test_completion_shutdown.py',
         'test_tooltips.py',
@@ -148,7 +150,7 @@ def main():
         if 'runtime' not in selected:
             sys.meta_path.insert(0, NoGpuImports())
         if args.resource_root:
-            from depthsbs_app.resources import configure_resource_root
+            from screento3d_app.resources import configure_resource_root
             configure_resource_root(args.resource_root)
         loader = unittest.TestLoader()
         suite = unittest.TestSuite()

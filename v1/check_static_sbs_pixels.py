@@ -11,12 +11,12 @@ import cv2
 import numpy as np
 
 from check_da2_radius8 import BUILDS, Build, renderer
-from depthsbs_app import live_gpu_candidate, live_texture_pool, small_gpu_input
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import BUNDLE, ROOT
-from depthsbs_app.live_policy import StaticSbsReuse, same_rgb
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.trt_backend import DepthEngine
+from screento3d_app import live_gpu_candidate, live_texture_pool, small_gpu_input
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import BUNDLE, ROOT
+from screento3d_app.live_policy import StaticSbsReuse, same_rgb
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.trt_backend import DepthEngine
 from public_test_media import PublicFrames
 
 

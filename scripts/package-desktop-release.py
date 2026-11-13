@@ -29,20 +29,20 @@ def package(app,output,packs,runtime_packs=None):
     if info.get('upstream_downloads'):
         import sys
         sys.path.insert(0,str(ROOT/'v1'))
-        from depthsbs_app.upstream_check import check
-        upstream=json.loads((app/'v1/depthsbs_app/upstream_sources.json').read_text(encoding='utf-8'))
+        from screento3d_app.upstream_check import check
+        upstream=json.loads((app/'v1/screento3d_app/upstream_sources.json').read_text(encoding='utf-8'))
         upstream_checks=check(upstream['artifacts'],info['upstream_downloads'])
     if model_downloads:
         import sys
         sys.path.insert(0,str(ROOT/'v1'))
-        from depthsbs_app.upstream_check import check
+        from screento3d_app.upstream_check import check
         model_checks=check(model_downloads,model_downloads)
     version=info['product_version'];name=f'ScreenTo3D-{version}'
     if app.name!=name:raise ValueError(f'The portable folder must be named {name}.')
     if output.exists():raise ValueError('Choose a new archive output directory.')
     import sys
     sys.path.insert(0,str(ROOT/'v1'))
-    from depthsbs_app.portable_package import exclusion
+    from screento3d_app.portable_package import exclusion
     files=sorted((p for p in app.rglob('*') if p.is_file() and not exclusion(p.relative_to(app))),
                  key=lambda p:(-p.stat().st_size,p.as_posix()))
     if not files or any(p.is_symlink() or p.stat().st_size>=MAX_ASSET-32*1024**2 for p in files):
@@ -77,7 +77,7 @@ def package(app,output,packs,runtime_packs=None):
         if packs and not info.get('bundled_model_packs'):
             import sys
             sys.path.insert(0,str(ROOT/'v1'))
-            from depthsbs_app.optional_models import PACKS
+            from screento3d_app.optional_models import PACKS
             path=stage/f'{name}-optional-models.zip'
             with ZipFile(path,'w',compression=ZIP_DEFLATED,compresslevel=6) as archive:
                 for key in ('da2-base','vda-small'):
@@ -88,7 +88,7 @@ def package(app,output,packs,runtime_packs=None):
         if info.get('tensorrt_builder_resources')=='GPU-selected pinned sidecar packs':
             import sys
             sys.path.insert(0,str(ROOT/'v1'))
-            from depthsbs_app.builder_resources import PACKS as resources
+            from screento3d_app.builder_resources import PACKS as resources
             runtime_packs=Path(runtime_packs) if runtime_packs else app.parent/'runtime-packs'
             for resource in resources.values():
                 source=runtime_packs/resource['filename']
@@ -102,7 +102,7 @@ def package(app,output,packs,runtime_packs=None):
         if info.get('desktop_components')=='on-demand pinned packs':
             import sys
             sys.path.insert(0,str(ROOT/'v1'))
-            from depthsbs_app.desktop_runtimes import PACKS as components
+            from screento3d_app.desktop_runtimes import PACKS as components
             directory=Path(runtime_packs) if runtime_packs else app.parent/'runtime-packs'
             for item in components.values():
                 source=directory/item['filename']

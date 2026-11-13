@@ -7,7 +7,7 @@ from unittest.mock import patch
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QColor, QIcon, QImage, QPixmap, QWindow
 from PySide6.QtWidgets import QApplication
-from depthsbs_app.window_icons import WindowIcons, window_icon
+from screento3d_app.window_icons import WindowIcons, window_icon
 
 APP = QApplication.instance() or QApplication([])
 
@@ -30,7 +30,7 @@ class WindowIconTests(unittest.TestCase):
     def test_unselected_or_unrelated_request_never_reads_window(self):
         live = SimpleNamespace(items=[dict(kind='window', id=1, pid=2)], selected=-1)
         provider = WindowIcons(live)
-        with patch('depthsbs_app.window_icons.window_icon') as read:
+        with patch('screento3d_app.window_icons.window_icon') as read:
             result = provider.requestImage('1/2', QSize(), QSize())
             self.assertEqual(result.size(), QSize(1, 1))
             live.selected = 0
@@ -42,7 +42,7 @@ class WindowIconTests(unittest.TestCase):
         provider = WindowIcons(live)
         image = QImage(32, 32, QImage.Format_ARGB32)
         image.fill(QColor('blue'))
-        with patch('depthsbs_app.window_icons.window_icon', return_value=image) as read:
+        with patch('screento3d_app.window_icons.window_icon', return_value=image) as read:
             provider.requestImage('1/2', QSize(), QSize())
             provider.requestImage('1/2', QSize(), QSize())
             self.assertEqual(read.call_count, 1)

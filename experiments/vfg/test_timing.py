@@ -7,7 +7,7 @@ from timing import Timeline
 class TimingTests(unittest.TestCase):
     def test_baseline_preserves_future_compositor_timestamp_and_actual_ready(self):
         from native_path import TimedMailbox
-        from depthsbs_app.texture_mailbox import TexturePool, TextureFrame
+        from screento3d_app.texture_mailbox import TexturePool, TextureFrame
         box = TimedMailbox.create(mp.get_context('spawn'))
         box.offer(TexturePool(1,1,123,640,180,0,0,(11,12)),session=1,owned_pid=123)
         box.install(1,1)
@@ -45,7 +45,7 @@ class TimingTests(unittest.TestCase):
 
     def test_future_source_and_midpoint_are_scheduled_without_altering_ready(self):
         from native_path import TimedMailbox
-        from depthsbs_app.texture_mailbox import TexturePool, TextureFrame
+        from screento3d_app.texture_mailbox import TexturePool, TextureFrame
         timeline=Timeline()
         self.assertEqual(timeline.plan(1_000_000_000,999_000_000,True),
                          ((0,1_000_000_000,1_000_000_000,1_000_000_000),))
@@ -65,7 +65,7 @@ class TimingTests(unittest.TestCase):
 
     def test_metadata_rejects_overwrite_without_gpu_release(self):
         from native_path import TimedMailbox
-        from depthsbs_app.texture_mailbox import TexturePool, TextureFrame
+        from screento3d_app.texture_mailbox import TexturePool, TextureFrame
         box = TimedMailbox.create(mp.get_context("spawn"))
         box.offer(TexturePool(1,1,123,640,180,0,0,(11,12)),session=1,owned_pid=123)
         box.install(1,1)

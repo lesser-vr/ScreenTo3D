@@ -16,9 +16,9 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app.flat_background_gpu import FlatBackground, color_bounds
-from depthsbs_app.live_gpu_candidate import DLL_SHA256
-from depthsbs_app.stereo import refine_flat_background, uniform_color_mask
+from screento3d_app.flat_background_gpu import FlatBackground, color_bounds
+from screento3d_app.live_gpu_candidate import DLL_SHA256
+from screento3d_app.stereo import refine_flat_background, uniform_color_mask
 from uniform_background_tc import generated_frames, load_case, verify_asset
 
 

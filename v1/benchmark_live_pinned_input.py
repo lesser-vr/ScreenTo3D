@@ -14,8 +14,8 @@ import numpy as np
 
 from benchmark_live_guide_candidate import frame_set, gpu_snapshot, sha256
 from benchmark_live_guide_rolling_native import BenchmarkTexturePool
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.resources import configure_resource_root
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.resources import configure_resource_root
 
 
 def summarize(values):
@@ -69,12 +69,12 @@ def main():
     runtime_hash = sha256(runtime_path)
     args.output.mkdir(parents=True)
     configure_resource_root(BUNDLE)
-    import depthsbs_app.live_gpu_texture as texture_module
-    from depthsbs_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
-    from depthsbs_app.live_gpu_texture import LiveGpuTexture
-    from depthsbs_app.live_pinned_input import LiveGpuPinnedTexture
-    from depthsbs_app.live_policy import resolve_live
-    from depthsbs_app.trt_backend import DepthEngine
+    import screento3d_app.live_gpu_texture as texture_module
+    from screento3d_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
+    from screento3d_app.live_gpu_texture import LiveGpuTexture
+    from screento3d_app.live_pinned_input import LiveGpuPinnedTexture
+    from screento3d_app.live_policy import resolve_live
+    from screento3d_app.trt_backend import DepthEngine
 
     BenchmarkTexturePool.runtime_path = runtime_path
     BenchmarkTexturePool.runtime_hash = runtime_hash
@@ -99,7 +99,7 @@ def main():
             "runtime_dll": str(runtime_path),
             "runtime_dll_sha256": runtime_hash,
             "candidate_source_sha256": sha256(
-                Path("v1/depthsbs_app/live_pinned_input.py")
+                Path("v1/screento3d_app/live_pinned_input.py")
             ),
         },
         "runs": [],

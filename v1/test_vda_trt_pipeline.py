@@ -7,7 +7,7 @@ import uuid
 from unittest.mock import patch
 import cv2
 import numpy as np
-from depthsbs_app import pipeline
+from screento3d_app import pipeline
 from vda_trt_experiment import ROOT,TensorRTVdaEngine,binding
 
 
@@ -30,8 +30,8 @@ def main():
             np.testing.assert_array_equal(engine.infer(frame),first)
         assert engine.closed and not engine.history and not engine.engines
         report['reset_exact']=True
-        assets=ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal'
-        with patch('depthsbs_app.resources.bundle_root',return_value=assets):
+        assets=ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal'
+        with patch('screento3d_app.resources.bundle_root',return_value=assets):
             metadata=pipeline.probe_video(args.input)
             for kind in ('cancel','failure','success'):
                 job=root/kind; job.mkdir()

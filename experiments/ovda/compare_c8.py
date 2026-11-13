@@ -8,9 +8,9 @@ import cv2
 import numpy as np
 import torch
 from oracle import ROOT, OvdaOracle
-from depthsbs_app import pipeline
-from depthsbs_app.depth_backend import BackendBinding, BackendSpec
-from depthsbs_app.resources import configure_media_tools
+from screento3d_app import pipeline
+from screento3d_app.depth_backend import BackendBinding, BackendSpec
+from screento3d_app.resources import configure_media_tools
 from temporal_diagnostics import TemporalProbe
 from evaluate_depth_models import inspect_media, sha
 
@@ -21,7 +21,7 @@ def main():
     args=parser.parse_args()
     root=ROOT/'out/ovda-c8-quality'/uuid.uuid4().hex;root.mkdir(parents=True)
     print(root,flush=True)
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
     report=dict(passed=False,clips=[],note='c8 PyTorch quality candidate, not TRT or speed comparison')
     cap=cv2.VideoCapture(str(args.original)); frames=[]

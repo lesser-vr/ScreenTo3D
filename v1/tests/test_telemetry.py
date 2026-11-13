@@ -1,5 +1,5 @@
 import unittest
-from depthsbs_app.telemetry import StageMetrics
+from screento3d_app.telemetry import StageMetrics
 
 
 class TelemetryTests(unittest.TestCase):

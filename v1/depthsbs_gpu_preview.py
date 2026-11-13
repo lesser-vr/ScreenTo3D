@@ -1,7 +1,4 @@
-"""Separate, opt-in entry point; never selected by the CPU release."""
-import cuda.pathfinder  # noqa: F401
+"""Compatibility with the former experimental preview entry point."""
+from screento3d_gpu_preview import main
 
-from depthsbs_app.main import main
-
-if __name__ == '__main__':
-    raise SystemExit(main(gpu_preview=True))
+if __name__=='__main__':raise SystemExit(main(gpu_preview=True))

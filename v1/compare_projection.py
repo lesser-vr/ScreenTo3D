@@ -2,7 +2,7 @@ from pathlib import Path
 import time
 import cv2
 import numpy as np
-from depthsbs_app.stereo import project_eye, guide_depth, refine_flat_background
+from screento3d_app.stereo import project_eye, guide_depth, refine_flat_background
 
 root = Path(__file__).resolve().parents[1] / 'out/stereo-ghost-diagnosis'
 sample = np.load(root / 'sample.npz')

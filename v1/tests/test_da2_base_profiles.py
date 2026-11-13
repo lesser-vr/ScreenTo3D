@@ -4,7 +4,7 @@ import numpy as np
 from pathlib import Path
 from unittest.mock import patch
 import tempfile
-from depthsbs_app import da2_base
+from screento3d_app import da2_base
 
 
 class ProfileTests(unittest.TestCase):

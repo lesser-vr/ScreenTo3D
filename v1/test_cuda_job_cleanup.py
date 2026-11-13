@@ -6,9 +6,9 @@ import subprocess
 from unittest.mock import patch
 import uuid
 from cuda_projection_experiment import CudaProjection
-from depthsbs_app import pipeline
-from depthsbs_app.local_projection import checked_dll
-from depthsbs_app.trt_backend import DepthEngine, _cuda, cudart
+from screento3d_app import pipeline
+from screento3d_app.local_projection import checked_dll
+from screento3d_app.trt_backend import DepthEngine, _cuda, cudart
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
     observations = []
     original_popen = subprocess.Popen
     original_infer = DepthEngine.infer
-    with patch('depthsbs_app.resources.bundle_root', return_value=repo / 'out/release/DepthSBS/_internal'):
+    with patch('screento3d_app.resources.bundle_root', return_value=repo / 'out/release/ScreenTo3D/_internal'):
         for cycle in range(3):
             for scenario in ('success', 'cancel', 'projection_error', 'inference_error', 'create_error', 'close_error'):
                 output = root / f'{cycle}-{scenario}.mp4'

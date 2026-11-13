@@ -63,7 +63,7 @@ def main():
     if args.output.exists():
         raise ValueError("Fresh output directory required")
     config = root / "tmp/iw3-desktop.cfg"
-    report = {"schema": "depthsbs.iw3-baseline-snapshot.v1",
+    report = {"schema": "screento3d.iw3-baseline-snapshot.v1",
               "captured_utc": datetime.now(timezone.utc).isoformat(),
               "scope": "Saved settings and installed artifact inventory only. No active profile, "
                        "runtime rates, output geometry, FG or HMD verification. Network, auth, "

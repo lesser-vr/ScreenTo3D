@@ -2,7 +2,7 @@ import ctypes as ct
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock
-from depthsbs_app.gpu_usage import NvmlUsage,UsageSampler,Utilization,usage_text
+from screento3d_app.gpu_usage import NvmlUsage,UsageSampler,Utilization,usage_text
 
 
 class GpuUsageTests(unittest.TestCase):

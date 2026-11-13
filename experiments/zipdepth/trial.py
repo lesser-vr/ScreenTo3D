@@ -5,8 +5,8 @@ from runtime import ARTIFACTS, Engine, check_plan, rect
 
 @contextmanager
 def installed():
-    from depthsbs_app import config, live_backend, live_model, live_preview, desktop
-    from depthsbs_app.depth_backend import BackendBinding, BackendSpec
+    from screento3d_app import config, live_backend, live_model, live_preview, desktop
+    from screento3d_app.depth_backend import BackendBinding, BackendSpec
     old_choices = config.MODE_MODEL_CHOICES['performance']
     old_default = config.DEFAULT_MODE_MODELS['performance']
     old_binding, old_native, old_create = live_backend.binding, live_preview.NATIVE_MODELS, desktop.create_app
@@ -44,6 +44,6 @@ def installed():
         live_backend.binding,live_preview.NATIVE_MODELS,desktop.create_app = old_binding,old_native,old_create
 
 def worker(*args,**kwargs):
-    from depthsbs_app.live_sbs import sbs_worker
+    from screento3d_app.live_sbs import sbs_worker
     with installed():
         return sbs_worker(*args,**kwargs)

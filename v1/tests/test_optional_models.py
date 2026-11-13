@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 from zipfile import ZipFile
 
-from depthsbs_app import optional_models as models
+from screento3d_app import optional_models as models
 
 
 class OptionalInstallTests(unittest.TestCase):
@@ -49,11 +49,11 @@ class OptionalInstallTests(unittest.TestCase):
         self.assertEqual(list(self.target.parent.iterdir()), [])
 
     def test_device_cache_is_separate_and_reusable(self):
-        with patch('depthsbs_app.engine_cache.device_identity', return_value={'uuid': 'device-a'}):
+        with patch('screento3d_app.engine_cache.device_identity', return_value={'uuid': 'device-a'}):
             path = models.installed_path('da2-base')
-        with patch('depthsbs_app.engine_cache.device_identity', return_value={'uuid': 'device-b'}):
+        with patch('screento3d_app.engine_cache.device_identity', return_value={'uuid': 'device-b'}):
             self.assertNotEqual(models.installed_path('da2-base'), path)
-        with patch('depthsbs_app.engine_cache.device_identity', return_value={'uuid': 'device-a'}):
+        with patch('screento3d_app.engine_cache.device_identity', return_value={'uuid': 'device-a'}):
             self.assertEqual(models.installed_path('da2-base'), path)
 
     def test_public_default_and_distributor_override_keep_the_same_hash_identity(self):
@@ -76,8 +76,8 @@ class OptionalInstallTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == 'nt', 'Windows user-bound receipt')
     def test_vda_fp32_and_mixed_receipts_are_revision_specific(self):
-        from depthsbs_app import engine_cache
-        from depthsbs_app.vda_artifacts import artifact_profiles, uses_mixed_fp16
+        from screento3d_app import engine_cache
+        from screento3d_app.vda_artifacts import artifact_profiles, uses_mixed_fp16
         device = {'uuid': 'gpu-a'}
         with patch.dict(os.environ, LOCALAPPDATA=str(self.root)), patch.object(engine_cache, 'device_identity', return_value=device):
             for source, suffix in ((models.PACKS['vda-small'].sha, 'fp16'), (engine_cache.VDA_FP32_PACK, 'fp32')):
@@ -102,8 +102,8 @@ class OptionalInstallTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == 'nt', 'Windows user-bound receipt')
     def test_local_plan_rejects_modified_bytes_receipt_and_foreign_device(self):
-        from depthsbs_app import engine_cache
-        from depthsbs_app.da2_base import checked_plan
+        from screento3d_app import engine_cache
+        from screento3d_app.da2_base import checked_plan
         device = {'uuid': 'gpu-a'}
         with patch.dict(os.environ, LOCALAPPDATA=str(self.root)), patch.object(engine_cache, 'device_identity', return_value=device):
             root = models.installed_path('da2-base')

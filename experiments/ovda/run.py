@@ -10,12 +10,12 @@ def main():
     parser.add_argument('--input',required=True,type=Path)
     parser.add_argument('--output',required=True,type=Path)
     args=parser.parse_args()
-    from depthsbs_app import pipeline
-    from depthsbs_app.resources import configure_media_tools
-    from depthsbs_app.depth_backend import BackendSpec,BackendBinding
+    from screento3d_app import pipeline
+    from screento3d_app.resources import configure_media_tools
+    from screento3d_app.depth_backend import BackendSpec,BackendBinding
     from vda_comparison import BoundedEngine,validate_metadata
     from trt_engine import OvdaTrt
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     meta=pipeline.probe_video(args.input)
     validate_metadata(meta,124)
     if not meta['total_frames'] or abs(meta['width']/meta['height']-16/9)>.001:

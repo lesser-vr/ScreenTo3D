@@ -10,14 +10,14 @@ import pstats
 import cv2
 import numpy as np
 import torch
-from depthsbs_app import ovda
-from depthsbs_app.desktop_jobs import ROOT,BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.live_model import model_adapter
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.stereo import refine_flat_background
+from screento3d_app import ovda
+from screento3d_app.desktop_jobs import ROOT,BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.live_model import model_adapter
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.stereo import refine_flat_background
 
 
 def main():
@@ -34,7 +34,7 @@ def main():
             border=np.concatenate((rgb[0],rgb[-1],rgb[:,0],rgb[:,-1]))
             color=np.median(border,axis=0).astype(np.float32)
             uniform=float(np.mean(np.max(np.abs(border.astype(np.float32)-color),axis=1)<=.04*255))
-            from depthsbs_app.stereo import uniform_color_mask
+            from screento3d_app.stereo import uniform_color_mask
             coverage=float(uniform_color_mask(rgb,color,.04).mean())
             post=LiveSourceGpuTexture(w,h,replace(policy,flat_background_refinement=False),engine,diagnostic=True)
             snapshots=[];refinements=0

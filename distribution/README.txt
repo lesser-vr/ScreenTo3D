@@ -1,4 +1,4 @@
-DepthSBS v1 Release Candidate
+ScreenTo3D v1 Release Candidate
 =============================
 
 Requirements
@@ -15,11 +15,11 @@ Required application runtime files are included in this portable directory.
 Usage
 -----
 
-Run DepthSBS.exe, select an input video, select an MP4 output path and mode,
+Run ScreenTo3D.exe, select an input video, select an MP4 output path and mode,
 then press Convert. The first run can take tens of seconds while an optimized
 engine is built for the installed GPU. Later runs reuse the engine in:
 
-  %LOCALAPPDATA%\DepthSBS\engines
+  %LOCALAPPDATA%\ScreenTo3D\engines
 
 The output is full side-by-side H.264 MP4 with AAC audio when the source has an
 audio stream.

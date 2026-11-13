@@ -12,11 +12,11 @@ import torch
 
 from check_depth_range import configure, allocate, post
 from check_stereo_geometry_gpu import load
-from depthsbs_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
-from depthsbs_app.motion_history import MotionHistory, DLL_SHA256 as MOTION_HASH
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_scene_history import LiveSceneHistory
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
+from screento3d_app.motion_history import MotionHistory, DLL_SHA256 as MOTION_HASH
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_scene_history import LiveSceneHistory
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
 from public_test_media import PublicFrames, SOURCES, ATTRIBUTION
 
 
@@ -191,16 +191,16 @@ def main():
             runtime = Path("C:/TensorRT/TensorRT-11.2.1.2/bin")
             stack.enter_context(os.add_dll_directory(str(runtime)))
             if args.model == "base":
-                from depthsbs_app.da2_base import binding
+                from screento3d_app.da2_base import binding
 
                 backend = binding(ROOT / "out/da2-base-local", runtime)
                 backend.input_validator(dict(width=1920, height=1080))
                 engine = stack.enter_context(backend.engine_factory(None))
                 stream = engine.stream
             else:
-                from depthsbs_app.resources import configure_resource_root
-                from depthsbs_app.small_gpu_input import SmallGpuCaptureEngine
-                from depthsbs_app.pipeline import preprocess
+                from screento3d_app.resources import configure_resource_root
+                from screento3d_app.small_gpu_input import SmallGpuCaptureEngine
+                from screento3d_app.pipeline import preprocess
 
                 configure_resource_root(BUNDLE)
                 engine = stack.enter_context(SmallGpuCaptureEngine())

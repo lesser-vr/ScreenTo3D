@@ -154,7 +154,7 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     source = load_frames(args.input)
     height, width = source[0].shape[:2]
-    from depthsbs_app.live_policy import resolve_live
+    from screento3d_app.live_policy import resolve_live
 
     policy = resolve_live("video-quality")
     flags = reset_flags(source, policy.scene_cut_threshold)

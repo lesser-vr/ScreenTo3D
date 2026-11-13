@@ -71,8 +71,8 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     from PySide6.QtCore import QObject, QPointF, Qt
     from PySide6.QtTest import QTest
-    from depthsbs_app.desktop import create_app
-    from depthsbs_app.desktop_preferences import DesktopPreferences
+    from screento3d_app.desktop import create_app
+    from screento3d_app.desktop_preferences import DesktopPreferences
     from PySide6.QtCore import QSettings
     import shiboken6
 
@@ -96,7 +96,7 @@ def main():
     if args.vfg:
         live.setVfg(True)
         assert live.vfgEnabled
-    import depthsbs_app.desktop as desktop_module
+    import screento3d_app.desktop as desktop_module
     results = dict(app_module=desktop_module.__file__, mode=args.mode, layout=args.layout)
     errors = []
     live.errorOccurred.connect(errors.append)
@@ -137,7 +137,7 @@ def main():
         wait(lambda: count() >= 3 or not live.active)
         assert live.active and not live.stopping and count() >= 3, live.status
         assert live.output_window.isVisible()
-        from depthsbs_app.stereo_layout import dimensions
+        from screento3d_app.stereo_layout import dimensions
         assert (live.meta[2], live.meta[3]) == dimensions(source["width"], source["height"], args.layout), live.meta
         if live.nativeEnabled:
             assert (live.native.pool.width, live.native.pool.height) == (live.meta[2], live.meta[3])
@@ -170,7 +170,7 @@ def main():
             geometry = output.geometry()
             failed_session = live.session
             # Missing/corrupt optional runtime must leave the old stream intact.
-            with patch('depthsbs_app.vfg_runtime.validate_runtime', side_effect=RuntimeError('Injected missing VFG runtime')):
+            with patch('screento3d_app.vfg_runtime.validate_runtime', side_effect=RuntimeError('Injected missing VFG runtime')):
                 live.setVfg(True)
             assert live.active and not live.stopping and not live.vfgSwitching
             assert live.session == failed_session and output.isVisible()
@@ -334,7 +334,7 @@ def main():
         live.output_window.showNormal(); pump(.3)
         import ctypes as C
         from ctypes import wintypes as W
-        from depthsbs_app.capture_sources import user32
+        from screento3d_app.capture_sources import user32
         user32.GetWindowDisplayAffinity.argtypes = [W.HWND, C.POINTER(W.DWORD)]
         affinity = W.DWORD()
         assert user32.GetWindowDisplayAffinity(int(live.output_window.winId()), C.byref(affinity))

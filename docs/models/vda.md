@@ -28,7 +28,7 @@ The current portable includes the VDA Small streaming integration.
 Live VDA Small window capture uses the WGC/D3D11 CUDA bridge and a pinned
 float32 cubic preprocessing kernel on the TensorRT stream. The same aspect-fit
 rectangle drives CPU and GPU processing. Monitor capture and file conversion use
-CPU preprocessing; `DEPTHSBS_GPU_CAPTURE=0` selects the mapped window path for
+CPU preprocessing; `SCREENTO3D_GPU_CAPTURE=0` selects the mapped window path for
 diagnostic comparisons. The installed VDA model serves both paths.
 
 ## Current compatibility limits

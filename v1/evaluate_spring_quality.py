@@ -17,9 +17,9 @@ import numpy as np
 import torch
 
 from evaluate_sbs_quality import open_session,Session,MODES
-from depthsbs_app.desktop_jobs import ROOT,BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.spring_quality import fit_affine,align,spatial_error,temporal_geometry,temporal_error,error_metrics
+from screento3d_app.desktop_jobs import ROOT,BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.spring_quality import fit_affine,align,spatial_error,temporal_geometry,temporal_error,error_metrics
 
 TRACKS=('model_depth','app_disparity')
 CONTRACT=dict(warmup=[1,32],calibration=[33,48],evaluation=[49,80],source_size=[1920,1080],
@@ -111,7 +111,7 @@ def model_identity(model,owner,policy,backend,post):
     telemetry=owner.telemetry()
     artifacts={k:v for k,v in telemetry.items() if k in ('model_id','runtime','input_shape','plan_hashes','plan_sha256','model_sha256')}
     if model=='da2-small':
-        from depthsbs_app.trt_backend import _engine_path,_model_path,INPUT_SHAPE
+        from screento3d_app.trt_backend import _engine_path,_model_path,INPUT_SHAPE
         artifacts=dict(input_shape=list(INPUT_SHAPE),model_sha256=hashlib.sha256(_model_path().read_bytes()).hexdigest(),
             plan_sha256=hashlib.sha256(_engine_path().read_bytes()).hexdigest())
     return dict(policy=asdict(policy),runtime=backend.spec.runtime,artifacts=artifacts,

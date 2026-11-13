@@ -11,8 +11,8 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app import pipeline
-from depthsbs_app.depth_backend import BackendBinding
+from screento3d_app import pipeline
+from screento3d_app.depth_backend import BackendBinding
 from vda_streaming_experiment import ROOT, VdaStreamingEngine, binding
 
 
@@ -70,8 +70,8 @@ def main():
         assert len({s['unique_cache_bytes'] for s in report['samples'][4:]}) == 1
         print(f'PASS: {count} original-size frames, cache and allocated-memory checks', flush=True)
 
-        assets = ROOT / 'out/gpu-preview/DepthSBS-GPU-Preview/_internal'
-        with patch('depthsbs_app.resources.bundle_root', return_value=assets):
+        assets = ROOT / 'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal'
+        with patch('screento3d_app.resources.bundle_root', return_value=assets):
             for kind in ('cancel', 'inference_failure', 'success'):
                 job = root / kind
                 job.mkdir()

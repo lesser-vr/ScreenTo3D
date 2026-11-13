@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock,patch
 import numpy as np
-from depthsbs_app.file_interpolation import DoubleRate
-from depthsbs_app import pipeline
+from screento3d_app.file_interpolation import DoubleRate
+from screento3d_app import pipeline
 
 
 class FileInterpolationTests(unittest.TestCase):

@@ -6,10 +6,10 @@ from pathlib import Path
 
 import numpy as np
 
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.live_gpu_candidate import LiveGpuCandidate
-from depthsbs_app.live_policy import resolve_live
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.live_gpu_candidate import LiveGpuCandidate
+from screento3d_app.live_policy import resolve_live
 from public_test_media import PublicFrames, SOURCES
 from texture_projection_oracle import (
     TextureProjectionOracle,
@@ -26,7 +26,7 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     configure_resource_root(BUNDLE)
-    from depthsbs_app.trt_backend import DepthEngine
+    from screento3d_app.trt_backend import DepthEngine
 
     synthetic = []
     for index in range(6):

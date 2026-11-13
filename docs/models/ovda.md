@@ -93,7 +93,7 @@ It also uses the existing trusted GPU-capture and Base input thumbnail binaries.
 This kernel remains outside portable bundles. Missing/corrupt input binaries
 fail visibly; there is no automatic CPU fallback. File conversion, explicit host
 reference output and default monitor input retain CPU preprocessing. The shared
-diagnostic `DEPTHSBS_GPU_CAPTURE=0` explicitly selects the original live input path.
+diagnostic `SCREENTO3D_GPU_CAPTURE=0` explicitly selects the original live input path.
 
 The current workspace is prepared. These files are not included in Git/old
 portable builds; copying just the launcher is insufficient on another computer.
@@ -127,7 +127,7 @@ hashes, builds and results are in the
    the package set using upstream requirements.
 2. App dependencies in the existing `out/v1-python-deps` path; the optional
    NC runtime source and license in `experiments/ovda` remain required.
-3. FFmpeg/FFprobe at `out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg`.
+3. FFmpeg/FFprobe at `out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg`.
    CUDA stereo additionally uses the checksum-validated local preview
    `_internal/projection/projection.dll`. CPU selection does not require this DLL.
 4. Trusted validated `model.plan` at `out/ovda-local/518x924-fp16/model.plan`,
@@ -164,7 +164,7 @@ The mixed-FP16 candidate intentionally uses the separate numerical quality
 contract in the [resolution/precision evidence](../evidence/ovda-resolution-fp16-20261109.md),
 not a claim of strict FP32 parity. Inspect the respective build/validation reports.
 Different regenerated hashes require explicit
-validation and an allowlist update in `v1/depthsbs_app/ovda.py`, not trust in an
+validation and an allowlist update in `v1/screento3d_app/ovda.py`, not trust in an
 arbitrary engine manifest. See the user integration execution plan for evidence.
 
 For another GPU, build and validate on that device before extending its loader

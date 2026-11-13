@@ -5,8 +5,8 @@ import json
 import time
 from pathlib import Path
 
-from depthsbs_app.desktop import create_app
-from depthsbs_app.desktop_preferences import DesktopPreferences
+from screento3d_app.desktop import create_app
+from screento3d_app.desktop_preferences import DesktopPreferences
 from PySide6.QtCore import QObject, QPointF, Qt, QSettings
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtTest import QTest

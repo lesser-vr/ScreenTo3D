@@ -3,9 +3,9 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from depthsbs_app.motion_history import MotionHistory, LAYOUTS
-from depthsbs_app.stereo_stability import DepthRangeClock
-from depthsbs_app.live_gpu_candidate import LiveGpuCandidate
+from screento3d_app.motion_history import MotionHistory, LAYOUTS
+from screento3d_app.stereo_stability import DepthRangeClock
+from screento3d_app.live_gpu_candidate import LiveGpuCandidate
 
 
 class MotionHistoryTests(unittest.TestCase):
@@ -23,7 +23,7 @@ class MotionHistoryTests(unittest.TestCase):
         return session
 
     def test_untrusted_layout_or_dll_never_loads_native_code(self):
-        with patch("depthsbs_app.motion_history.ct.CDLL") as load:
+        with patch("screento3d_app.motion_history.ct.CDLL") as load:
             with self.assertRaises(ValueError):
                 MotionHistory(32, 32, 1, "unknown")
             with patch("pathlib.Path.read_bytes", return_value=b"changed"):

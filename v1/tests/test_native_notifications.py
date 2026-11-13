@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QObject
-from depthsbs_app import live_preview
-from depthsbs_app.capture_mailbox import ACK, HEIGHT, RECEIVED, RUNNING, SEQ, STATE, WIDTH
+from screento3d_app import live_preview
+from screento3d_app.capture_mailbox import ACK, HEIGHT, RECEIVED, RUNNING, SEQ, STATE, WIDTH
 
 
 class NativeNotifications(unittest.TestCase):

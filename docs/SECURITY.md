@@ -59,9 +59,12 @@ allows external capture of its owned SBS output, so the display compositor can
 include it. Other applications can capture that output too; this is not an Owl3D
 process allowlist. Main/tools/errors remain excluded. Only original window input
 is supported by the trial; monitor capture is rejected. Output windows carry a
-process-owned Win32 property and are excluded from DepthSBS source enumeration
+process-owned Win32 properties and are excluded from ScreenTo3D source enumeration
 and rejected again during source validation across processes, without title-based
-identity or a separate-monitor requirement. The marker is a recursion guard, not
+identity or a separate-monitor requirement. New outputs carry current,
+interim-name and legacy markers; source validation recognizes any of them,
+including across versions.
+The marker is a recursion guard, not
 an OS security boundary or a guarantee against third-party capture relay chains.
 The experiment changes only its own output affinity, verifies it by readback,
 and stops visibly on failure. It never clears protection on another app's window.

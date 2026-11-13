@@ -3,9 +3,9 @@ import os
 import unittest
 from unittest.mock import Mock, patch
 
-from depthsbs_app.native_delivery import NativeDelivery
-from depthsbs_app.presentation_policy import PresentationCadence
-from depthsbs_app.texture_mailbox import (
+from screento3d_app.native_delivery import NativeDelivery
+from screento3d_app.presentation_policy import PresentationCadence
+from screento3d_app.texture_mailbox import (
     TextureMailbox,
     TexturePool,
     TextureFrame,
@@ -139,13 +139,13 @@ class NativeProtocolTests(unittest.TestCase):
         self.box.publish(first)
         self.box.publish(second)
         c = PresentationCadence(30)
-        with patch('depthsbs_app.native_delivery.time.perf_counter_ns', return_value=100):
+        with patch('screento3d_app.native_delivery.time.perf_counter_ns', return_value=100):
             self.consumer.consume(self.box, os.getpid(), cadence=c)
             self.assertEqual(self.consumer.last_sequence, 1)
             self.consumer.consume(self.box, os.getpid(), cadence=c)
             self.assertEqual(self.consumer.dll.native_publish.call_count, 1)
         deadline = c.next_ns
-        with patch('depthsbs_app.native_delivery.time.perf_counter_ns', return_value=deadline):
+        with patch('screento3d_app.native_delivery.time.perf_counter_ns', return_value=deadline):
             self.consumer.consume(self.box, os.getpid(), cadence=c)
         self.assertEqual(self.consumer.last_sequence, 2)
         self.assertEqual(self.box.pending(1, 1), (second,))
@@ -170,7 +170,7 @@ class NativeProtocolTests(unittest.TestCase):
         for slot in range(2):
             self.box.publish(TextureFrame(1, 1, slot, slot + 1, 0, 0))
         c = PresentationCadence()
-        with patch('depthsbs_app.native_delivery.time.perf_counter_ns', return_value=100):
+        with patch('screento3d_app.native_delivery.time.perf_counter_ns', return_value=100):
             self.consumer.consume(self.box, os.getpid(), cadence=c)
         self.assertEqual(self.consumer.dll.native_publish.call_count, 2)
         self.assertTrue(c.ready(100))

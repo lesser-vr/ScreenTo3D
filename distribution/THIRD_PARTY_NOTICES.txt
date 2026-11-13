@@ -1,4 +1,4 @@
-DepthSBS Third-Party Notices
+ScreenTo3D Third-Party Notices
 ============================
 
 Depth Anything V2 Small

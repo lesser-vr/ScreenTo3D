@@ -1,6 +1,6 @@
 # Cache update derived from oVDA, Copyright (c) 2026 Heidelberg University.
 # Licensed under NC-SA-UHDV1.0; see LICENSE in this directory.
-# DepthSBS modifications: bounded one-frame adapter, validation, lifecycle/telemetry.
+# ScreenTo3D modifications: bounded one-frame adapter, validation, lifecycle/telemetry.
 """Pinned personal non-commercial CUDA FP32 oracle; never an automatic fallback."""
 import hashlib
 import importlib.util

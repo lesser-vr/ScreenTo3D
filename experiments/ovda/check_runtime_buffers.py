@@ -6,7 +6,7 @@ from pathlib import Path
 import threading
 import cv2
 import torch
-from depthsbs_app.gpu_frame import GpuFrame
+from screento3d_app.gpu_frame import GpuFrame
 from public_test_media import CORPUS
 from trial_runtime import create_engine, selected, RUNTIME
 from runtime_trial import reference_class

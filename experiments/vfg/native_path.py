@@ -9,11 +9,11 @@ import threading
 import time
 from unittest.mock import patch
 
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.live_source_gpu_candidate import LiveSourceGpuCandidate
-from depthsbs_app.live_texture_pool import LiveTexturePool
-from depthsbs_app.native_delivery import NativeDelivery
-from depthsbs_app.texture_mailbox import TextureMailbox, TextureFrame, RETIRING
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.live_source_gpu_candidate import LiveSourceGpuCandidate
+from screento3d_app.live_texture_pool import LiveTexturePool
+from screento3d_app.native_delivery import NativeDelivery
+from screento3d_app.texture_mailbox import TextureMailbox, TextureFrame, RETIRING
 from run_probe import PINS, SDK
 from timing import Timeline
 
@@ -215,6 +215,8 @@ def vfg_renderer(model):
     raise ValueError('Unsupported VFG depth model')
 
 
+from screento3d_app.environment import get as app_env, required as app_env_required
+
 class Producer:
     def __init__(self, mailbox, output):
         self.mailbox, self.output = mailbox, output
@@ -242,7 +244,7 @@ class Producer:
     def publish(self, frame):
         r = self.renderer
         began = time.perf_counter_ns()
-        test_cut = int(os.environ.get("DEPTHSBS_VFG_TEST_CUT_EVERY", "0"))
+        test_cut = int(app_env("SCREENTO3D_VFG_TEST_CUT_EVERY", "0"))
         if test_cut and frame.sequence % test_cut == 0:
             r.valid = False
         if not r.valid and len(self.cut_bases) < 10000:
@@ -273,7 +275,7 @@ class Producer:
 
 def worker(*args, **kwargs):
     global CTX
-    from depthsbs_app import live_sbs, live_model
+    from screento3d_app import live_sbs, live_model
     model = kwargs.get("backend_snapshot", {}).get("model")
     if (len(args) < 9 or not isinstance(args[7], TimedMailbox)
             or model not in SUPPORTED_MODELS
@@ -300,7 +302,7 @@ def worker(*args, **kwargs):
         with patch.dict(live_model._MODELS, {model: adapter}), patch.object(live_sbs, "reset_reason", reset_reason):
             live_sbs.sbs_worker(*args, **kwargs)
     finally:
-        path = Path(os.environ["DEPTHSBS_VFG_EVIDENCE"])
+        path = Path(app_env_required('SCREENTO3D_VFG_EVIDENCE'))
         (path / f"worker-{os.getpid()}.json").write_text(json.dumps(dict(
             model=model, generated=CTX.generated, original=CTX.original, resets=CTX.resets,
             created=CTX.created, closed=CTX.closed, vfg_wall_ms=CTX.vfg_ms,
@@ -358,7 +360,7 @@ class TimedDelivery(NativeDelivery):
 
 def install(enabled=True):
     """Call in the parent before starting the experimental session."""
-    from depthsbs_app import texture_mailbox, native_delivery, live_sbs
+    from screento3d_app import texture_mailbox, native_delivery, live_sbs
     texture_mailbox.TextureMailbox = TimedMailbox
     native_delivery.NativeDelivery = TimedDelivery
     if enabled:

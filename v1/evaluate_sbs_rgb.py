@@ -19,11 +19,11 @@ import torch
 
 from evaluate_sbs_quality import open_session,Session,MODES
 from evaluate_spring_quality import model_identity
-from depthsbs_app.desktop_jobs import ROOT,BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.spring_quality import fit_affine
-from depthsbs_app.sbs_rgb_quality import rgb_metrics,restored_eyes,reference_eyes
-from depthsbs_app.live_texture_pool import LiveTexturePool
+from screento3d_app.desktop_jobs import ROOT,BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.spring_quality import fit_affine
+from screento3d_app.sbs_rgb_quality import rgb_metrics,restored_eyes,reference_eyes
+from screento3d_app.live_texture_pool import LiveTexturePool
 from sbs_rgb_fixture import WIDTH,HEIGHT,BASELINE,CONVERGENCE_Z,SCENES
 
 LAYOUTS=('full-sbs','half-tb')
@@ -154,8 +154,8 @@ def run_model_scene(model,scene,root,metrics,stack,backend,owner,post,policy,hal
 
 def oracle_scene(root,scene,metrics,output):
     from check_stereo_geometry_gpu import load,context,check_cuda
-    from depthsbs_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
-    from depthsbs_app.portable_cuda import binary
+    from screento3d_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
+    from screento3d_app.portable_cuda import binary
     path,pin=binary(DLL_PATH,DLL_SHA256);dll=load(path,pin)
     dll.live_set_detail.argtypes=[ct.c_void_p,ct.c_int]
     dll.live_set_subpixel.argtypes=[ct.c_void_p,ct.c_int]

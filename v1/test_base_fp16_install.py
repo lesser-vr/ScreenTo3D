@@ -7,7 +7,7 @@ import sys
 
 import cv2
 
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
 from public_test_media import CORPUS, prepare
 
 
@@ -24,7 +24,7 @@ def main():
             source, target = args.output / f'{width}-input.mp4', args.output / f'{width}-sbs.mp4'
             subprocess.run([str(ffmpeg), '-v', 'error', '-i', str(CORPUS / 'FloorballGame.mp4'),
                 '-frames:v', '8', '-vf', f'scale={width}:{height}', '-an', str(source)], check=True, creationflags=subprocess.CREATE_NO_WINDOW)
-            result = subprocess.run([sys.executable, '-m', 'depthsbs_app.main', '--worker',
+            result = subprocess.run([sys.executable, '-m', 'screento3d_app.main', '--worker',
                 '--input', str(source), '--output', str(target), '--mode', 'balanced', '--depth-backend', 'da2-base',
                 '--da2-base-engine-dir', str(ROOT / 'out/da2-base-local'), '--runtime-dir', 'C:/TensorRT/TensorRT-11.2.1.2/bin',
                 '--media-tools', str(BUNDLE / 'ffmpeg'), '--output-codec', codec], capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)

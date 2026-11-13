@@ -1,7 +1,7 @@
 """Explicit benchmark-only cadence candidates; never imported by application launch."""
 import os
 
-from depthsbs_app.presentation_policy import PresentationCadence
+from screento3d_app.presentation_policy import PresentationCadence
 
 
 class PhaseCadence(PresentationCadence):
@@ -65,13 +65,15 @@ def polling_wakeup_type():
     return PollingWakeup
 
 
+from screento3d_app.environment import get as app_env, required as app_env_required
+
 def worker(*args, **kwargs):
-    from depthsbs_app import presentation_policy
-    presentation_policy.WorkCadence = WORK[os.environ['DEPTHSBS_PACING_CANDIDATE']]
-    if os.environ.get('DEPTHSBS_PACING_TRACE') == '1':
+    from screento3d_app import presentation_policy
+    presentation_policy.WorkCadence = WORK[app_env_required('SCREENTO3D_PACING_CANDIDATE')]
+    if app_env('SCREENTO3D_PACING_TRACE') == '1':
         from pacing_probe import worker as target
-    elif os.environ['DEPTHSBS_PACING_MODEL'] == 'zipdepth':
+    elif app_env_required('SCREENTO3D_PACING_MODEL') == 'zipdepth':
         from trial import worker as target
     else:
-        from depthsbs_app.live_sbs import sbs_worker as target
+        from screento3d_app.live_sbs import sbs_worker as target
     return target(*args, **kwargs)

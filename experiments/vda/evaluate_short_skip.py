@@ -18,15 +18,15 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_sbs import reset_reason
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.optional_models import installed_path
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.vda_artifacts import artifact_profiles,select_artifact
-from depthsbs_app.vda_device import VdaDeviceEngine
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_sbs import reset_reason
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.optional_models import installed_path
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.vda_artifacts import artifact_profiles,select_artifact
+from screento3d_app.vda_device import VdaDeviceEngine
 from public_test_media import CORPUS,SOURCES
 from uniform_background_tc import load_case,verify_asset
 

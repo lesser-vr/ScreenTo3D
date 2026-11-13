@@ -10,7 +10,7 @@ import torch
 
 from check_stereo_geometry_gpu import load,context,check_cuda
 from check_stereo_stability_gpu import project
-from depthsbs_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
+from screento3d_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
 
 
 def main():

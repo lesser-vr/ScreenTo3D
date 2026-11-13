@@ -71,9 +71,9 @@ def main():
         baseline = ROOT/'out/p1-distill-small-20260909/da2-small-fp32.plan'
         assert digest(baseline) == BASE_HASH
         from moge.model.v2 import MoGeModel
-        from depthsbs_app.pipeline import StereoSynthesizer
-        from depthsbs_app.live_policy import resolve_live
-        from depthsbs_app.live_projection import LiveProjection
+        from screento3d_app.pipeline import StereoSynthesizer
+        from screento3d_app.live_policy import resolve_live
+        from screento3d_app.live_projection import LiveProjection
         torch.set_num_threads(1)
         torch.backends.cuda.matmul.allow_tf32 = False
         torch.backends.cudnn.allow_tf32 = False
@@ -89,7 +89,7 @@ def main():
         if args.motion:
             variants = {'moge-fp16-1200': (1200, True)}
             from distill_gpu_motion import Encoder
-            from depthsbs_app.desktop_jobs import BUNDLE
+            from screento3d_app.desktop_jobs import BUNDLE
             ffmpeg, ffprobe = BUNDLE/'ffmpeg/ffmpeg.exe', BUNDLE/'ffmpeg/ffprobe.exe'
             report['motion_contract'] = ('60 Hz source/output timestamps, every frame inferred; '
                 'offline host normalization/guidance plus paired CUDA projection, not the '

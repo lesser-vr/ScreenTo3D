@@ -2,7 +2,7 @@
 import json
 import time
 import numpy as np
-from depthsbs_app.stereo import guide_depth, refine_flat_background, project_eye
+from screento3d_app.stereo import guide_depth, refine_flat_background, project_eye
 
 
 def main():

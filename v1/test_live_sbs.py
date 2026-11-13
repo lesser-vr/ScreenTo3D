@@ -12,7 +12,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtGui import QImage, QWindow
 
 from benchmark_live_modes import ClockOracle
-from depthsbs_app.desktop import create_app
+from screento3d_app.desktop import create_app
 
 
 def main():

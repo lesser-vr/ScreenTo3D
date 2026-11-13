@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
-PREVIEW = Path('out/gpu-preview/DepthSBS-GPU-Preview')
+PREVIEW = Path('out/gpu-preview/ScreenTo3D-GPU-Preview')
 PYTHON_SHA = '91d828c2da3a029b41699e918674a0cb379c02cf20dab9c501306885f837402a'
 
 
@@ -25,7 +25,7 @@ def copy(src, dst, *, package_root=None, excluded=None):
     dst.parent.mkdir(parents=True, exist_ok=True)
     if src.is_dir():
         def ignore(directory,names):
-            from depthsbs_app.portable_package import exclusion
+            from screento3d_app.portable_package import exclusion
             rejected=[]
             for name in names:
                 source=Path(directory)/name
@@ -47,7 +47,7 @@ CUDA_RUNTIME_SHA='352ba4ebe61e9a3b171f357a3daf5dd15b6af4a9857673ff893bd6fd2964c0
 
 
 def bundle_model_packs(stage,source=None):
-    from depthsbs_app.optional_models import PACKS
+    from screento3d_app.optional_models import PACKS
     source=Path(source) if source else ROOT/'out/desktop-distribution/packs'
     selected={key:PACKS[key] for key in ('da2-base','vda-small')}
     for pack in selected.values():
@@ -59,7 +59,7 @@ def bundle_model_packs(stage,source=None):
 
 
 def model_distribution(stage,origin=None,bundled=False,source=None):
-    from depthsbs_app.optional_models import MODEL_ORIGIN,model_downloads
+    from screento3d_app.optional_models import MODEL_ORIGIN,model_downloads
     downloads=model_downloads(origin if origin is not None else MODEL_ORIGIN)
     base=downloads['da2-base']['url'].rsplit('/',1)[0]
     (stage/'model-origin.txt').write_text(base+'\n',encoding='utf-8')
@@ -69,12 +69,12 @@ def model_distribution(stage,origin=None,bundled=False,source=None):
 
 def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None,bundled_components=False,export_runtime_packs=False,bundled_models=False):
     sys.path.insert(0, str(ROOT/'v1'))
-    from depthsbs_app.portable_cuda import PINS
-    from depthsbs_app import __version__
-    from depthsbs_app.portable_package import validate_qt_source,QT_PROFILE,runtime_exclusion
+    from screento3d_app.portable_cuda import PINS
+    from screento3d_app import __version__
+    from screento3d_app.portable_package import validate_qt_source,QT_PROFILE,runtime_exclusion
     validate_qt_source(ROOT/'out/gui-python-deps/PySide6')
     import importlib.util
-    spec=importlib.util.spec_from_file_location('depthsbs_translations',ROOT/'scripts/build-translations.py')
+    spec=importlib.util.spec_from_file_location('screento3d_translations',ROOT/'scripts/build-translations.py')
     translations=importlib.util.module_from_spec(spec)
     spec.loader.exec_module(translations)
     translations.build()
@@ -120,7 +120,7 @@ def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None
         runtime=ROOT/PREVIEW/'_internal/runtime'
         target=stage/PREVIEW/'_internal/runtime';target.mkdir(parents=True)
         if not full_runtime:
-            from depthsbs_app.builder_resources import LAYOUT,CATALOG,verify
+            from screento3d_app.builder_resources import LAYOUT,CATALOG,verify
             pack_spec=importlib.util.spec_from_file_location('desktop_runtime_packs',ROOT/'scripts/build-runtime-packs.py')
             pack_module=importlib.util.module_from_spec(pack_spec);pack_spec.loader.exec_module(pack_module)
             verify(runtime,CATALOG['common'])
@@ -140,7 +140,7 @@ def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None
             (target/'component-layout.json').write_text(json.dumps(dict(schema=1,component='trt-core')),encoding='utf-8')
             media_target=stage/PREVIEW/'_internal/ffmpeg';media_target.mkdir()
             (media_target/'component-layout.json').write_text(json.dumps(dict(schema=1,component='media-tools')),encoding='utf-8')
-        for rel in [Path('v1/depthsbs_app'), Path('v1/cuda_projection_experiment.py'), small,
+        for rel in [Path('v1/screento3d_app'), Path('v1/depthsbs_app'), Path('v1/stereoto3d_app'), Path('v1/cuda_projection_experiment.py'), small,
                     Path('out/gpu-capture/gpu_capture.dll'), Path('out/qt-native-delivery/qt_native_delivery.dll'),
                     Path('out/base-input/OPENCV-NOTICE.txt'), Path('out/static-sbs/OPENCV-NOTICE.txt')]:
             copy(ROOT/rel, stage/rel)
@@ -181,7 +181,7 @@ def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None
             optional_models='DA2 Base and VDA Small '+('bundled ONNX packs' if bundled_models else 'pinned public model downloads')+'; NVIDIA VFG official download, default off',
             **model_info,upstream_downloads=['tensorrt','cuda','ffmpeg','vfg'])
         metadata['application_source_sha256']={p.relative_to(stage).as_posix():digest(p)
-            for p in (stage/'v1/depthsbs_app').rglob('*') if p.is_file()}
+            for p in (stage/'v1/screento3d_app').rglob('*') if p.is_file()}
         (stage/'build-manifest.json').write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf-8')
         stage.rename(dest)
 

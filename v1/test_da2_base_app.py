@@ -10,10 +10,10 @@ import cv2
 import numpy as np
 import torch
 from da2_base_experiment import Da2BaseOracle, ROOT
-from depthsbs_app.da2_base import binding, preprocess
-from depthsbs_app import pipeline
-from depthsbs_app.resources import configure_media_tools
-from depthsbs_app.gui import DepthSbsGui
+from screento3d_app.da2_base import binding, preprocess
+from screento3d_app import pipeline
+from screento3d_app.resources import configure_media_tools
+from screento3d_app.gui import ScreenTo3DGui
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
     torch.backends.cudnn.allow_tf32 = False
     directory = args.engine_dir
     runtime = Path('C:/TensorRT/TensorRT-11.2.1.2/bin')
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     root = ROOT/'out/da2-base-app'/uuid.uuid4().hex
     root.mkdir(parents=True)
     report = dict(passed=False)
@@ -92,10 +92,10 @@ def main():
         gui_root = tk.Tk()
         gui_root.withdraw()
         try:
-            gui = DepthSbsGui(gui_root, backend='da2-base', engine_dir=directory, runtime_dir=runtime)
+            gui = ScreenTo3DGui(gui_root, backend='da2-base', engine_dir=directory, runtime_dir=runtime)
             gui.input_value.set(str(args.input))
             gui.output_value.set(str(root/'gui-not-created.mp4'))
-            with patch('depthsbs_app.gui.subprocess.Popen') as spawn, patch('depthsbs_app.gui.threading.Thread.start'):
+            with patch('screento3d_app.gui.subprocess.Popen') as spawn, patch('screento3d_app.gui.threading.Thread.start'):
                 gui.start()
                 command = spawn.call_args.args[0]
                 assert command[command.index('--depth-backend')+1] == 'da2-base'

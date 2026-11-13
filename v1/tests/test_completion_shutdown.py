@@ -4,8 +4,8 @@ from pathlib import Path
 import unittest
 from unittest.mock import Mock
 from PySide6.QtWidgets import QApplication
-from depthsbs_app.desktop_jobs import ProcessingLease
-from depthsbs_app.desktop_shutdown import CompletionShutdown,shutdown_command
+from screento3d_app.desktop_jobs import ProcessingLease
+from screento3d_app.desktop_shutdown import CompletionShutdown,shutdown_command
 
 
 class CompletionShutdownTests(unittest.TestCase):

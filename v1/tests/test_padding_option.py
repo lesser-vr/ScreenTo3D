@@ -2,10 +2,10 @@ from dataclasses import replace
 import unittest
 import numpy as np
 
-from depthsbs_app.config import MODES
-from depthsbs_app.main import build_parser
-from depthsbs_app.padding import PaddingRefiner
-from depthsbs_app.pipeline import StereoSynthesizer
+from screento3d_app.config import MODES
+from screento3d_app.main import build_parser
+from screento3d_app.padding import PaddingRefiner
+from screento3d_app.pipeline import StereoSynthesizer
 
 
 def fixture(bar=6, color=(0, 240, 0)):

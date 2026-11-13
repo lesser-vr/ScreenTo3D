@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import zipfile
 import numpy as np
-from depthsbs_app.spring_quality import fit_affine,align,spatial_error,temporal_geometry,temporal_error
+from screento3d_app.spring_quality import fit_affine,align,spatial_error,temporal_geometry,temporal_error
 from prepare_spring_subset import extract_member,get_range
 
 

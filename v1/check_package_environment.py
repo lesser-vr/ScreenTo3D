@@ -18,8 +18,8 @@ source = args.input.resolve()
 report = []
 cases = [('old-cpu', False)] if args.old_normal_only else [('old-cpu', True), ('new-cpu', False)]
 for variant, isolated in cases:
-    package = repo / ('out/release/DepthSBS' if variant == 'old-cpu' else 'out/gpu-preview/DepthSBS-GPU-Preview')
-    exe = package / ('DepthSBS.exe' if variant == 'old-cpu' else 'DepthSBS-GPU-Preview.exe')
+    package = repo / ('out/release/ScreenTo3D' if variant == 'old-cpu' else 'out/gpu-preview/ScreenTo3D-GPU-Preview')
+    exe = package / ('ScreenTo3D.exe' if variant == 'old-cpu' else 'ScreenTo3D-GPU-Preview.exe')
     env = os.environ.copy()
     if isolated:
         windows = os.environ['SystemRoot']

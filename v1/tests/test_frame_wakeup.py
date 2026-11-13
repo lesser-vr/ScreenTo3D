@@ -5,8 +5,8 @@ import unittest
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QEventLoop, QTimer
 
-from depthsbs_app.frame_wakeup import FrameWakeup
-from depthsbs_app.texture_mailbox import TextureMailbox
+from screento3d_app.frame_wakeup import FrameWakeup
+from screento3d_app.texture_mailbox import TextureMailbox
 
 
 class FrameWakeupTests(unittest.TestCase):

@@ -9,8 +9,8 @@ import time
 from unittest.mock import Mock,patch
 
 import numpy as np
-from depthsbs_app import pipeline
-from depthsbs_app.media_process import MediaProcesses
+from screento3d_app import pipeline
+from screento3d_app.media_process import MediaProcesses
 
 
 def main():

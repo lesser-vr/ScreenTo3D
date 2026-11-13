@@ -1,6 +1,6 @@
 import unittest
 
-from depthsbs_app.live_sbs import (
+from screento3d_app.live_sbs import (
     RESETS, RESET_START, RESET_RESIZE, RESET_GAP, RESET_CUT, STAT_COUNT,
     record_reset, reset_reason,
     record_ovda_inference, OVDA_CACHE_USED, OVDA_CACHE_SUM, OVDA_FULL_CONTEXT,

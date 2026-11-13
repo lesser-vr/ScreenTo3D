@@ -10,7 +10,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 
 ROOT=Path(__file__).resolve().parents[1]
-APP=ROOT/'v1/depthsbs_app'
+APP=ROOT/'v1/screento3d_app'
 spec=importlib.util.spec_from_file_location('translation_definitions',APP/'catalogs.py')
 definitions=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(definitions)

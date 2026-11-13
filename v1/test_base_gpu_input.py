@@ -9,8 +9,8 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app.base_gpu_input import BaseGpuInput
-from depthsbs_app.da2_base import preprocess
+from screento3d_app.base_gpu_input import BaseGpuInput
+from screento3d_app.da2_base import preprocess
 
 
 def main():

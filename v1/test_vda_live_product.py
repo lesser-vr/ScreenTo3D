@@ -11,12 +11,12 @@ import numpy as np
 
 from test_ovda_device_post import SourcePost, load_frames, reset_engine, reset_flags
 
-from depthsbs_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_candidate import LiveSourceGpuCandidate
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.vda_backend import VdaEngine
-from depthsbs_app.vda_device import VdaDeviceEngine
+from screento3d_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_candidate import LiveSourceGpuCandidate
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.vda_backend import VdaEngine
+from screento3d_app.vda_device import VdaDeviceEngine
 
 
 ROOT = Path(__file__).resolve().parents[1]

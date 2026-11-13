@@ -8,16 +8,16 @@ from pathlib import Path
 import time
 
 import numpy as np
-from depthsbs_app.texture_mailbox import TextureMailbox
+from screento3d_app.texture_mailbox import TextureMailbox
 from test_native_dual_window import producer
 
 QML = b"""
 import QtQuick
 import QtQuick.Window
-import DepthSBS.Native 1.0
+import ScreenTo3D.Native 1.0
 Window {
     id: root; visible: true; width: 640; height: 400; color: "#10141c"; x: 0; y: 100
-    property string sample: "DepthSBS"
+    property string sample: "ScreenTo3D"
     property int frameRevision: 0
     component Banner: Item {
         property string words: ""
@@ -46,7 +46,7 @@ def main():
     from PySide6.QtGui import QGuiApplication, QImage
     from PySide6.QtQml import QQmlApplicationEngine
     from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
-    import depthsbs_app.native_delivery as native
+    import screento3d_app.native_delivery as native
 
     if args.old_sync:
         previous = (

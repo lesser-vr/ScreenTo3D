@@ -24,7 +24,7 @@ class TooltipTests(unittest.TestCase):
         self.engine=QQmlApplicationEngine()
         source='''import QtQuick
 import QtQuick.Controls
-import "../depthsbs_app/qml" as UI
+import "../screento3d_app/qml" as UI
 ApplicationWindow {
     width: 760; height: 380; visible: true
     UI.HelpButton { objectName: "sampleHelp"; x: 30; y: 30; helpText: "Help with actual content" }
@@ -32,7 +32,7 @@ ApplicationWindow {
     UI.TaskHeader { objectName: "sampleHeader"; x: 30; y: 230; width: 680 }
 }'''
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
-        source=source.replace('../depthsbs_app/qml',(Path(__file__).resolve().parents[1]/'depthsbs_app/qml').as_uri())
+        source=source.replace('../screento3d_app/qml',(Path(__file__).resolve().parents[1]/'screento3d_app/qml').as_uri())
         fixture=Path(self.temp.name)/'fixture.qml';fixture.write_text(source,encoding='utf-8')
         self.engine.load(QUrl.fromLocalFile(str(fixture)))
         QTest.qWait(100)

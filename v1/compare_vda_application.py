@@ -10,11 +10,11 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app import pipeline
-from depthsbs_app.depth_backend import vda_binding
-from depthsbs_app.resources import configure_media_tools
-from depthsbs_app.vda_backend import VdaEngine
-from depthsbs_app.vda_artifacts import artifact_profiles, select_artifact, load_manifest, sha256
+from screento3d_app import pipeline
+from screento3d_app.depth_backend import vda_binding
+from screento3d_app.resources import configure_media_tools
+from screento3d_app.vda_backend import VdaEngine
+from screento3d_app.vda_artifacts import artifact_profiles, select_artifact, load_manifest, sha256
 from vda_streaming_experiment import ROOT, VdaStreamingEngine
 from vda_comparison import BoundedEngine, validate_metadata, validate_runs, inspection_sheet
 
@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--runtime-dir', type=Path, default=Path('C:/TensorRT/TensorRT-11.2.1.2/bin'))
     parser.add_argument('--max-frames', type=int, default=124)
     args = parser.parse_args()
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     metadata = pipeline.probe_video(args.input)
     validate_metadata(metadata, args.max_frames)
     selected = select_artifact(artifact_profiles(args.engine_dir), metadata)

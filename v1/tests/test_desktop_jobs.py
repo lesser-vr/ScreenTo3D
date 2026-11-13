@@ -3,8 +3,8 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 
-from depthsbs_app.config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES
-from depthsbs_app.desktop_jobs import Job, ProcessingLease, unused_output,validate_batch_outputs
+from screento3d_app.config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES
+from screento3d_app.desktop_jobs import Job, ProcessingLease, unused_output,validate_batch_outputs
 
 
 class DesktopJobTests(unittest.TestCase):

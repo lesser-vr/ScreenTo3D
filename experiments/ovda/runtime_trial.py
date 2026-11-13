@@ -4,8 +4,8 @@ import hashlib
 import importlib.util
 import sys
 from unittest.mock import patch
-from depthsbs_app import ovda
-from depthsbs_app.desktop_jobs import ROOT
+from screento3d_app import ovda
+from screento3d_app.desktop_jobs import ROOT
 
 REFERENCE=ROOT/'out/ovda-runtime-cleanup-20261109/reference/device_depth.py'
 REFERENCE_SHA256='e104fd8fc1e4763e50bd09d0afc83a60732c37239193997fd56a56f74be45af7'
@@ -15,7 +15,7 @@ def reference_class():
     ovda.runtime_class(True)
     if hashlib.sha256(REFERENCE.read_bytes()).hexdigest()!=REFERENCE_SHA256:
         raise ValueError('Runtime comparison reference changed')
-    name='_depthsbs_ovda.device_depth_before_cleanup'
+    name='_screento3d_ovda.device_depth_before_cleanup'
     if name not in sys.modules:
         spec=importlib.util.spec_from_file_location(name,REFERENCE)
         module=importlib.util.module_from_spec(spec)

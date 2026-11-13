@@ -7,8 +7,8 @@ import time
 from pathlib import Path
 
 import cv2
-from depthsbs_app.config import MODES
-from depthsbs_app.ovda import LICENSE_NOTICE, binding
+from screento3d_app.config import MODES
+from screento3d_app.ovda import LICENSE_NOTICE, binding
 from public_test_media import ATTRIBUTION, CORPUS, PublicFrames
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,7 +117,7 @@ def main():
             name: sha256(ROOT / name)
             for name in (
                 "v1/validate_ovda_lifecycle.py",
-                "v1/depthsbs_app/ovda.py",
+                "v1/screento3d_app/ovda.py",
                 "experiments/ovda/trt_engine.py",
                 "v1/public_test_media.py",
             )

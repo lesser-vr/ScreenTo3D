@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from depthsbs_app.gpu_preview import preview_factory
+from screento3d_app.gpu_preview import preview_factory
 
 
 class PreviewBoundaryTests(unittest.TestCase):
@@ -11,16 +11,16 @@ class PreviewBoundaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             dll = Path(directory) / 'projection.dll'
             dll.touch()
-            with patch('depthsbs_app.gpu_preview.resource_path', return_value=dll), \
-                 patch('depthsbs_app.gpu_preview.CudaProjection') as adapter:
+            with patch('screento3d_app.gpu_preview.resource_path', return_value=dll), \
+                 patch('screento3d_app.gpu_preview.CudaProjection') as adapter:
                 owner = preview_factory(12, 8)
                 adapter.assert_called_once_with(12, 8, dll_path=dll.resolve())
                 self.assertEqual(owner.algorithm, 'forward_zbuffer_cuda_preview')
 
     def test_missing_bundle_does_not_try_development_dll(self):
         with tempfile.TemporaryDirectory() as directory:
-            with patch('depthsbs_app.gpu_preview.resource_path', return_value=Path(directory) / 'missing'), \
-                 patch('depthsbs_app.gpu_preview.CudaProjection') as adapter:
+            with patch('screento3d_app.gpu_preview.resource_path', return_value=Path(directory) / 'missing'), \
+                 patch('screento3d_app.gpu_preview.CudaProjection') as adapter:
                 with self.assertRaises(FileNotFoundError):
                     preview_factory(2, 2)
                 adapter.assert_not_called()
@@ -29,7 +29,7 @@ class PreviewBoundaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             dll = Path(directory) / 'projection.dll'
             dll.touch()
-            with patch('depthsbs_app.gpu_preview.resource_path', return_value=dll), \
-                 patch('depthsbs_app.gpu_preview.CudaProjection', side_effect=RuntimeError('101')):
+            with patch('screento3d_app.gpu_preview.resource_path', return_value=dll), \
+                 patch('screento3d_app.gpu_preview.CudaProjection', side_effect=RuntimeError('101')):
                 with self.assertRaisesRegex(RuntimeError, 'No automatic fallback'):
                     preview_factory(2, 2)

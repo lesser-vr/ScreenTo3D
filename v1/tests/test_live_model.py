@@ -2,8 +2,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from depthsbs_app.depth_backend import resolve_backend
-from depthsbs_app.live_model import model_adapter
+from screento3d_app.depth_backend import resolve_backend
+from screento3d_app.live_model import model_adapter
 
 
 class LiveModelTests(unittest.TestCase):
@@ -15,7 +15,7 @@ class LiveModelTests(unittest.TestCase):
         bound = small.bind_capture(original,True)
         self.assertIs(bound.spec,original.spec)
         self.assertIs(bound.prepare,prepare)
-        with patch('depthsbs_app.small_gpu_input.SmallGpuCaptureEngine') as engine:
+        with patch('screento3d_app.small_gpu_input.SmallGpuCaptureEngine') as engine:
             bound.engine_factory(None)
             engine.assert_called_once_with(None)
         factory.assert_not_called()
@@ -51,7 +51,7 @@ class LiveModelTests(unittest.TestCase):
 
     def test_ovda_pixel_ema_is_independent_of_range_and_other_models(self):
         from dataclasses import asdict,replace
-        from depthsbs_app.live_policy import resolve_live,LIVE_MODES
+        from screento3d_app.live_policy import resolve_live,LIVE_MODES
         original=resolve_live('video-quality',.5)
         updated=model_adapter('ovda-small-c16').apply_live_policy(original)
         self.assertEqual(updated.temporal_alpha,.18)

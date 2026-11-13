@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
-from depthsbs_app.stereo import project_eye, refine_flat_background
-from depthsbs_app.pipeline import StereoSynthesizer
-from depthsbs_app.config import MODES
+from screento3d_app.stereo import project_eye, refine_flat_background
+from screento3d_app.pipeline import StereoSynthesizer
+from screento3d_app.config import MODES
 from quality_scenes import motion_frame
 
 

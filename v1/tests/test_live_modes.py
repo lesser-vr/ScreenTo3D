@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
-from depthsbs_app.config import MODES
-from depthsbs_app.live_policy import (
+from screento3d_app.config import MODES
+from screento3d_app.live_policy import (
     LIVE_MODES,
     resolve_live,
     refresh_live as depth_refresh_reason,
@@ -11,7 +11,7 @@ from depthsbs_app.live_policy import (
 class LiveModeTests(unittest.TestCase):
     def test_pixel_ema_override_preserves_range_in_cpu_reference(self):
         from dataclasses import replace
-        from depthsbs_app.pipeline import StereoSynthesizer
+        from screento3d_app.pipeline import StereoSynthesizer
         policy=resolve_live('video-quality',.5)
         def pair(frame,depth,shift,**kwargs):return frame.copy(),frame.copy()
         slow=StereoSynthesizer(96,64,policy,paired_projection=pair)

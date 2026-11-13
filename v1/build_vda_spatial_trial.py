@@ -9,7 +9,7 @@ from zipfile import ZipFile
 import onnx
 from onnx import TensorProto, helper
 
-from depthsbs_app.engine_cache import TRT_VERSION
+from screento3d_app.engine_cache import TRT_VERSION
 
 V2_SHA = 'd99ad9d3a3e40454b1726ccd304701dd9815ce3e846a9cdd400f25cf8d979f0d'
 

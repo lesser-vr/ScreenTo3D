@@ -9,8 +9,8 @@ from unittest.mock import patch
 from PySide6.QtCore import QObject,QMetaObject,QSettings,Qt
 from PySide6.QtQuick import QQuickWindow
 
-from depthsbs_app.desktop import create_app
-from depthsbs_app.desktop_preferences import DesktopPreferences
+from screento3d_app.desktop import create_app
+from screento3d_app.desktop_preferences import DesktopPreferences
 
 
 def main():
@@ -22,15 +22,15 @@ def main():
     prefs.store.setValue('ui/language','ko')
     source=dict(kind='window',id=11,pid=1,label='Owned first-use fixture',width=1280,height=720)
     with ExitStack() as stack:
-        stack.enter_context(patch('depthsbs_app.live_preview.windows',return_value=[source]))
+        stack.enter_context(patch('screento3d_app.live_preview.windows',return_value=[source]))
         app,engine,desktop=create_app(prefs)
         window=desktop.main_window;live=desktop.live;downloads=desktop.downloads
         setup=window.findChild(QQuickWindow,'runtimeSetupWindow')
         missing={'trt-core'}
         stack.enter_context(patch.object(downloads,'needed',side_effect=lambda key:key in missing))
-        stack.enter_context(patch('depthsbs_app.model_downloads.source_for',side_effect=FileNotFoundError('No configured origin')))
-        stack.enter_context(patch('depthsbs_app.model_downloads.QStandardPaths.writableLocation',return_value=str(args.output/'downloads')))
-        opened=stack.enter_context(patch('depthsbs_app.model_downloads.QDesktopServices.openUrl',return_value=True))
+        stack.enter_context(patch('screento3d_app.model_downloads.source_for',side_effect=FileNotFoundError('No configured origin')))
+        stack.enter_context(patch('screento3d_app.model_downloads.QStandardPaths.writableLocation',return_value=str(args.output/'downloads')))
+        opened=stack.enter_context(patch('screento3d_app.model_downloads.QDesktopServices.openUrl',return_value=True))
         warnings=[];engine.warnings.connect(lambda errors:warnings.extend(e.toString() for e in errors))
         errors=[];live.errorOccurred.connect(errors.append)
 

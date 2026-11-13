@@ -9,11 +9,11 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import ROOT,BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.rowflow import RowFlowRenderer
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import ROOT,BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.rowflow import RowFlowRenderer
 
 
 def main():
@@ -39,7 +39,7 @@ def main():
                 if index==2:
                     rgb[:]=112
                     cv2.rectangle(rgb,(w//3,h//3),(w*2//3,h*2//3),(180,80,50),-1)
-                from depthsbs_app.gpu_frame import GpuFrame
+                from screento3d_app.gpu_frame import GpuFrame
                 with engine.torch.cuda.stream(engine.stream):
                     frame=GpuFrame(engine.torch.from_numpy(cv2.cvtColor(rgb,cv2.COLOR_RGB2BGRA)).cuda(),engine)
                 token=renderer.infer(frame)

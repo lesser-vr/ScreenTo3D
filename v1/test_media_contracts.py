@@ -9,8 +9,8 @@ from unittest.mock import patch
 
 import numpy as np
 
-from depthsbs_app import pipeline, resources
-from depthsbs_app.depth_backend import BackendBinding, BackendSpec
+from screento3d_app import pipeline, resources
+from screento3d_app.depth_backend import BackendBinding, BackendSpec
 
 
 def run_tool(command):
@@ -105,7 +105,7 @@ def main():
                                 del command[index:index + 2]
                             command[-1:-1] = ['-crf', '18']
                         if scenario == 'encoder_failure':
-                            command[command.index('-c:v') + 1] = 'depthsbs_intentionally_invalid_encoder'
+                            command[command.index('-c:v') + 1] = 'screento3d_intentionally_invalid_encoder'
                     process = actual_popen(command, **kwargs)
                     children.append(process)
                     return process

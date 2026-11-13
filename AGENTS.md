@@ -1,4 +1,4 @@
-# Working on DepthSBS
+# Working on ScreenTo3D
 
 Follow the user's current goal. Read [product intent](docs/PRODUCT.md) and
 [current evidence](docs/implementation-status.md) only as needed; use

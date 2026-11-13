@@ -6,7 +6,7 @@ import time
 from unittest.mock import patch
 import uuid
 import numpy as np
-from depthsbs_app import pipeline
+from screento3d_app import pipeline
 from cuda_projection_experiment import CudaProjection
 
 
@@ -18,8 +18,8 @@ def main():
     repo = Path(__file__).resolve().parents[1]
     root = repo / 'out/cuda-video-experiment' / uuid.uuid4().hex
     root.mkdir(parents=True)
-    bundle = repo / ('out/gpu-preview/DepthSBS-GPU-Preview/_internal' if args.preview else 'out/release/DepthSBS/_internal')
-    with patch('depthsbs_app.resources.bundle_root', return_value=bundle):
+    bundle = repo / ('out/gpu-preview/ScreenTo3D-GPU-Preview/_internal' if args.preview else 'out/release/ScreenTo3D/_internal')
+    with patch('screento3d_app.resources.bundle_root', return_value=bundle):
         info = pipeline.probe_video(args.input)
         original = pipeline.project_eye
         results = {}

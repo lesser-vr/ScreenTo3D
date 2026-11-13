@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 
-from depthsbs_app import pipeline
+from screento3d_app import pipeline
 
 
 class PipelineLifecycleTests(unittest.TestCase):

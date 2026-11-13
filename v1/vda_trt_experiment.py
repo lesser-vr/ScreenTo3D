@@ -137,5 +137,5 @@ class TensorRTVdaEngine:
 
 
 def binding(factory=TensorRTVdaEngine):
-    from depthsbs_app.depth_backend import BackendBinding,BackendSpec
+    from screento3d_app.depth_backend import BackendBinding,BackendSpec
     return BackendBinding(BackendSpec('vda-small-trt-experimental','tensorrt',stateful=True,requires_every_frame=True),factory,lambda frame:frame)

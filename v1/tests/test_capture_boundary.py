@@ -2,21 +2,21 @@ import multiprocessing as mp
 import unittest
 from unittest.mock import patch
 
-from depthsbs_app.capture_mailbox import (
+from screento3d_app.capture_mailbox import (
     Mailbox,
     MAX_BYTES,
     STATE,
     FAILED,
     validate_shape,
 )
-from depthsbs_app.capture_color import require_sdr
+from screento3d_app.capture_color import require_sdr
 
 
 class CaptureBoundaryTests(unittest.TestCase):
     def test_original_and_sbs_interval_defaults_are_explicit(self):
         import inspect
-        from depthsbs_app.capture_worker import capture_worker
-        from depthsbs_app.live_sbs import DEFAULT_CAPTURE_INTERVAL_MS
+        from screento3d_app.capture_worker import capture_worker
+        from screento3d_app.live_sbs import DEFAULT_CAPTURE_INTERVAL_MS
 
         self.assertEqual(
             inspect.signature(capture_worker)
@@ -27,7 +27,7 @@ class CaptureBoundaryTests(unittest.TestCase):
         self.assertEqual(DEFAULT_CAPTURE_INTERVAL_MS, 0)
 
     def test_invalid_capture_interval_fails_before_capture(self):
-        from depthsbs_app.capture_worker import capture_worker
+        from screento3d_app.capture_worker import capture_worker
 
         for value in (-1, 1, 16.0, True, "0", None):
             with self.subTest(value=value):
@@ -37,7 +37,7 @@ class CaptureBoundaryTests(unittest.TestCase):
                 self.assertIn(b"Invalid capture update interval", box.error.value)
 
     def test_invalid_frame_ownership_mode_fails_before_capture(self):
-        from depthsbs_app.capture_worker import capture_worker
+        from screento3d_app.capture_worker import capture_worker
 
         for value in (0, 1, None, "retained"):
             with self.subTest(value=value):
@@ -65,21 +65,21 @@ class CaptureBoundaryTests(unittest.TestCase):
 
     def test_sdr_accepted(self):
         with patch(
-            "depthsbs_app.capture_color.display_colors",
+            "screento3d_app.capture_color.display_colors",
             return_value={"test": {"enabled": False}},
         ):
             require_sdr(dict(kind="monitor", device="test"))
 
     def test_hdr_rejected(self):
         with patch(
-            "depthsbs_app.capture_color.display_colors",
+            "screento3d_app.capture_color.display_colors",
             return_value={"test": {"enabled": True}},
         ):
             with self.assertRaisesRegex(ValueError, "SDR"):
                 require_sdr(dict(kind="monitor", device="test"))
 
     def test_unknown_color_rejected(self):
-        with patch("depthsbs_app.capture_color.display_colors", return_value={}):
+        with patch("screento3d_app.capture_color.display_colors", return_value={}):
             with self.assertRaises(ValueError):
                 require_sdr(dict(kind="monitor", device="test"))
 

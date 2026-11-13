@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from depthsbs_app.temporal_blend import blend_depth
+from screento3d_app.temporal_blend import blend_depth
 
 
 class TemporalBlendTests(unittest.TestCase):

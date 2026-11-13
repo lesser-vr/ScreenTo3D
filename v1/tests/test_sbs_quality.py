@@ -1,7 +1,7 @@
 import unittest
 import cv2
 import numpy as np
-from depthsbs_app.sbs_quality import masked_error,temporal_disparity,edge_reprojection,step_response,unpack_half_tb,motion_map
+from screento3d_app.sbs_quality import masked_error,temporal_disparity,edge_reprojection,step_response,unpack_half_tb,motion_map
 
 
 class SbsQualityTests(unittest.TestCase):
@@ -38,7 +38,7 @@ class SbsQualityTests(unittest.TestCase):
         self.assertEqual(response['updates_to_90'],7)
 
     def test_half_tb_sampling_control_matches_source_grid(self):
-        from depthsbs_app.stereo_layout import pack
+        from screento3d_app.stereo_layout import pack
         rgb=np.random.default_rng(5).integers(0,256,(128,256,3),np.uint8)
         packed=pack(np.concatenate((rgb,rgb),axis=1),'half-tb')
         expected=cv2.resize(rgb,(64,32),interpolation=cv2.INTER_AREA)

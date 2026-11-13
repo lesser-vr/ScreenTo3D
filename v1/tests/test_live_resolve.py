@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from depthsbs_app.live_gpu_candidate import DEFAULT_RESOLVE, LiveGpuCandidate
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_sbs import STAT_COUNT
+from screento3d_app.live_gpu_candidate import DEFAULT_RESOLVE, LiveGpuCandidate
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_sbs import STAT_COUNT
 
 
 class LiveResolveTests(unittest.TestCase):
@@ -12,7 +12,7 @@ class LiveResolveTests(unittest.TestCase):
         for value in ("", "auto", "PARALLEL", "1"):
             with (
                 self.subTest(value=value),
-                patch.dict("os.environ", {"DEPTHSBS_LIVE_RESOLVE": value}),
+                patch.dict("os.environ", {"SCREENTO3D_LIVE_RESOLVE": value}),
             ):
                 with self.assertRaisesRegex(ValueError, "serial or parallel"):
                     LiveGpuCandidate(320, 180, resolve_live("balanced"), engine)

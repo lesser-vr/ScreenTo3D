@@ -8,7 +8,7 @@ import subprocess
 
 def validate(source, report_path):
     repo = Path(__file__).resolve().parents[1]
-    ffprobe = repo / 'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg/ffprobe.exe'
+    ffprobe = repo / 'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg/ffprobe.exe'
     def probe(path):
         return json.loads(subprocess.check_output([str(ffprobe), '-v', 'error', '-count_frames',
             '-show_streams', '-of', 'json', str(path)]))['streams']

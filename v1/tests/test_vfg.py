@@ -6,10 +6,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from depthsbs_app import vfg_runtime
-from depthsbs_app.live_sbs import sbs_worker
-from depthsbs_app.texture_mailbox import TextureFrame, TexturePool
-from depthsbs_app.vfg_delivery import TimedMailbox, Timeline
+from screento3d_app import vfg_runtime
+from screento3d_app.live_sbs import sbs_worker
+from screento3d_app.texture_mailbox import TextureFrame, TexturePool
+from screento3d_app.vfg_delivery import TimedMailbox, Timeline
 
 
 class VfgTests(unittest.TestCase):

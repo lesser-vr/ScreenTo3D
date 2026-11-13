@@ -1,8 +1,8 @@
 import unittest
 from dataclasses import replace
 import numpy as np
-from depthsbs_app.config import MODES
-from depthsbs_app.pipeline import depth_refresh_reason
+from screento3d_app.config import MODES
+from screento3d_app.pipeline import depth_refresh_reason
 
 
 class LocalMotionTests(unittest.TestCase):

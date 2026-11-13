@@ -7,11 +7,11 @@ import sys
 import cv2
 import numpy as np
 
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_gpu_candidate import LiveGpuCandidate
-from depthsbs_app.stereo import refine_flat_background
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_gpu_candidate import LiveGpuCandidate
+from screento3d_app.stereo import refine_flat_background
 from texture_projection_oracle import TextureProjectionOracle
 from public_test_media import PublicFrames
 
@@ -43,7 +43,7 @@ def publish_frame(gpu, surface, frame, slot, clear):
             )
         )
         if aligned is not None:
-            from depthsbs_app.trt_backend import _cuda, cudart
+            from screento3d_app.trt_backend import _cuda, cudart
 
             _cuda(cudart.cudaStreamSynchronize(gpu.engine.stream))
             if not np.isfinite(aligned).all():
@@ -76,6 +76,8 @@ def publish_frame(gpu, surface, frame, slot, clear):
         gpu.frames += 1
 
 
+from screento3d_app.environment import get as app_env
+
 def main():
     if len(sys.argv) != 4:
         raise ValueError("Expected parent PID and SBS dimensions")
@@ -83,7 +85,7 @@ def main():
     if parent != os.getppid() or width % 2:
         raise ValueError("Invalid parent or dimensions")
     configure_resource_root(BUNDLE)
-    from depthsbs_app.trt_backend import DepthEngine
+    from screento3d_app.trt_backend import DepthEngine
 
     frames = PublicFrames("FloorballGame", 360)
     iterator = iter(frames)
@@ -126,7 +128,7 @@ def main():
             if slot not in (0, 1) or frame_id < 0 or clear not in (0, 1):
                 raise ValueError("Invalid frame descriptor")
             commands += 1
-            if os.environ.get("DEPTHSBS_TEXTURE_TEST_CRASH") and commands == 10:
+            if app_env("SCREENTO3D_TEXTURE_TEST_CRASH") and commands == 10:
                 os._exit(42)
             frame = None
             if not clear:

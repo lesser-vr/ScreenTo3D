@@ -3,7 +3,7 @@ import unittest
 import cv2
 import numpy as np
 
-from depthsbs_app.live_host_bridge import capture_bgra, capture_rgb, publish_rgb
+from screento3d_app.live_host_bridge import capture_bgra, capture_rgb, publish_rgb
 
 
 class HostBridgeTests(unittest.TestCase):

@@ -11,13 +11,13 @@ from trt_engine import OvdaTrt
 
 
 def main():
-    from depthsbs_app import pipeline
-    from depthsbs_app.resources import configure_media_tools
-    from depthsbs_app.depth_backend import BackendBinding, BackendSpec
+    from screento3d_app import pipeline
+    from screento3d_app.resources import configure_media_tools
+    from screento3d_app.depth_backend import BackendBinding, BackendSpec
     from evaluate_depth_models import inspect_media, sha
     from temporal_diagnostics import TemporalProbe
     from vda_comparison import BoundedEngine, validate_runs, inspection_sheet
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
     root=ROOT/'out/ovda-trt-integration'/uuid.uuid4().hex;root.mkdir(parents=True)
     live=ROOT/'out/live-action-evaluation/eab25eb5c4b948b2a11b5ce3dad79a2f'

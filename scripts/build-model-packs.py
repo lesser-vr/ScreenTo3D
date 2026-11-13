@@ -10,13 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE_NOTICE = """Depth Anything V2 Base weights by the Depth Anything V2 authors.
 https://huggingface.co/depth-anything/Depth-Anything-V2-Base
 CC BY-NC 4.0: https://creativecommons.org/licenses/by-nc/4.0/
-DepthSBS converted these weights to mixed-FP16 ONNX for local TensorRT compilation.
+ScreenTo3D converted these weights to mixed-FP16 ONNX for local TensorRT compilation.
 """
 
 
 def build(directory):
     directory.mkdir(parents=True, exist_ok=True)
-    from depthsbs_app.optional_models import GRAPH_HASHES, PACKS
+    from screento3d_app.optional_models import GRAPH_HASHES, PACKS
     for model in ('da2-base', 'vda-small'):
         files = {}
         for width in (896, 924):
@@ -44,7 +44,7 @@ def build(directory):
                 if model == 'da2-base':
                     package.writestr(ZipInfo('NOTICE.txt'), BASE_NOTICE.encode())
                 else:
-                    package.writestr(ZipInfo('NOTICE.txt'), b'Video Depth Anything Small (DepthAnything/Video-Depth-Anything), Apache-2.0. DepthSBS adapted the ONNX graphs for streaming TensorRT inference with mixed FP16 encoder projections and spatial attention.\n')
+                    package.writestr(ZipInfo('NOTICE.txt'), b'Video Depth Anything Small (DepthAnything/Video-Depth-Anything), Apache-2.0. ScreenTo3D adapted the ONNX graphs for streaming TensorRT inference with mixed FP16 encoder projections and spatial attention.\n')
                 for name, source in sorted(files.items()):
                     with source.open('rb') as src, package.open(ZipInfo(name), 'w') as dst:
                         shutil.copyfileobj(src, dst)

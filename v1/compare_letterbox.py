@@ -11,10 +11,10 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from depthsbs_app import pipeline
-from depthsbs_app.config import MODES
-from depthsbs_app.depth_backend import vda_binding
-from depthsbs_app.resources import configure_media_tools
+from screento3d_app import pipeline
+from screento3d_app.config import MODES
+from screento3d_app.depth_backend import vda_binding
+from screento3d_app.resources import configure_media_tools
 from letterbox_refinement import detect_content, refine_padding_background, restore_padding
 from vda_comparison import inspection_sheet, validate_metadata
 
@@ -46,7 +46,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--input', type=Path, required=True)
     args = parser.parse_args()
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     meta = pipeline.probe_video(args.input)
     validate_metadata(meta, 124)
     binding = vda_binding(ROOT/'out/vda-local', Path('C:/TensorRT/TensorRT-11.2.1.2/bin'))
@@ -85,7 +85,7 @@ def main():
                 before_frame, before_depth = frame.copy(), depth.copy()
                 decoded_hash.update(frame.tobytes()); depth_hash.update(depth.tobytes())
                 old = baseline.render(frame, depth)
-                with patch('depthsbs_app.pipeline.refine_flat_background', side_effect=refine):
+                with patch('screento3d_app.pipeline.refine_flat_background', side_effect=refine):
                     new = candidate.render(frame, depth)
                 new = restore_padding(new, frame, region)
                 np.testing.assert_array_equal(frame, before_frame)

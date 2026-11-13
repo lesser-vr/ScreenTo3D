@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import numpy as np
 
-from depthsbs_app.capture_worker import publish_pixels
-from depthsbs_app.live_retained_capture import RetainedCaptureMailbox
+from screento3d_app.capture_worker import publish_pixels
+from screento3d_app.live_retained_capture import RetainedCaptureMailbox
 
 
 class RetainedCaptureTests(unittest.TestCase):
@@ -45,13 +45,13 @@ class RetainedCaptureTests(unittest.TestCase):
             RetainedCaptureMailbox.create(context, metadata_only=True)
 
     def test_product_input_mailbox_has_no_unused_pixel_allocation(self):
-        from depthsbs_app.capture_mailbox import Mailbox
+        from screento3d_app.capture_mailbox import Mailbox
 
         mailbox = Mailbox.create(mp.get_context("spawn"), metadata_only=True)
         self.assertIsNone(mailbox.pixels)
 
     def test_capture_releases_retained_frame_before_native_stop(self):
-        from depthsbs_app.capture_worker import capture_worker
+        from screento3d_app.capture_worker import capture_worker
 
         mailbox = RetainedCaptureMailbox.create(mp.get_context("spawn"))
         frame = SimpleNamespace(
@@ -88,8 +88,8 @@ class RetainedCaptureTests(unittest.TestCase):
                 "sys.modules",
                 {"windows_capture": SimpleNamespace(WindowsCapture=Capture)},
             ),
-            patch("depthsbs_app.capture_sources.enable_capture_dpi"),
-            patch("depthsbs_app.capture_sources.validate_source"),
+            patch("screento3d_app.capture_sources.enable_capture_dpi"),
+            patch("screento3d_app.capture_sources.validate_source"),
         ):
             capture_worker(
                 {"kind": "window", "id": 1},

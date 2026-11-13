@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import Mock
 import numpy as np
 
-from depthsbs_app.config import MODES
-from depthsbs_app.depth_backend import BackendBinding, BackendSpec, resolve_backend
+from screento3d_app.config import MODES
+from screento3d_app.depth_backend import BackendBinding, BackendSpec, resolve_backend
 
 
 class DepthBindingTests(unittest.TestCase):

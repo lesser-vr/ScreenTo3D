@@ -16,8 +16,8 @@ sys.path.insert(0,str(Path(__file__).parent));sys.path.insert(0,str(ROOT/'v1'))
 def baseline(args):
     import numpy as np
     from evaluate_sbs_quality import open_session,Session
-    from depthsbs_app.desktop_jobs import BUNDLE
-    from depthsbs_app.resources import configure_resource_root
+    from screento3d_app.desktop_jobs import BUNDLE
+    from screento3d_app.resources import configure_resource_root
     configure_resource_root(BUNDLE)
     with np.load(args.output/'native.npz',allow_pickle=False) as source:
         inputs,expected=source['inputs'],source['outputs']
@@ -44,10 +44,10 @@ def native(args):
     from PySide6.QtCore import QTimer
     from PySide6.QtGui import QPainter,QColor
     from PySide6.QtWidgets import QApplication,QWidget
-    from depthsbs_app.desktop_jobs import BUNDLE
-    from depthsbs_app.resources import configure_resource_root
-    from depthsbs_app.live_policy import resolve_live
-    from depthsbs_app.live_model import model_adapter
+    from screento3d_app.desktop_jobs import BUNDLE
+    from screento3d_app.resources import configure_resource_root
+    from screento3d_app.live_policy import resolve_live
+    from screento3d_app.live_model import model_adapter
     configure_resource_root(BUNDLE)
     from native_buffers import Owner,Capture,Renderer
     app=QApplication.instance() or QApplication([])

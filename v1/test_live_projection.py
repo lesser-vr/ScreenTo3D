@@ -5,8 +5,8 @@ import time
 from pathlib import Path
 import numpy as np
 
-from depthsbs_app.live_projection import LiveProjection
-from depthsbs_app.local_projection import factory
+from screento3d_app.live_projection import LiveProjection
+from screento3d_app.local_projection import factory
 
 
 def main():

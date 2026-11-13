@@ -48,12 +48,12 @@ class ReleasePackagingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);app=root/'ScreenTo3D-1.0.0';app.mkdir()
             (app/'build-manifest.json').write_text(json.dumps(dict(product_version='1.0.0',source_commit='fixture',upstream_downloads=['owned'],desktop_components='on-demand official downloads')))
-            catalog=app/'v1/depthsbs_app';catalog.mkdir(parents=True)
+            catalog=app/'v1/screento3d_app';catalog.mkdir(parents=True)
             (catalog/'upstream_sources.json').write_text(json.dumps(dict(artifacts={'owned':{}})))
-            with patch('depthsbs_app.upstream_check.check',side_effect=OSError('Pinned publisher unavailable')),self.assertRaises(OSError):
+            with patch('screento3d_app.upstream_check.check',side_effect=OSError('Pinned publisher unavailable')),self.assertRaises(OSError):
                 packager.package(app,root/'assets',None)
             self.assertFalse((root/'assets').exists())
-            with patch('depthsbs_app.upstream_check.check',return_value=[dict(component='owned',status=206)]) as checked:
+            with patch('screento3d_app.upstream_check.check',return_value=[dict(component='owned',status=206)]) as checked:
                 packager.package(app,root/'assets',None)
                 checked.assert_called_once()
             manifest=json.loads((root/'assets/release-manifest.json').read_text())
@@ -61,7 +61,7 @@ class ReleasePackagingTests(unittest.TestCase):
             self.assertEqual(manifest['upstream_download_checks'],[dict(component='owned',status=206)])
 
     def test_offline_model_packs_are_verified_and_preferred_without_network(self):
-        from depthsbs_app import optional_models as models
+        from screento3d_app import optional_models as models
         spec=importlib.util.spec_from_file_location('portable_model_bundling',ROOT/'scripts/build-desktop-portable.py')
         builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
         with tempfile.TemporaryDirectory() as folder:
@@ -78,7 +78,7 @@ class ReleasePackagingTests(unittest.TestCase):
                 with self.assertRaises(ValueError):builder.bundle_model_packs(root/'other',source)
 
     def test_default_model_distribution_needs_no_local_pack_and_uses_fixed_public_origin(self):
-        from depthsbs_app import optional_models as models
+        from screento3d_app import optional_models as models
         spec=importlib.util.spec_from_file_location('portable_model_distribution',ROOT/'scripts/build-desktop-portable.py')
         builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
         with tempfile.TemporaryDirectory() as folder:
@@ -94,14 +94,14 @@ class ReleasePackagingTests(unittest.TestCase):
             with self.assertRaises(ValueError):builder.model_distribution(app,'http://example.test')
 
     def test_public_models_are_checked_and_never_added_as_optional_model_asset(self):
-        from depthsbs_app.optional_models import model_downloads
+        from screento3d_app.optional_models import model_downloads
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);app=root/'ScreenTo3D-1.0.0';app.mkdir()
             (app/'build-manifest.json').write_text(json.dumps(dict(product_version='1.0.0',source_commit='fixture',model_pack_downloads=model_downloads())))
-            with patch('depthsbs_app.upstream_check.check',side_effect=OSError('Model unavailable')),self.assertRaises(OSError):
+            with patch('screento3d_app.upstream_check.check',side_effect=OSError('Model unavailable')),self.assertRaises(OSError):
                 packager.package(app,root/'failed',None)
             self.assertFalse((root/'failed').exists())
-            with patch('depthsbs_app.upstream_check.check',return_value=[dict(component='da2-base',status=206)]) as checked:
+            with patch('screento3d_app.upstream_check.check',return_value=[dict(component='da2-base',status=206)]) as checked:
                 packager.package(app,root/'assets',None)
                 checked.assert_called_once_with(model_downloads(),model_downloads())
             manifest=json.loads((root/'assets/release-manifest.json').read_text())

@@ -28,7 +28,7 @@ TEXTURE_DLL = ROOT / "out/vda-device-texture-spike/vda_device_texture_spike.dll"
 
 
 def device_engine_class():
-    name = "_depthsbs_vda_device_depth"
+    name = "_screento3d_vda_device_depth"
     if name not in sys.modules:
         path = ROOT / "experiments/vda/device_depth.py"
         spec = importlib.util.spec_from_file_location(name, path)
@@ -231,8 +231,8 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     source = load_frames(args.input)
     height, width = source[0].shape[:2]
-    from depthsbs_app.live_policy import resolve_live
-    from depthsbs_app.vda_backend import VdaEngine
+    from screento3d_app.live_policy import resolve_live
+    from screento3d_app.vda_backend import VdaEngine
 
     policy = resolve_live("video-quality")
     flags = reset_flags(source, policy.scene_cut_threshold)

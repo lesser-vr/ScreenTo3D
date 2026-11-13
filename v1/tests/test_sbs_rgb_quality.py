@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from depthsbs_app.sbs_rgb_quality import rgb_metrics,half_tb_reference,restored_eyes,reference_eyes
+from screento3d_app.sbs_rgb_quality import rgb_metrics,half_tb_reference,restored_eyes,reference_eyes
 from sbs_rgb_fixture import render,BASELINE,CONVERGENCE_Z
 
 

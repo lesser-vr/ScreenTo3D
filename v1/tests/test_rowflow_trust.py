@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from depthsbs_app import rowflow
+from screento3d_app import rowflow
 
 
 class RowFlowTrustTests(unittest.TestCase):

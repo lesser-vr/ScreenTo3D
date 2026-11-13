@@ -7,8 +7,8 @@ from unittest.mock import Mock,patch
 from urllib.error import HTTPError
 from urllib.request import Request
 
-from depthsbs_app import download_cache as cache
-from depthsbs_app import upstream_check
+from screento3d_app import download_cache as cache
+from screento3d_app import upstream_check
 
 
 class Response(BytesIO):

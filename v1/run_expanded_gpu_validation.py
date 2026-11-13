@@ -42,7 +42,7 @@ def main():
     try:
         for mode in ('balanced', 'video-quality', 'offline-quality'):
             compare(args.input.resolve(), mode, mode)
-        ffmpeg = repo / 'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg/ffmpeg.exe'
+        ffmpeg = repo / 'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg/ffmpeg.exe'
         for width, height in ((1920, 1080), (3840, 2160)):
             source = root / f'synthetic-{width}x{height}.mp4'
             command = [str(ffmpeg), '-n', '-v', 'error', '-f', 'lavfi', '-i',

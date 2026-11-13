@@ -7,21 +7,21 @@ from unittest.mock import Mock,patch
 
 from PySide6.QtCore import QLocale,QSettings,Qt,QTranslator
 from PySide6.QtWidgets import QApplication
-from depthsbs_app.desktop import DesktopController
-from depthsbs_app.desktop_preferences import DesktopPreferences
-from depthsbs_app.live_preview import LivePreview
-from depthsbs_app.localization import LanguageManager,render,resolve_language
-from depthsbs_app.messages import Message as M, ErrorMessage as E
+from screento3d_app.desktop import DesktopController
+from screento3d_app.desktop_preferences import DesktopPreferences
+from screento3d_app.live_preview import LivePreview
+from screento3d_app.localization import LanguageManager,render,resolve_language
+from screento3d_app.messages import Message as M, ErrorMessage as E
 
 
 class LocalizationTests(unittest.TestCase):
     def test_third_language_registration_drives_choices_locale_and_catalog(self):
-        from depthsbs_app.catalogs import LANGUAGES
+        from screento3d_app.catalogs import LANGUAGES
         extra=dict(code='de',name='Deutsch',locale='de-DE',catalog='screento3d_de',qt_catalogs=[])
         with patch.dict(LANGUAGES,{'de':extra}):
             self.assertIn(dict(key='de',label='Deutsch'),self.language.choices)
             self.assertEqual(resolve_language('system',QLocale('de_DE')),'de')
-            with patch('depthsbs_app.localization.QTranslator.load',return_value=True) as load:
+            with patch('screento3d_app.localization.QTranslator.load',return_value=True) as load:
                 self.language.setLanguage('de')
             self.assertEqual(self.language.effectiveLanguage,'de')
             self.assertEqual(self.language.localeName,'de_DE')
@@ -39,21 +39,21 @@ class LocalizationTests(unittest.TestCase):
         self.assertEqual(unknown.details,'native 코드 17 {opaque}')
 
     def test_file_event_keeps_id_with_malformed_or_conflicting_translation_metadata(self):
-        from depthsbs_app.messages import payload
+        from screento3d_app.messages import payload
         for localized in ({'bad':'payload'},payload(E('E_CAPTURE_SOURCE_CLOSED'))):
             self.desktop._event(dict(event='error',error_id='E_OUTPUT_FRAME_DELIVERY',message='native failure 17',localized=localized))
             self.assertEqual(self.desktop.error_text.error_id,'E_OUTPUT_FRAME_DELIVERY')
             self.assertEqual(self.desktop.error_text.details,'native failure 17')
 
     def test_error_dialog_retranslates_id_summary_and_copies_entire_document(self):
-        from depthsbs_app.error_dialog import LiveErrorDialog
+        from screento3d_app.error_dialog import LiveErrorDialog
         from PySide6.QtQuick import QQuickWindow
         from PySide6.QtGui import QKeyEvent
         from PySide6.QtCore import QEvent,QMimeData
         owner=QQuickWindow();dialog=LiveErrorDialog(owner)
         self.addCleanup(dialog.deleteLater);self.addCleanup(owner.deleteLater)
         self.language.refresh=dialog.retranslate
-        with patch('depthsbs_app.capture_sources.exclude_preview',return_value=True):
+        with patch('screento3d_app.capture_sources.exclude_preview',return_value=True):
             self.assertTrue(dialog.showError(E('E_OUTPUT_FRAME_DELIVERY',v0='opaque',details='driver code 17 {path}')))
         self.addCleanup(dialog.close)
         before=dialog.text.toPlainText()
@@ -84,7 +84,7 @@ class LocalizationTests(unittest.TestCase):
         self.prefs=DesktopPreferences(QSettings(self.temp.name+'/preferences.ini',QSettings.IniFormat))
         self.prefs.store.setValue('ui/language','ko')
         self.desktop=DesktopController(self.prefs)
-        with patch('depthsbs_app.live_preview.windows',return_value=[]):
+        with patch('screento3d_app.live_preview.windows',return_value=[]):
             self.live=LivePreview(self.desktop)
         self.desktop.live=self.live
         self.language=LanguageManager(self.prefs,self.desktop)
@@ -156,14 +156,14 @@ class LocalizationTests(unittest.TestCase):
         self.assertIn('FP16 혼합',self.desktop.depthChoices[1]['label'])
 
     def test_missing_catalog_falls_back_to_english(self):
-        with patch('depthsbs_app.localization.QTranslator.load',return_value=False):
+        with patch('screento3d_app.localization.QTranslator.load',return_value=False):
             self.language._apply()
         self.assertEqual(self.language.effectiveLanguage,'en')
         self.assertEqual(render(M('Close')),'Close')
 
     def test_system_number_format_does_not_change_machine_messages(self):
         value=M('Value: {value:.1f}',value=1234.5)
-        with patch('depthsbs_app.localization.QLocale.system',return_value=QLocale('de_DE')):
+        with patch('screento3d_app.localization.QLocale.system',return_value=QLocale('de_DE')):
             self.language.setLanguage('system')
             self.assertEqual(self.language.effectiveLanguage,'en')
             self.assertEqual(self.language.localeName,'de_DE')
@@ -181,14 +181,14 @@ class LocalizationTests(unittest.TestCase):
         self.language.engine.retranslate.assert_not_called()
 
     def test_unsupported_rtl_system_uses_english_without_mirroring(self):
-        with patch('depthsbs_app.localization.QLocale.system',return_value=QLocale('ar_EG')):
+        with patch('screento3d_app.localization.QLocale.system',return_value=QLocale('ar_EG')):
             self.language.setLanguage('system')
             self.assertEqual(self.language.effectiveLanguage,'en')
             self.assertEqual(self.language.localeName,'en_US')
             self.assertEqual(self.app.layoutDirection(),Qt.LeftToRight)
 
     def test_bundled_catalog_loads_from_non_ascii_path(self):
-        from depthsbs_app import localization
+        from screento3d_app import localization
         folder=Path(self.temp.name)/'한글 경로 with spaces';folder.mkdir()
         target=folder/'screento3d_ko.qm'
         shutil.copyfile(Path(localization.__file__).with_name('translations')/'screento3d_ko.qm',target)

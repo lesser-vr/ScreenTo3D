@@ -3,15 +3,15 @@ import unittest
 import os
 from unittest.mock import patch
 
-from depthsbs_app.live_sbs import reset_reason, validate_strength, resolve_gpu_capture, resolve_renderer, resolve_history_policy
-from depthsbs_app.capture_mailbox import Mailbox, MAX_BYTES
+from screento3d_app.live_sbs import reset_reason, validate_strength, resolve_gpu_capture, resolve_renderer, resolve_history_policy
+from screento3d_app.capture_mailbox import Mailbox, MAX_BYTES
 
 
 class LiveSbsBoundaryTests(unittest.TestCase):
     def test_renderer_is_explicit_and_snapshot_is_stable(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertEqual(resolve_renderer('da2-base', True), 'cuda')
-        with patch.dict(os.environ, {'DEPTHSBS_STEREO_RENDERER':'rowflow-sym'}):
+        with patch.dict(os.environ, {'SCREENTO3D_STEREO_RENDERER':'rowflow-sym'}):
             self.assertEqual(resolve_renderer('da2-base', True), 'rowflow-sym')
             self.assertEqual(resolve_renderer('da2-small', False, setting='cuda'), 'cuda')
             for model,gpu,strength in [('da2-small',True,1),('da2-base',False,1),('da2-base',True,2),('da2-base',True,float('nan'))]:
@@ -26,9 +26,9 @@ class LiveSbsBoundaryTests(unittest.TestCase):
             self.assertTrue(resolve_gpu_capture({'kind':'window'}, 'ovda-small-c16', True))
             for kind, model, gpu in (('monitor','da2-base',True), ('monitor','da2-small',True), ('window','da2-small',False), ('window','da2-base',False), ('monitor','vda-small',True), ('window','vda-small',False), ('monitor','ovda-small-c16',True), ('window','ovda-small-c16',False)):
                 self.assertFalse(resolve_gpu_capture({'kind':kind}, model, gpu))
-        with patch.dict(os.environ, {'DEPTHSBS_GPU_CAPTURE':'0'}):
+        with patch.dict(os.environ, {'SCREENTO3D_GPU_CAPTURE':'0'}):
             self.assertFalse(resolve_gpu_capture({'kind':'window'}, 'da2-base', True))
-        with patch.dict(os.environ, {'DEPTHSBS_GPU_CAPTURE':'invalid'}):
+        with patch.dict(os.environ, {'SCREENTO3D_GPU_CAPTURE':'invalid'}):
             with self.assertRaises(ValueError):
                 resolve_gpu_capture({'kind':'window'}, 'da2-base', True)
 
@@ -100,7 +100,7 @@ class LiveSbsBoundaryTests(unittest.TestCase):
                                       allow_coalescing=True), 'gap')
 
     def test_history_capability_keeps_stateful_models_strict(self):
-        from depthsbs_app.live_model import model_adapter
+        from screento3d_app.live_model import model_adapter
         for model in ('da2-small', 'da2-base'):
             self.assertTrue(model_adapter(model).coalesced_history)
         for model in ('vda-small', 'ovda-small-c16'):

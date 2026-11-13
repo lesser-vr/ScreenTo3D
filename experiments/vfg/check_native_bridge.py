@@ -9,14 +9,14 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.live_small_gpu_input import LiveSmallGpuInputTexture
-from depthsbs_app.small_gpu_input import SmallGpuCaptureEngine
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.live_small_gpu_input import LiveSmallGpuInputTexture
+from screento3d_app.small_gpu_input import SmallGpuCaptureEngine
 from public_test_media import PublicFrames
 from native_path import vfg_renderer
 

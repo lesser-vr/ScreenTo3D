@@ -1,6 +1,6 @@
-# DepthSBS architecture
+# ScreenTo3D architecture
 
-Status: Current boundary map, with component updates through 2026-11-12.
+Status: Current boundary map, with component updates through 2026-11-13.
 This describes delivered paths and their limits; it does not certify performance.
 See [implementation-status.md](docs/implementation-status.md) for status and [ROADMAP.md](docs/ROADMAP.md) for priorities.
 
@@ -40,6 +40,23 @@ lease and reports an actionable error without selecting another transport.
 Processing-backend default and delivery-path default are separate decisions.
 
 ## Components and ownership
+
+`user_data.py` owns the `ScreenTo3D` LocalAppData root shared by optional-model,
+download and engine caches. Path discovery is pure; desktop startup explicitly
+migrates the interim StereoTo3D root, then the older DepthSBS root before cache
+lookup. Migration rejects linked roots,
+merges missing entries under a bounded OS lock and preserves conflicts without
+overwriting. Physical roots must be siblings, preventing Store Python's private
+namespace from importing a different backing namespace. The launcher writes logs
+under the new root. `desktop_preferences.migrate_settings` adopts only missing
+owned keys into the new QSettings namespace, preserving the old store. The native
+launcher's pre-GUI language lookup follows the same new-first, legacy-fallback
+order (ScreenTo3D, StereoTo3D, DepthSBS). `environment.py` reads new options first
+and legacy options dynamically in that order,
+without copying them into the environment. Old executable module wrappers call
+the canonical implementation, retaining one worker/message type identity.
+An older launcher's currently open log directory remains in place during data
+adoption and can be adopted on a later current-name launch.
 
 `media_process.py` owns file-job FFmpeg/FFprobe children, concurrent diagnostic
 drains, bounded log tails/metadata, cancellation during blocked pipe I/O and
@@ -168,7 +185,7 @@ arrangement; text stays at the same logical size in the output window.
   Windows command timeout implies forced application closure. GUI tests inject
   command/process factories and never execute a real shutdown.
 - `desktop_preferences.py` owns validated mode/model/layout selections in the
-  existing DepthSBS QSettings namespace, separated by live/file scope. Explicit
+  ScreenTo3D QSettings namespace, separated by live/file scope. Explicit
   UI activation saves them; diagnostic setters and fixed comparisons do not.
   No source, artifact path, VFG state or license consent is restored from it.
 - `model_presentation.py` owns the shared live/file model labels and precision
@@ -310,7 +327,7 @@ arrangement; text stays at the same logical size in the output window.
   before/after showing and on visibility restoration. Normal launch excludes
   output from capture; the explicit Owl3D comparison subclass allows capture of
   only its owned output and verifies affinity readback. Every output is marked
-  with `DepthSBS.OutputWindow.v1`; source enumeration and validation reject that
+  with `ScreenTo3D.OutputWindow.v1`; source enumeration and validation reject that
   marker across processes, independently of title or screen placement.
   Renderers acquire a writable slot before projection by default. An explicit
   `requires_texture_slot=False` renderer may project into its own bounded GPU

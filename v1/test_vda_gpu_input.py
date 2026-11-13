@@ -7,12 +7,12 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.vda_artifacts import artifact_profiles, select_artifact
-from depthsbs_app.vda_device import VdaDeviceEngine
-from depthsbs_app.vda_preprocess import preprocess
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.vda_artifacts import artifact_profiles, select_artifact
+from screento3d_app.vda_device import VdaDeviceEngine
+from screento3d_app.vda_preprocess import preprocess
 
 
 def compare(video, profiles, width, height, count):

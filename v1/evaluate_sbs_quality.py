@@ -14,16 +14,16 @@ import cv2
 import numpy as np
 import torch
 
-from depthsbs_app.desktop_jobs import ROOT,BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.live_model import model_adapter
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_sbs import resolve_history_policy,reset_reason
-from depthsbs_app.live_backend import binding
-from depthsbs_app.optional_models import installed_path,available
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.sbs_quality import motion_map,temporal_disparity,edge_reprojection,step_response,unpack_half_tb
+from screento3d_app.desktop_jobs import ROOT,BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.live_model import model_adapter
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_sbs import resolve_history_policy,reset_reason
+from screento3d_app.live_backend import binding
+from screento3d_app.optional_models import installed_path,available
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.sbs_quality import motion_map,temporal_disparity,edge_reprojection,step_response,unpack_half_tb
 from public_test_media import CORPUS,SOURCES,ATTRIBUTION
 
 MODES={'da2-small':'performance','da2-base':'balanced','vda-small':'video-quality','ovda-small-c16':'video-quality'}
@@ -31,7 +31,7 @@ FLOW_SIZE=(480,270)
 
 
 def open_session(stack,model,width,height,layout,noncommercial):
-    from depthsbs_app.trt_backend import DepthEngine
+    from screento3d_app.trt_backend import DepthEngine
     engine_path=''
     if model!='da2-small':
         if model=='ovda-small-c16':engine_path=str(ROOT/'out/ovda-local')
@@ -74,7 +74,7 @@ class Session:
             post.reset();scene=None
         token=post.infer(frame);post.source_ns=stamp;post.slot=index%2
         if self.collect_raw:
-            from depthsbs_app.trt_backend import _cuda,cudart
+            from screento3d_app.trt_backend import _cuda,cudart
             raw=np.empty((h,w),np.float32)
             if self.model=='da2-small':
                 post.dll.live_resize_probe.argtypes=[ct.c_void_p,ct.c_void_p,ct.c_void_p]
@@ -170,13 +170,13 @@ def response_case(session,background,patch,width,height):
 def synthetic_boundary():
     """Reuse the independent layered rendering oracle, with current compiled code."""
     from check_stereo_detail import setup,synthetic
-    from depthsbs_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
-    from depthsbs_app.portable_cuda import binary
+    from screento3d_app.live_gpu_candidate import DLL_PATH,DLL_SHA256
+    from screento3d_app.portable_cuda import binary
     path,pin=binary(DLL_PATH,DLL_SHA256)
     dll=setup(path,pin);result=synthetic(dll)
     from check_stereo_geometry_gpu import context
-    from depthsbs_app.live_texture_pool import LiveTexturePool
-    from depthsbs_app.stereo_layout import pack
+    from screento3d_app.live_texture_pool import LiveTexturePool
+    from screento3d_app.stereo_layout import pack
     rgb=np.random.default_rng(31).integers(0,256,(32,128,3),np.uint8)
     depth=np.full((32,128),.5,np.float32);stream=torch.cuda.Stream()
     with ExitStack() as stack:
@@ -284,7 +284,7 @@ def main():
                 report['models'][model]=dict(policy=asdict(policy),runtime=backend.spec.runtime,
                     artifacts={k:v for k,v in telemetry.items() if k in ('model_id','runtime','input_shape','plan_hashes','plan_sha256','model_sha256')})
                 if model=='da2-small':
-                    from depthsbs_app.trt_backend import _engine_path,_model_path,INPUT_SHAPE
+                    from screento3d_app.trt_backend import _engine_path,_model_path,INPUT_SHAPE
                     report['models'][model]['artifacts']=dict(model_id=model,input_shape=list(INPUT_SHAPE),
                         model_sha256=hashlib.sha256(_model_path().read_bytes()).hexdigest(),
                         plan_sha256=hashlib.sha256(_engine_path().read_bytes()).hexdigest())

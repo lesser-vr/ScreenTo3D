@@ -10,15 +10,15 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from depthsbs_app.da2_base import binding
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
-from depthsbs_app.resources import configure_resource_root
-from depthsbs_app.pipeline import StereoSynthesizer
-from depthsbs_app.stereo import guide_depth
-from depthsbs_app.live_projection import LiveProjection as factory
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_candidate import LiveSourceGpuCandidate
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.da2_base import binding
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.resources import configure_resource_root
+from screento3d_app.pipeline import StereoSynthesizer
+from screento3d_app.stereo import guide_depth
+from screento3d_app.live_projection import LiveProjection as factory
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_candidate import LiveSourceGpuCandidate
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
 from public_test_media import CORPUS, SOURCES
 from test_ovda_device_post import load_frames
 
@@ -74,11 +74,11 @@ def main():
                     raw = host.infer(frame)
                     # Compare the same stage: diagnostic GPU aligned depth is
                     # before optional flat-background refinement.
-                    with patch('depthsbs_app.pipeline.guide_depth', side_effect=guide):
+                    with patch('screento3d_app.pipeline.guide_depth', side_effect=guide):
                         expected = reference.render(frame, raw)
                     input_frame = frame
                     if args.gpu_input:
-                        from depthsbs_app.gpu_frame import GpuFrame
+                        from screento3d_app.gpu_frame import GpuFrame
                         bgra = cv2.cvtColor(frame, cv2.COLOR_RGB2BGRA)
                         with device.torch.cuda.stream(device.stream):
                             input_frame = GpuFrame(device.torch.from_numpy(bgra).cuda(), device)

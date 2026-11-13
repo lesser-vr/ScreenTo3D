@@ -14,14 +14,14 @@ import statistics
 import cv2
 import numpy as np
 import torch
-from depthsbs_app import ovda
-from depthsbs_app.desktop_jobs import ROOT
-from depthsbs_app.gpu_frame import GpuFrame
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_sbs import reset_reason
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
-from depthsbs_app.ovda_geometry import select_profile
-from depthsbs_app.stereo_layout import dimensions
+from screento3d_app import ovda
+from screento3d_app.desktop_jobs import ROOT
+from screento3d_app.gpu_frame import GpuFrame
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_sbs import reset_reason
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.ovda_geometry import select_profile
+from screento3d_app.stereo_layout import dimensions
 from public_test_media import CORPUS
 
 

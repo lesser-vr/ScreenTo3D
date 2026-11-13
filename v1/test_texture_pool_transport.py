@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
-from depthsbs_app.texture_mailbox import TextureMailbox, TexturePool
+from screento3d_app.texture_mailbox import TextureMailbox, TexturePool
 from texture_projection_oracle import TextureProjectionOracle, POOL_SHA256
 
 

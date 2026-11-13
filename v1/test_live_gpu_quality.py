@@ -9,9 +9,11 @@ from pathlib import Path
 from unittest.mock import patch
 import cv2
 import numpy as np
-from depthsbs_app.desktop_jobs import BUNDLE
-from depthsbs_app.resources import configure_resource_root
+from screento3d_app.desktop_jobs import BUNDLE
+from screento3d_app.resources import configure_resource_root
 
+
+from screento3d_app.environment import get as app_env
 
 def main():
     parser = argparse.ArgumentParser()
@@ -29,15 +31,15 @@ def main():
     args.compare_texture = args.compare_texture or args.compare_publish
     args.output.mkdir(parents=True, exist_ok=False)
     configure_resource_root(BUNDLE)
-    from depthsbs_app.trt_backend import DepthEngine, _cuda, cudart
-    from depthsbs_app.pipeline import StereoSynthesizer, preprocess
-    from depthsbs_app.stereo import guide_depth
-    from depthsbs_app.live_projection import LiveProjection
-    from depthsbs_app.live_gpu_candidate import LiveGpuCandidate
-    from depthsbs_app.live_policy import resolve_live
-    from depthsbs_app.live_host_bridge import capture_rgb, publish_rgb
+    from screento3d_app.trt_backend import DepthEngine, _cuda, cudart
+    from screento3d_app.pipeline import StereoSynthesizer, preprocess
+    from screento3d_app.stereo import guide_depth
+    from screento3d_app.live_projection import LiveProjection
+    from screento3d_app.live_gpu_candidate import LiveGpuCandidate
+    from screento3d_app.live_policy import resolve_live
+    from screento3d_app.live_host_bridge import capture_rgb, publish_rgb
     if args.pinned_input:
-        from depthsbs_app.live_pinned_input import LiveGpuPinnedCandidate
+        from screento3d_app.live_pinned_input import LiveGpuPinnedCandidate
 
         LiveGpuCandidate = LiveGpuPinnedCandidate
 
@@ -50,10 +52,10 @@ def main():
     from public_test_media import prepare, PublicFrames, SOURCES
 
     report["public_sources"] = prepare()
-    from depthsbs_app.live_gpu_candidate import DLL_SHA256, DEFAULT_RESOLVE
+    from screento3d_app.live_gpu_candidate import DLL_SHA256, DEFAULT_RESOLVE
 
     report["dll_sha256"] = DLL_SHA256
-    report["resolve_impl"] = os.environ.get("DEPTHSBS_LIVE_RESOLVE", DEFAULT_RESOLVE)
+    report["resolve_impl"] = app_env("SCREENTO3D_LIVE_RESOLVE", DEFAULT_RESOLVE)
     report["compare_serial"] = args.compare_serial
     report["compare_texture"] = args.compare_texture
     report["compare_publish"] = args.compare_publish
@@ -61,7 +63,7 @@ def main():
     report["compare_runtime"] = args.compare_runtime
     report["pinned_input"] = args.pinned_input
     if args.compare_runtime:
-        from depthsbs_app.live_texture_pool import RUNTIME_SHA256
+        from screento3d_app.live_texture_pool import RUNTIME_SHA256
 
         report["runtime_dll_sha256"] = RUNTIME_SHA256
     if args.compare_texture:
@@ -119,7 +121,7 @@ def main():
                     texture = None
                     runtime = runtime_image = None
                     if args.compare_runtime:
-                        from depthsbs_app.live_gpu_texture import LiveGpuTexture
+                        from screento3d_app.live_gpu_texture import LiveGpuTexture
 
                         runtime = extra.enter_context(
                             LiveGpuTexture(
@@ -140,7 +142,7 @@ def main():
                     if args.compare_serial:
                         assert gpu.resolve_impl == "parallel"
                         with patch.dict(
-                            os.environ, {"DEPTHSBS_LIVE_RESOLVE": "serial"}
+                            os.environ, {"SCREENTO3D_LIVE_RESOLVE": "serial"}
                         ):
                             serial = extra.enter_context(
                                 LiveGpuCandidate(width, height, policy, engine)
@@ -163,7 +165,7 @@ def main():
                         tensor = preprocess(frame)
                         raw = engine.infer(tensor)
                         with patch(
-                            "depthsbs_app.pipeline.guide_depth",
+                            "screento3d_app.pipeline.guide_depth",
                             side_effect=capture_guide,
                         ):
                             expected = ref.render(frame, raw)

@@ -34,8 +34,8 @@ def main():
     if args.public_video:
         if not args.ipc:
             raise ValueError("Public-video producer requires --ipc")
-        env["DEPTHSBS_TEXTURE_PUBLIC"] = "1"
-        env["DEPTHSBS_TEXTURE_PYTHON"] = sys._base_executable
+        env["SCREENTO3D_TEXTURE_PUBLIC"] = "1"
+        env["SCREENTO3D_TEXTURE_PYTHON"] = sys._base_executable
         env["PYTHONPATH"] = os.pathsep.join(
             str(root / path)
             for path in (
@@ -47,13 +47,13 @@ def main():
             )
         )
     else:
-        env.pop("DEPTHSBS_TEXTURE_PUBLIC", None)
+        env.pop("SCREENTO3D_TEXTURE_PUBLIC", None)
     if args.crash_worker:
         if not args.ipc:
             raise ValueError("Worker fault injection requires --ipc")
-        env["DEPTHSBS_TEXTURE_TEST_CRASH"] = "1"
+        env["SCREENTO3D_TEXTURE_TEST_CRASH"] = "1"
     else:
-        env.pop("DEPTHSBS_TEXTURE_TEST_CRASH", None)
+        env.pop("SCREENTO3D_TEXTURE_TEST_CRASH", None)
     executable = build / (
         "qt_texture_ipc_probe.exe" if args.ipc else "qt_texture_probe.exe"
     )

@@ -3,8 +3,8 @@ from unittest.mock import Mock
 
 import numpy as np
 
-from depthsbs_app.live_source_gpu_candidate import LiveSourceGpuCandidate
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.live_source_gpu_candidate import LiveSourceGpuCandidate
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
 
 
 class LiveSourceGpuCandidateTests(unittest.TestCase):

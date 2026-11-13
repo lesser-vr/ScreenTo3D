@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from depthsbs_app.depth_range import DepthRangeTracker,RangeParameters,settle_bounds
+from screento3d_app.depth_range import DepthRangeTracker,RangeParameters,settle_bounds
 
 
 class DepthRangeTests(unittest.TestCase):
@@ -62,9 +62,9 @@ class DepthRangeTests(unittest.TestCase):
 
     def test_cpu_live_uses_tracker_and_resets_pixel_history_on_clock_change(self):
         from dataclasses import replace
-        from depthsbs_app.config import MODES
-        from depthsbs_app.live_policy import resolve_live
-        from depthsbs_app.pipeline import StereoSynthesizer
+        from screento3d_app.config import MODES
+        from screento3d_app.live_policy import resolve_live
+        from screento3d_app.pipeline import StereoSynthesizer
         policy=replace(resolve_live('video-quality',.5),temporal_depth_alpha=.5,stabilize_depth_range=True)
         def pair(frame,depth,shift,**kwargs):return frame.copy(),frame.copy()
         synth=StereoSynthesizer(256,144,policy,paired_projection=pair)

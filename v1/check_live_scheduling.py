@@ -6,8 +6,8 @@ import time
 
 import shiboken6
 from PySide6.QtCore import QEventLoop, QTimer, Qt
-from depthsbs_app.desktop import create_app
-from depthsbs_app.presentation_policy import PresentationCadence, NativeDeliveryCadence
+from screento3d_app.desktop import create_app
+from screento3d_app.presentation_policy import PresentationCadence, NativeDeliveryCadence
 from live_benchmark_source import SourceProcess
 
 

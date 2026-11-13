@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from preprocessing import FramePreprocessor, validate_frame
-from depthsbs_app.ovda_geometry import content_rect, select_profile
+from screento3d_app.ovda_geometry import content_rect, select_profile
 
 
 def main():

@@ -137,11 +137,11 @@ def run_model(model, args, report):
     import torch
 
     if model == "vda":
-        from depthsbs_app.vda_device import VdaDeviceEngine
+        from screento3d_app.vda_device import VdaDeviceEngine
 
         engine = VdaDeviceEngine(ROOT / "out/vda-local/518x924-fp32", args.runtime)
     else:
-        from depthsbs_app.ovda import runtime_class
+        from screento3d_app.ovda import runtime_class
 
         engine = runtime_class(device_depth=True)(
             directory=ROOT / "out/ovda-local/518x924-fp32", runtime_dir=args.runtime,
@@ -231,7 +231,7 @@ def main():
     gpu = command("nvidia-smi", "--query-gpu=name,driver_version,utilization.gpu,memory.used",
                   "--format=csv,noheader")
     args.output.mkdir(parents=True)
-    report = {"schema": "depthsbs.model-stage-probe.v1", "status": "incomplete",
+    report = {"schema": "screento3d.model-stage-probe.v1", "status": "incomplete",
         "scope": "Isolated depth only; no capture, SBS, FG, display, VR or sustained throughput claim. "
                  "Host regions are exclusive wall times. TRT CUDA interval can contain host enqueue gaps. "
                  "Do not add CUDA intervals to host regions or add region percentiles together. "

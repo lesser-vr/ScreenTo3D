@@ -18,10 +18,10 @@ from test_ovda_device_post import (
     reset_flags,
 )
 
-from depthsbs_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_candidate import LiveSourceGpuCandidate
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_candidate import LiveSourceGpuCandidate
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
 
 
 RUNTIME = Path("C:/TensorRT/TensorRT-11.2.1.2/bin")

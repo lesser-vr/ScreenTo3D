@@ -379,7 +379,7 @@ def main():
     if not report["analytic"]["passed"] or not report["pending_close"]["passed"]:
         raise AssertionError("Analytic NVOF device-depth warp failed")
     _, DeviceEngine, _ = engine_classes()
-    from depthsbs_app.live_policy import resolve_live
+    from screento3d_app.live_policy import resolve_live
 
     policy = resolve_live("video-quality")
     with ExitStack() as stack:

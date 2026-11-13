@@ -3,7 +3,7 @@ import unittest
 from contextlib import nullcontext
 from types import SimpleNamespace
 
-from depthsbs_app.gpu_runtime import GpuExecution
+from screento3d_app.gpu_runtime import GpuExecution
 
 
 class GpuRuntimeTests(unittest.TestCase):

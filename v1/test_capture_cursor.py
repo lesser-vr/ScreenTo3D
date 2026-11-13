@@ -8,7 +8,7 @@ from pathlib import Path
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QCursor
 import shiboken6
-from depthsbs_app.desktop import create_app
+from screento3d_app.desktop import create_app
 from test_live_preview import Oracle
 
 

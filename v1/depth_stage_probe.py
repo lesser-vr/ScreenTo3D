@@ -87,7 +87,7 @@ def model_plans(model, engine):
         ("self.pending_device = None", "completion_bookkeeping"),
     ])
     if model == "vda":
-        from depthsbs_app.vda_preprocess import preprocess
+        from screento3d_app.vda_preprocess import preprocess
 
         return [complete, region_plan(type(engine).infer_device, [
             ("self._check()", "input_checks"),

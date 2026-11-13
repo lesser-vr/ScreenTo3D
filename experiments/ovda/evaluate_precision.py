@@ -12,8 +12,8 @@ import numpy as np
 import torch
 
 from trial_runtime import create_engine, PINS
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
 from public_test_media import CORPUS
 
 

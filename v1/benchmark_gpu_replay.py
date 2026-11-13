@@ -11,6 +11,8 @@ from unittest.mock import patch
 CACHE_FRAMES = 60
 
 
+from screento3d_app.environment import required as app_env_required
+
 class PublicGpuReplay:
     def __init__(self, source, cursor, device):
         import cv2
@@ -25,7 +27,7 @@ class PublicGpuReplay:
         self.frames, self.sequence, self.stream = [], 0, None
         self.closed = False
         try:
-            for rgb in PublicFrames(os.environ['DEPTHSBS_BENCH_REPLAY_SOURCE'], CACHE_FRAMES):
+            for rgb in PublicFrames(app_env_required('SCREENTO3D_BENCH_REPLAY_SOURCE'), CACHE_FRAMES):
                 resized = cv2.resize(rgb,(width,height),interpolation=cv2.INTER_LINEAR)
                 bgra = cv2.cvtColor(resized,cv2.COLOR_RGB2BGRA)
                 self.frames.append(torch.from_numpy(bgra).to(f'cuda:{device}'))
@@ -68,8 +70,8 @@ class PublicGpuReplay:
 
 
 def sbs_worker_replay(*args, **kwargs):
-    from depthsbs_app.live_sbs import sbs_worker
-    from depthsbs_app import gpu_capture
+    from screento3d_app.live_sbs import sbs_worker
+    from screento3d_app import gpu_capture
     if kwargs.get('gpu_capture_snapshot') is not True:
         raise ValueError('GPU replay requires an explicit GPU input session')
     with patch.object(gpu_capture,'GpuCapture',PublicGpuReplay):

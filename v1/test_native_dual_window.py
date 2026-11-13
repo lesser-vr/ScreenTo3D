@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 import time
 
-from depthsbs_app.texture_mailbox import (
+from screento3d_app.texture_mailbox import (
     TextureMailbox,
     TextureFrame,
     INSTALLED,
@@ -17,7 +17,7 @@ from depthsbs_app.texture_mailbox import (
 
 
 def producer(box, pipe):
-    from depthsbs_app.live_texture_pool import LiveTexturePool
+    from screento3d_app.live_texture_pool import LiveTexturePool
 
     pool = None
     generation = 0
@@ -70,16 +70,16 @@ def producer(box, pipe):
 QML = b"""
 import QtQuick
 import QtQuick.Window
-import DepthSBS.Native 1.0
+import ScreenTo3D.Native 1.0
 Window {
     id: main; objectName: "main"; visible: true; width: 512; height: 128; color: "black"
-    title: "DepthSBS native generated-pattern test"
+    title: "ScreenTo3D native generated-pattern test"
     property int frameRevision: 0
     property bool demand: true
     NativeSurface { anchors.fill: parent; consumer: 0; session: 1; enabledFrame: main.demand; revision: main.frameRevision }
     Window {
         objectName: "output"; visible: true; width: 512; height: 128; x: 540; y: 100; color: "black"
-        title: "DepthSBS native generated-pattern output"
+        title: "ScreenTo3D native generated-pattern output"
         NativeSurface { anchors.fill: parent; consumer: 1; session: 1; enabledFrame: main.demand; revision: main.frameRevision }
     }
 }
@@ -97,7 +97,7 @@ def main():
     from PySide6.QtGui import QGuiApplication, QImage
     from PySide6.QtQml import QQmlApplicationEngine
     from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
-    from depthsbs_app.native_delivery import NativeDelivery
+    from screento3d_app.native_delivery import NativeDelivery
 
     QQuickWindow.setGraphicsApi(QSGRendererInterface.Direct3D11)
     app = QGuiApplication([])

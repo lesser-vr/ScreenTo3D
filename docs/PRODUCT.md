@@ -1,4 +1,4 @@
-# DepthSBS product
+# ScreenTo3D product
 
 Current product intent and local user behavior, 2026-09-10. Implemented limits
 below describe the current build, not permanent restrictions on future designs.
@@ -26,6 +26,17 @@ rates and output geometry must be declared in comparisons. A combined 4K SBS
 image or a 4K model input is not equivalent to 4K per eye.
 
 ## Desktop experience
+
+User-installed models and runtimes live under `%LOCALAPPDATA%\ScreenTo3D\models`;
+download and Small-engine caches share the `ScreenTo3D` root. At startup the app
+adopts the interim `StereoTo3D` data, then older `DepthSBS` data, without downloading
+or rebuilding it. Existing
+destination files win; conflicting legacy files are preserved. Saved language,
+model and layout choices migrate into the `ScreenTo3D/ScreenTo3D` settings store;
+existing new choices win, the interim settings precede older settings, and both
+legacy stores remain available to old versions.
+Qt's automatic UI caches use the new internal name too. The product display name
+remains ScreenTo3D.
 
 The desktop supports Korean and English. **Settings and diagnostics → Language**
 offers System default, 한국어 and English; the default follows the system UI
@@ -170,9 +181,9 @@ The app is named ScreenTo3D. The prepared source and portable launcher is
 `ScreenTo3D.exe`. It runs without a
 console, resolves runtime paths relative to itself and reports launch failures
 in a Windows error dialog. Per-launch logs are saved in
-`%LOCALAPPDATA%\DepthSBS\logs`. Build it with
+`%LOCALAPPDATA%\ScreenTo3D\logs`. Build it with
 `scripts/build-desktop-launcher.ps1`; the portable builder does this automatically.
-The source checkout also retains `Run-DepthSBS.cmd`. Source-local features do not
+The source checkout also retains `Run-ScreenTo3D.cmd`. Source-local features do not
 automatically appear in old portable packages. The present app uses one exclusive
 processing lease for live/file/installation work and snapshots settings at start.
 With ordinary native CUDA output and VFG off, DA2 Small and Base can keep the
@@ -229,7 +240,7 @@ output placement is separate from normal app preferences. For the user's Owl3D
 result window; control and error windows stay protected. Its SBS output is an
 independent native top-level window so external fullscreen detection resolves to
 the SBS surface rather than the compact control window. F11/Escape and closing
-the output to stop remain unchanged. DepthSBS output windows
+the output to stop remain unchanged. ScreenTo3D output windows
 are rejected as input across processes. No separate input/output monitor rule is
 imposed. Stop and close one
 comparison app before opening the other. These fixed A/B launchers hide the normal
@@ -313,7 +324,7 @@ Backend availability, conversion correctness, license scope and complete-pipelin
 evidence still determine whether a contract entry is supported on a given build.
 There is no silent fallback to DA2 Small or another model. Moving content may force
 fresh depth in Performance. Exact temporal/stereo values remain owned by
-`v1/depthsbs_app/live_policy.py`, model-specific live adapters and shared configuration; those values refine a
+`v1/screento3d_app/live_policy.py`, model-specific live adapters and shared configuration; those values refine a
 mode but do not redefine its model identity.
 
 Live DA2 Small and Base both use an eight-pixel radius for depth edge guidance.
@@ -414,7 +425,7 @@ Balanced, VDA Small, or enabling VFG exposes the missing component beside that
 selection, with its download size and terms. Installation starts on explicit
 action, shares the processing lease, and supports cancel, retry and a verified
 local file. Standalone model installation never starts capture or conversion. Both tasks reuse
-completed installations from the user's local DepthSBS model cache. The packaged
+completed installations from the user's local ScreenTo3D model cache. The packaged
 Base and VDA installers compile verified ONNX graphs on the user's current GPU
 and check numerical depth output before making the new engines available.
 VDA uses mixed FP16 for encoder projections and spatial attention in all twelve
@@ -452,14 +463,16 @@ Original local packs can still be selected with **파일에서 설치**. The leg
 handoff remains only for unconfigured, missing optional source packs, not ordinary
 runtime setup. Installed common/media components are reused by both
 tasks; complete payload verification precedes executable loading.
-Model numerical acceptance keeps the existing final-depth pointwise tolerances.
-VDA's mixed-FP16 intermediate cache uses the named `vda-fp16-cache-v1` contract:
-the prior pointwise check remains accepted, and an FP16 tactic variant can also
-pass with relative tensor RMSE at most 1% and maximum error at most 3% of the
-reference tensor RMS. Shape and finite-value checks remain mandatory; this
-alternative never applies to final depth. A failing
-candidate receives at most one rebuild; a cached-stage mismatch rebuilds that
-stage, while a warmup mismatch rebuilds both dependent stages. Only a candidate
+Base keeps its existing pointwise tolerance. VDA uses the named
+`vda-fp16-reference-v2` contract: the prior pointwise check remains accepted;
+otherwise intermediate cache tensors must have relative RMSE at most 1% and
+maximum error at most 3% of the reference tensor RMS, and final-depth samples
+must meet the separate, tighter bounds of 0.05% relative RMSE and 0.5% maximum
+error/reference RMS. Both bounds are required; a small mismatch count alone
+never authorizes a candidate. Shape and finite-value checks remain mandatory.
+The model graphs, precision and reference tensors are unchanged. A failing
+candidate receives at most one rebuild; a cached-cache mismatch can rebuild that
+stage alone, while a warmup or cached-depth mismatch rebuilds both dependent stages. Only a candidate
 passing the declared checks is published. Repeated failure reports a localized
 reference error naming the profile and output, rather than an unknown NumPy error.
 Unmapped architectures use the full upstream resource pack; TensorRT determines

@@ -6,7 +6,7 @@ import threading
 import numpy as np
 
 def check():
-    from depthsbs_app.cuda_memory import Stream,Arena,Buffer
+    from screento3d_app.cuda_memory import Stream,Arena,Buffer
     stream=Stream();arena=Arena(stream);checks=[]
     try:
         old=arena.from_numpy(np.array([1,2,3],np.float32));pointer=old.data_ptr();old.close()
@@ -36,7 +36,7 @@ def check():
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
-    from depthsbs_app.resources import configure_resource_root
-    from depthsbs_app.desktop_jobs import BUNDLE
+    from screento3d_app.resources import configure_resource_root
+    from screento3d_app.desktop_jobs import BUNDLE
     configure_resource_root(BUNDLE)
     report=check();args.output.write_text(json.dumps(report,indent=2));print(json.dumps(report))

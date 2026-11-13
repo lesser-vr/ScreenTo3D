@@ -6,10 +6,10 @@ from pathlib import Path
 from dataclasses import replace
 from unittest.mock import patch
 import numpy as np
-from depthsbs_app import ovda
-from depthsbs_app.live_model import model_adapter
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.live_source_gpu_texture import LiveSourceGpuTexture
+from screento3d_app import ovda
+from screento3d_app.live_model import model_adapter
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.live_source_gpu_texture import LiveSourceGpuTexture
 from evaluate_pixel_ema import FixtureOwner,readers,render_all
 
 
@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args()
     ovda.runtime_class(True)
-    from _depthsbs_ovda import postprocess
+    from _screento3d_ovda import postprocess
     w,h=512,288;engine=FixtureOwner(w,h)
     policy=replace(resolve_live('video-quality',.5),depth_backend='ovda-small-c16',stereo_layout='half-tb')
     # Isolate pixel EMA even after live oVDA adopts a different range tracker.

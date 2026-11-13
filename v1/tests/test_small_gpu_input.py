@@ -3,9 +3,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from depthsbs_app import small_gpu_input as small
-from depthsbs_app import gpu_runtime
-from depthsbs_app.live_small_gpu_input import LiveSmallGpuInputTexture
+from screento3d_app import small_gpu_input as small
+from screento3d_app import gpu_runtime
+from screento3d_app.live_small_gpu_input import LiveSmallGpuInputTexture
 
 
 class SmallGpuInputTests(unittest.TestCase):
@@ -48,8 +48,8 @@ class SmallGpuInputTests(unittest.TestCase):
         def initialize(obj, *args):
             obj.engine = engine
             obj.dll = SimpleNamespace(small_prepare=Mock(), live_post=Mock(argtypes=[]), live_post_gpu=Mock())
-        with patch('depthsbs_app.live_gpu_candidate.LiveGpuCandidate.__init__', initialize), \
-             patch('depthsbs_app.live_gpu_candidate.LiveGpuCandidate.close') as close:
+        with patch('screento3d_app.live_gpu_candidate.LiveGpuCandidate.__init__', initialize), \
+             patch('screento3d_app.live_gpu_candidate.LiveGpuCandidate.close') as close:
             with self.assertRaisesRegex(RuntimeError, 'coefficient setup'):
                 LiveSmallGpuInputTexture(1920,1080,None,engine)
             close.assert_called_once()

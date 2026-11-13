@@ -11,7 +11,7 @@ import numpy as np
 import torch
 
 from compare_iw3_renderers import models, synthetic, save_rgb, REVISION, WEIGHTS
-from depthsbs_app.desktop_jobs import ROOT
+from screento3d_app.desktop_jobs import ROOT
 
 
 def main():

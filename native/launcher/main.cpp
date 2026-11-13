@@ -34,8 +34,15 @@ static std::size_t match_language(const std::wstring& requested, bool exact) {
 static std::size_t selected_language() {
     wchar_t choice[128]{};
     DWORD bytes = sizeof(choice);
-    if (RegGetValueW(HKEY_CURRENT_USER, L"Software\\DepthSBS\\DepthSBS\\ui", L"language",
-                     RRF_RT_REG_SZ, nullptr, choice, &bytes) == ERROR_SUCCESS) {
+    LSTATUS status=ERROR_FILE_NOT_FOUND;
+    for (const wchar_t* key : {L"Software\\ScreenTo3D\\ScreenTo3D\\ui",
+                              L"Software\\StereoTo3D\\StereoTo3D\\ui",
+                              L"Software\\DepthSBS\\DepthSBS\\ui"}) {
+        bytes=sizeof(choice);
+        status=RegGetValueW(HKEY_CURRENT_USER,key,L"language",RRF_RT_REG_SZ,nullptr,choice,&bytes);
+        if (status!=ERROR_FILE_NOT_FOUND && status!=ERROR_PATH_NOT_FOUND)break;
+    }
+    if (status==ERROR_SUCCESS) {
         for (const auto& entry : i18n::languages)
             if (std::wstring(choice) == entry.code) return match_language(choice, true);
     }
@@ -68,13 +75,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     const fs::path root = fs::path(filename.data()).parent_path();
     const bool portable = fs::exists(root / L"desktop-portable");
     const fs::path python = root / (portable ? L"python/pythonw.exe" : L"out/vda-oracle-env/Scripts/pythonw.exe");
-    if (!fs::exists(python) || !fs::exists(root / L"v1/depthsbs_app/launcher.py"))
+    if (!fs::exists(python) || !fs::exists(root / L"v1/screento3d_app/launcher.py"))
         return fail(i18n::E_LAUNCH_COMPONENTS, 0, root.wstring());
 
     PWSTR local = nullptr;
     HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_CREATE, nullptr, &local);
     if (FAILED(result)) return fail(i18n::E_LAUNCH_USER_FOLDER, DWORD(result));
-    fs::path logs = fs::path(local) / L"DepthSBS/logs";
+    fs::path logs = fs::path(local) / L"ScreenTo3D/logs";
     CoTaskMemFree(local);
     std::error_code error;
     fs::create_directories(logs, error);
@@ -91,7 +98,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         DWORD code = GetLastError(); CloseHandle(stream);
         return fail(i18n::E_LAUNCH_INPUT, code);
     }
-    SetEnvironmentVariableW(L"DEPTHSBS_LAUNCH_LOG", log.c_str());
+    SetEnvironmentVariableW(L"SCREENTO3D_LAUNCH_LOG", log.c_str());
     if (!portable) {
         std::wstring paths;
         for (const auto* part : {L"v1", L"out/gui-python-deps", L"out/capture-python-deps", L"out/v1-python-deps"}) {
@@ -100,7 +107,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         }
         SetEnvironmentVariableW(L"PYTHONPATH", paths.c_str());
     }
-    std::wstring command = L"\"" + python.wstring() + L"\" -m depthsbs_app.launcher";
+    std::wstring command = L"\"" + python.wstring() + L"\" -m screento3d_app.launcher";
     STARTUPINFOW startup{}; startup.cb = sizeof(startup);
     startup.dwFlags = STARTF_USESTDHANDLES;
     startup.hStdInput = input; startup.hStdOutput = startup.hStdError = stream;

@@ -9,8 +9,8 @@ import time
 import unittest
 from unittest.mock import patch
 
-from depthsbs_app.media_process import MediaProcesses
-from depthsbs_app.pipeline import verify_output
+from screento3d_app.media_process import MediaProcesses
+from screento3d_app.pipeline import verify_output
 
 
 class MediaPipeTests(unittest.TestCase):
@@ -73,7 +73,7 @@ class FinalMediaTests(unittest.TestCase):
         for changes in ({},{'nb_frames':'5'},{'width':640},{'duration':'nan'},{'duration':'0.25'},{'nb_frames':'N/A'}):
             with self.subTest(changes=changes):
                 stream=dict(good,**changes)
-                with patch('depthsbs_app.pipeline._run',return_value=subprocess.CompletedProcess([],0,json.dumps({'streams':[stream]}),'')):
+                with patch('screento3d_app.pipeline._run',return_value=subprocess.CompletedProcess([],0,json.dumps({'streams':[stream]}),'')):
                     if changes:
                         with self.assertRaises(RuntimeError):verify_output(Path('owned.mp4'),48,320,180,24,media=object())
                     else:verify_output(Path('owned.mp4'),48,320,180,24,media=object())

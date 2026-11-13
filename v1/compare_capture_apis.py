@@ -22,7 +22,7 @@ def decode_stamp(array, x, y, scale):
 
 def dxgi_measure(pipe, seconds, x, y, scale):
     try:
-        from depthsbs_app.capture_sources import enable_capture_dpi
+        from screento3d_app.capture_sources import enable_capture_dpi
 
         enable_capture_dpi()
         import numpy as np
@@ -65,10 +65,10 @@ def dxgi_measure(pipe, seconds, x, y, scale):
 
 
 def main():
-    from depthsbs_app.desktop import create_app
+    from screento3d_app.desktop import create_app
     from test_live_preview import Oracle
     import shiboken6
-    from depthsbs_app.desktop_jobs import BUNDLE
+    from screento3d_app.desktop_jobs import BUNDLE
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
@@ -200,7 +200,7 @@ def main():
         ),
         caution="Different endpoints: GUI handoff vs child readback. Not motion-to-photon or SBS performance.",
     )
-    from depthsbs_app.capture_color import display_colors
+    from screento3d_app.capture_color import display_colors
 
     report["environment"] = dict(
         os=platform.platform(),

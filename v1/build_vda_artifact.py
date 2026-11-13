@@ -7,7 +7,7 @@ import subprocess
 import sys
 import uuid
 
-from depthsbs_app.vda_artifacts import (SCHEMA, MODEL_ID, PROFILES, SOURCE_REVISION,
+from screento3d_app.vda_artifacts import (SCHEMA, MODEL_ID, PROFILES, SOURCE_REVISION,
     WEIGHT_SHA256, sha256, load_manifest, validate_input)
 
 ROOT = Path(__file__).resolve().parents[1]

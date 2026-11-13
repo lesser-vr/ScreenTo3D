@@ -10,10 +10,10 @@ from unittest.mock import patch
 import shiboken6
 
 from PySide6.QtCore import QSettings
-from depthsbs_app.desktop import create_app
-from depthsbs_app.desktop_preferences import DesktopPreferences
-from depthsbs_app import download_cache
-from depthsbs_app.optional_models import installed_path,source_for,PACKS
+from screento3d_app.desktop import create_app
+from screento3d_app.desktop_preferences import DesktopPreferences
+from screento3d_app import download_cache
+from screento3d_app.optional_models import installed_path,source_for,PACKS
 
 
 def main():

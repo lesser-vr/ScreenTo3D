@@ -7,7 +7,7 @@ import statistics
 import subprocess
 import cv2
 import numpy as np
-from depthsbs_app.stereo import uniform_color_mask
+from screento3d_app.stereo import uniform_color_mask
 
 ROOT=Path(__file__).resolve().parents[1]
 CASE_PATH=ROOT/'tests/media/uniform-background.json'

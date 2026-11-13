@@ -156,7 +156,7 @@ class VdaStreamingEngine:
 
 
 def binding(input_size=518):
-    from depthsbs_app.depth_backend import BackendBinding, BackendSpec
+    from screento3d_app.depth_backend import BackendBinding, BackendSpec
     return BackendBinding(BackendSpec('vda-small-streaming-experimental', 'pytorch-cuda',
         stateful=True, requires_every_frame=True),
         lambda progress: VdaStreamingEngine(progress, input_size=input_size), lambda frame: frame)

@@ -14,11 +14,11 @@ import torch
 from check_stereo_geometry_gpu import load, context, check_cuda
 from check_stereo_stability_gpu import project
 from check_depth_range import configure, allocate, post
-from depthsbs_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
-from depthsbs_app.live_policy import resolve_live
-from depthsbs_app.desktop_jobs import ROOT, BUNDLE
-from depthsbs_app.live_scene_history import LiveSceneHistory
-from depthsbs_app.motion_history import MotionHistory
+from screento3d_app.live_gpu_candidate import DLL_PATH, DLL_SHA256
+from screento3d_app.live_policy import resolve_live
+from screento3d_app.desktop_jobs import ROOT, BUNDLE
+from screento3d_app.live_scene_history import LiveSceneHistory
+from screento3d_app.motion_history import MotionHistory
 from public_test_media import PublicFrames, SOURCES, ATTRIBUTION
 
 OLD = ROOT / "out/live-depth-range/live_depth.dll"
@@ -196,16 +196,16 @@ def public(dll, model):
         runtime = Path("C:/TensorRT/TensorRT-11.2.1.2/bin")
         stack.enter_context(os.add_dll_directory(str(runtime)))
         if model == "base":
-            from depthsbs_app.da2_base import binding
+            from screento3d_app.da2_base import binding
 
             backend = binding(ROOT / "out/da2-base-local", runtime)
             backend.input_validator(dict(width=1920, height=1080))
             engine = stack.enter_context(backend.engine_factory(None))
             stream = engine.stream
         else:
-            from depthsbs_app.resources import configure_resource_root
-            from depthsbs_app.small_gpu_input import SmallGpuCaptureEngine
-            from depthsbs_app.pipeline import preprocess
+            from screento3d_app.resources import configure_resource_root
+            from screento3d_app.small_gpu_input import SmallGpuCaptureEngine
+            from screento3d_app.pipeline import preprocess
 
             configure_resource_root(BUNDLE)
             engine = stack.enter_context(SmallGpuCaptureEngine())
@@ -290,7 +290,7 @@ def public(dll, model):
 
 
 def benchmark(dll):
-    from depthsbs_app.live_texture_pool import LiveTexturePool
+    from screento3d_app.live_texture_pool import LiveTexturePool
 
     stream = torch.cuda.Stream()
     rows = []

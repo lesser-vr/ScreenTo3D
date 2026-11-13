@@ -12,8 +12,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $sourceVideo = (Resolve-Path $SourcePath).Path
-$executable = Join-Path $repoRoot 'out\release\DepthSBS\DepthSBS.exe'
-$packageManifestPath = Join-Path $repoRoot 'out\release\DepthSBS\build-manifest.json'
+$executable = Join-Path $repoRoot 'out\release\ScreenTo3D\ScreenTo3D.exe'
+$packageManifestPath = Join-Path $repoRoot 'out\release\ScreenTo3D\build-manifest.json'
 $benchmarkRoot = Join-Path $repoRoot 'out\benchmarks'
 if (-not (Test-Path $executable)) { throw 'Build the V1 portable package first.' }
 if (-not (Test-Path $packageManifestPath)) { throw 'Package build manifest is missing.' }

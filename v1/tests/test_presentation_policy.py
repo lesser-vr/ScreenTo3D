@@ -1,5 +1,5 @@
 import unittest
-from depthsbs_app.presentation_policy import PresentationCadence, WorkCadence, NativeDeliveryCadence, delivery_cadence
+from screento3d_app.presentation_policy import PresentationCadence, WorkCadence, NativeDeliveryCadence, delivery_cadence
 
 
 class CadenceTests(unittest.TestCase):

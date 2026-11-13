@@ -16,7 +16,7 @@ $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 $python = Join-Path $repo 'out/vda-oracle-env/Scripts/python.exe'
 $sitePackages = Join-Path $repo 'out/vda-oracle-env/Lib/site-packages'
-$media = Join-Path $repo 'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg'
+$media = Join-Path $repo 'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg'
 if (-not $EngineDirectory) { $EngineDirectory = Join-Path $repo 'out/ovda-local' }
 if (-not (Test-Path -LiteralPath $python)) { throw 'Prepare oVDA first: docs/product-specs/ovda-local-preview.md' }
 if (-not (Test-Path -LiteralPath $sitePackages)) { throw 'Prepared oVDA packages are missing.' }
@@ -40,7 +40,7 @@ if ([bool]$InputVideo -ne [bool]$OutputVideo) { throw 'InputVideo and OutputVide
 if ($Diagnostics -and $InputVideo) { throw 'Diagnostics cannot be combined with conversion.' }
 if ($CheckInstallation -and ($Diagnostics -or $InputVideo)) { throw 'CheckInstallation cannot be combined with diagnostics/conversion.' }
 if (($Diagnostics -or $InputVideo) -and -not $NonCommercial) { throw 'Read experiments/ovda/LICENSE and specify -NonCommercial for personal/non-commercial use.' }
-$arguments = @('-m', 'depthsbs_app.main', '--depth-backend', 'ovda-small-c16',
+$arguments = @('-m', 'screento3d_app.main', '--depth-backend', 'ovda-small-c16',
     '--ovda-engine-dir', $EngineDirectory, '--runtime-dir', $RuntimeDirectory,
     '--media-tools', $media, '--mode', $Mode, '--output-codec', $OutputCodec, '--stereo-renderer', $StereoRenderer)
 if ($Diagnostics) { $arguments += '--diagnostics' }

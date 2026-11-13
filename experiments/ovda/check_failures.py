@@ -19,10 +19,10 @@ def main():
         engine_class=OvdaTrt
     else:
         engine_class=OvdaOracle
-    from depthsbs_app import pipeline
-    from depthsbs_app.depth_backend import BackendSpec, BackendBinding
-    from depthsbs_app.resources import configure_media_tools
-    configure_media_tools(ROOT/'out/gpu-preview/DepthSBS-GPU-Preview/_internal/ffmpeg')
+    from screento3d_app import pipeline
+    from screento3d_app.depth_backend import BackendSpec, BackendBinding
+    from screento3d_app.resources import configure_media_tools
+    configure_media_tools(ROOT/'out/gpu-preview/ScreenTo3D-GPU-Preview/_internal/ffmpeg')
     torch.backends.cuda.matmul.allow_tf32=False
     torch.backends.cudnn.allow_tf32=False
     root=ROOT/'out/ovda-failures'/uuid.uuid4().hex;root.mkdir(parents=True)

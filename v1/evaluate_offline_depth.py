@@ -7,9 +7,9 @@ import time
 from itertools import chain
 from pathlib import Path
 
-from depthsbs_app.config import MODES
-from depthsbs_app.depth_backend import vda_offline_binding
-from depthsbs_app.offline_depth import is_scene_cut
+from screento3d_app.config import MODES
+from screento3d_app.depth_backend import vda_offline_binding
+from screento3d_app.offline_depth import is_scene_cut
 from public_test_media import ATTRIBUTION, CORPUS, SOURCES, PublicFrames
 from temporal_diagnostics import TemporalProbe
 
@@ -153,7 +153,7 @@ def main():
             name: sha256(ROOT / name)
             for name in (
                 "v1/evaluate_offline_depth.py",
-                "v1/depthsbs_app/offline_depth.py",
+                "v1/screento3d_app/offline_depth.py",
                 "v1/temporal_diagnostics.py",
                 "v1/public_test_media.py",
             )

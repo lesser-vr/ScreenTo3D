@@ -571,7 +571,7 @@ def main():
 
     save()
     _, DeviceEngine, _ = engine_classes()
-    from depthsbs_app.live_policy import resolve_live
+    from screento3d_app.live_policy import resolve_live
 
     policy = resolve_live("video-quality")
     for name in CLIPS:

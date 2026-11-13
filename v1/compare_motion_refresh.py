@@ -9,8 +9,8 @@ import subprocess
 from unittest.mock import patch
 import uuid
 import numpy as np
-from depthsbs_app import pipeline
-from depthsbs_app.config import MODES
+from screento3d_app import pipeline
+from screento3d_app.config import MODES
 from quality_scenes import motion_frame
 
 
@@ -69,7 +69,7 @@ def main():
             return original(frame, inferred, index, replace(policy, local_motion_window=0), cut)
         return without_motion(frame, inferred, index, policy, cut)
     records = []
-    with patch('depthsbs_app.resources.bundle_root', return_value=repo / 'out/release/DepthSBS/_internal'):
+    with patch('screento3d_app.resources.bundle_root', return_value=repo / 'out/release/ScreenTo3D/_internal'):
         for index, (kind, enabled) in enumerate((('warmup', False), ('warmup', True),
                 ('measured', False), ('measured', True), ('measured', True), ('measured', False))):
             label = f'{index}-{kind}-' + ('on' if enabled else 'off')
@@ -91,7 +91,7 @@ def main():
     report = dict(input=str(source), input_sha256=digest, baseline=args.baseline,
         commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
         source_dirty=bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=repo)),
-        package=json.loads((repo / 'out/release/DepthSBS/build-manifest.json').read_text(encoding='utf-8-sig')),
+        package=json.loads((repo / 'out/release/ScreenTo3D/build-manifest.json').read_text(encoding='utf-8-sig')),
         scope='Development pipeline with bundled assets; two measured runs per variant',
         synthetic=synthetic_results(), aggregate=aggregate, runs=records)
     (root / 'report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')

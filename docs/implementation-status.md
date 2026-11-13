@@ -1,5 +1,39 @@
 # Current implementation status
 
+Internal name corrected to ScreenTo3D locally (2026-11-13, not yet released),
+superseding the interim StereoTo3D naming in the earlier entries below. Canonical
+source/build/QML names, settings, user data, icons and current documentation now
+match the ScreenTo3D display name. Interim and older data/settings are adopted in
+order without overriding current values. 728 existing files / 3,250,703,037 bytes
+were hash-preserved; protected engines remain valid without downloads or rebuilds.
+555 CPU/Qt contracts, C++ build/tests, native exact pixels/text, three-model live
+output, four audio/full-decode conversions, old/new launcher and extracted ZIP
+checks pass. All three QML names construct, and both older setting stores remain
+unchanged. See [name correction evidence](evidence/screento3d-name-correction-20261113.md).
+
+StereoTo3D internal namespace transition implemented locally (2026-11-13,
+not yet released). Canonical Python/C++ names, build/resource paths, icons and
+current documentation now use StereoTo3D; display branding and release filenames
+remain ScreenTo3D. Settings adopt missing owned values into the new namespace;
+legacy executable entry points/options and bidirectional output-marker recognition
+remain compatible. Qt caches now use the new root. 550 CPU/Qt contracts pass;
+the 66 Qt checks pass again after final wrapper additions. C++ build/tests, both
+QML names' exact dual-window pixel checks, 30 text comparisons, generated-window
+Small/Base/VDA live output and four audio/full-decode file conversions pass.
+Existing cached payloads and settings are preserved; new/source/legacy launchers
+and the extracted final ZIP open and close normally. See
+[namespace transition evidence](evidence/stereoto3d-namespace-20261113.md).
+
+User-data root migration implemented locally (2026-11-13, not yet released).
+Models/runtimes, downloads, Small engines and launcher logs now share
+`%LOCALAPPDATA%\StereoTo3D`. The existing physical cache moved with all 635 files
+and 3,249,199,672 bytes hash-preserved; VDA's GPU-bound protected receipts remain
+valid. Existing Base/VDA installations are recognized without downloads or engine
+rebuilds. 540 CPU/Qt contracts, two short VDA conversions with audio/full decode,
+source-launcher and extracted portable EXE launch/close pass. Saved settings and
+internal compatibility identifiers are retained. See the
+[name audit and migration evidence](evidence/depthsbs-name-audit-20261113.md).
+
 VDA final-depth reference correction implemented locally (2026-11-13, not yet
 released). The VDA-only `vda-fp16-reference-v2` contract bounds aggregate and
 outlier depth errors separately from cache errors; cached-depth rejection retries

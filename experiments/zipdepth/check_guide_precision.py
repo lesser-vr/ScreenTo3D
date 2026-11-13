@@ -19,10 +19,10 @@ def main():
     from check_stereo_geometry_gpu import context,check_cuda
     from check_stereo_detail import setup
     from check_stereo_window import settings
-    from depthsbs_app.live_texture_pool import LiveTexturePool
-    from depthsbs_app import motion_history
-    from depthsbs_app.live_scene_history import LiveSceneHistory
-    from depthsbs_app.live_policy import resolve_live
+    from screento3d_app.live_texture_pool import LiveTexturePool
+    from screento3d_app import motion_history
+    from screento3d_app.live_scene_history import LiveSceneHistory
+    from screento3d_app.live_policy import resolve_live
     from public_test_media import PublicFrames
     p=argparse.ArgumentParser()
     p.add_argument('--candidate',choices=['guide-fp32','guide-compensated'],required=True)
@@ -114,10 +114,10 @@ def main():
             if args.model=='zipdepth':
                 from runtime import Engine
             else:
-                from depthsbs_app.small_gpu_input import SmallGpuCaptureEngine as Engine
-                from depthsbs_app.desktop_jobs import BUNDLE
-                from depthsbs_app.resources import configure_resource_root
-                from depthsbs_app.pipeline import preprocess
+                from screento3d_app.small_gpu_input import SmallGpuCaptureEngine as Engine
+                from screento3d_app.desktop_jobs import BUNDLE
+                from screento3d_app.resources import configure_resource_root
+                from screento3d_app.pipeline import preprocess
                 configure_resource_root(BUNDLE)
             with Engine() as engine:
                 def infer(rgb):

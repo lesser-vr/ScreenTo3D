@@ -1,6 +1,6 @@
 import unittest
-from depthsbs_app import ovda
-from depthsbs_app.ovda_geometry import CANVASES,content_rect,select_profile
+from screento3d_app import ovda
+from screento3d_app.ovda_geometry import CANVASES,content_rect,select_profile
 
 
 class OvdaResolutionTests(unittest.TestCase):

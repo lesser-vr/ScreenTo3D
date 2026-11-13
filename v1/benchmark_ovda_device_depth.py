@@ -33,10 +33,10 @@ def frames(path, limit):
 
 
 def engine_classes():
-    from depthsbs_app import ovda
+    from screento3d_app import ovda
 
     host = ovda.runtime_class()
-    from _depthsbs_ovda.device_depth import OvdaDeviceTrt
+    from _screento3d_ovda.device_depth import OvdaDeviceTrt
 
     return host, OvdaDeviceTrt
 
