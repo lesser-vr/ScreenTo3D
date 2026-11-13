@@ -31,8 +31,10 @@ current loader, not permanent restrictions on future implementations.
   binary or trusts an arbitrary same-version replacement. Legacy component marker
   hashes identify the canonical payload revision, not a claim that a repacked ZIP
   was downloaded. Numerical candidate retries never alter the declared acceptance
-  contract. VDA's FP16 cache contract and the unchanged final-depth guard are
-  recorded in build receipts; finite/signature checks remain mandatory.
+  contract. VDA's separately bounded FP16 cache/final-depth contract is recorded
+  in build receipts; finite/signature checks remain mandatory. The named depth
+  alternative requires both aggregate and outlier bounds and does not authorize
+  arbitrary per-element exceptions. Base's acceptance and graph pins are unchanged.
 
 ## Capture, native handles and reporting
 

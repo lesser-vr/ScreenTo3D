@@ -51,3 +51,49 @@ class EngineReferenceTests(unittest.TestCase):
         cases.append(dict(reference,warmup_depth=np.full(256,1.01,np.float32)))
         for case in cases:
             with self.assertRaises(ReferenceMismatch):check_samples(case,reference,.001,'profile','vda-fp16-cache-v1')
+
+    def test_report_shaped_sparse_depth_rounding_needs_explicit_v2_contract(self):
+        # Reconstruct the reported 2/256, 0.0066 error pattern, not the user's
+        # unavailable exact tensors. Values come from our pinned random-input probe.
+        root=Path(__file__).resolve().parents[2]
+        with np.load(root/'models/engine-reference/vda-small-spatial-896.npz') as stored:
+            reference={key:stored[key] for key in ('warmup_depth','cached_depth')}
+        actual={key:value.copy() for key,value in reference.items()}
+        actual['cached_depth'][np.argsort(reference['cached_depth'])[:2]]+=np.float32(.0066)
+        for policy in (None,'vda-fp16-cache-v1'):
+            with self.assertRaises(ReferenceMismatch) as error:
+                check_samples(actual,reference,.001,'518x896',policy)
+            self.assertEqual(error.exception.args[0].values['mismatched'],2)
+        check_samples(actual,reference,.001,'518x896','vda-fp16-reference-v2')
+
+    def test_v2_depth_limits_reject_bias_sparse_outlier_and_nonfinite_values(self):
+        reference={key:np.full(256,5.,np.float32) for key in ('warmup_depth','cached_depth')}
+        cases=[]
+        cases.append(dict(reference,cached_depth=np.full(256,5.01,np.float32)))
+        spike=reference['cached_depth'].copy();spike[0]+=.03
+        cases.append(dict(reference,cached_depth=spike))
+        cases.append(dict(reference,cached_depth=np.zeros(256,np.float32)))
+        for invalid in (np.nan,np.inf):
+            values=reference['cached_depth'].copy();values[0]=invalid
+            cases.append(dict(reference,cached_depth=values))
+        for actual in cases:
+            with self.assertRaises(ValueError):
+                check_samples(actual,reference,.001,'profile','vda-fp16-reference-v2')
+
+    def test_v2_preserves_the_existing_intermediate_cache_limits(self):
+        root=Path(__file__).resolve().parents[2]
+        with np.load(root/'v1/tests/fixtures/vda-fp16-candidate-896.npz') as actual,\
+             np.load(root/'models/engine-reference/vda-small-spatial-896.npz') as reference:
+            check_samples({key:actual[key] for key in actual.files},reference,.001,'profile','vda-fp16-reference-v2')
+        reference={'warmup_depth':np.ones(256,np.float32),'cached_new_cache_0':np.ones(256,np.float32)}
+        with self.assertRaises(ReferenceMismatch):
+            check_samples(dict(reference,cached_new_cache_0=np.full(256,1.02,np.float32)),
+                          reference,.001,'profile','vda-fp16-reference-v2')
+
+    def test_cached_depth_failure_rebuilds_its_warmup_dependency(self):
+        reference={'warmup_depth':np.ones(256,np.float32),'cached_depth':np.ones(256,np.float32)}
+        bad=dict(reference,cached_depth=np.full(256,1.01,np.float32));compile=Mock()
+        attempts=build_validated(('warmup','cached'),compile,Mock(side_effect=[bad,reference]),
+                                 reference,.001,'profile','vda-fp16-reference-v2')
+        self.assertEqual(attempts,2)
+        self.assertEqual([call.args[0] for call in compile.call_args_list],['warmup','cached','warmup','cached'])

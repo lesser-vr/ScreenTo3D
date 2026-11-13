@@ -11,7 +11,7 @@ import numpy as np
 from .desktop_jobs import BUNDLE
 from .engine_cache import TRT_VERSION, device_identity, save_record
 from .resources import configure_resource_root, prepare_dll_search_path
-from .engine_reference import build_validated
+from .engine_reference import build_validated,VDA_REFERENCE_V2
 
 
 def sample_outputs(folder, key, width):
@@ -112,13 +112,13 @@ def build(key, folder):
         reference = profile/'reference.npz'
         with np.load(reference, allow_pickle=False) as stored:
             attempts=build_validated(stages,compile_stage,lambda:sample_outputs(profile,key,width),
-                                     stored,0.02 if base else 0.001,name,None if base else 'vda-fp16-cache-v1')
+                                     stored,0.02 if base else 0.001,name,None if base else VDA_REFERENCE_V2)
         for stage in stages:(profile/f'{stage}.onnx').unlink()
         reference.unlink()
         profiles[name] = dict(engines=engines, precision='mixed-fp16', gpu=device['gpu'], compute_capability=device['compute_capability'],
                               tensorrt=trt.__version__, input_shape=[1, 3, 518, width] if base else [1, 1, 3, 518, width],
                               validation='local-depth-and-cache-samples' if not base else 'local-depth-samples',validation_attempts=attempts,
-                              reference_contract='base-pointwise-v1' if base else 'vda-fp16-cache-v1')
+                              reference_contract='base-pointwise-v1' if base else VDA_REFERENCE_V2)
     save_record(folder/'build.receipt', dict(source=PACKS[key].sha, device=device, profiles=profiles))
 
 

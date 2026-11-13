@@ -1,5 +1,17 @@
 # Current implementation status
 
+VDA final-depth reference correction implemented locally (2026-11-13, not yet
+released). The VDA-only `vda-fp16-reference-v2` contract bounds aggregate and
+outlier depth errors separately from cache errors; cached-depth rejection retries
+both dependent stages. Base/model graphs are unchanged. 530 CPU/Qt contracts and
+three 48-frame numerical/history comparisons pass. This PC's VDA archive was
+reused to install and verify all four engines for 518x896/518x924; the new portable
+recognizes that cache and converts/decodes both short aspect-ratio fixtures with
+audio. The exact original rejected user engine was unavailable; two fresh
+diagnostic builds passed the prior guard, while the reported sparse-error pattern
+was reproduced in a synthetic test. See
+[VDA depth-reference evidence](evidence/vda-depth-reference-20261113.md).
+
 The 1.0.0 release was refreshed in place (2026-11-13), preserving release
 441937625 and its existing download names. App/source ZIPs, manifest and checksums
 were replaced; the other 13 assets retain their IDs and hashes. The source CI at
