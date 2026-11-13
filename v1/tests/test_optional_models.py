@@ -74,6 +74,37 @@ class OptionalInstallTests(unittest.TestCase):
             self.install()
         self.assertEqual(sentinel.read_bytes(), b'preserve')
 
+    def test_managed_install_retains_verified_archive_for_rebuild(self):
+        with patch('screento3d_app.user_data.APP_ROOT',self.root),\
+             patch('screento3d_app.engine_cache.device_identity',return_value={'uuid':'fixture'}):
+            target=models.installed_path('da2-base')
+            models.install('da2-base',self.archive,target,lambda *_:None,lambda:False)
+            retained=models.source_pack('da2-base')
+            self.assertEqual(retained.read_bytes(),self.archive.read_bytes())
+            self.assertEqual(models.source_for('da2-base'),retained)
+
+    def test_incompatible_managed_engine_is_preserved_when_rebuilt(self):
+        with patch('screento3d_app.user_data.APP_ROOT',self.root),\
+             patch('screento3d_app.engine_cache.device_identity',return_value={'uuid':'fixture'}),\
+             patch.object(models,'available',return_value=False):
+            target=models.installed_path('da2-base');target.mkdir(parents=True)
+            (target/'foreign-receipt').write_bytes(b'keep old user data')
+            models.install('da2-base',self.archive,target,lambda *_:None,lambda:False)
+            previous=list(target.parent.glob(target.name+'.previous-*'))
+            self.assertEqual(len(previous),1)
+            self.assertEqual((previous[0]/'foreign-receipt').read_bytes(),b'keep old user data')
+            self.assertEqual((target/'518x924-fp16/model.plan').read_bytes(),b'fixture')
+
+    def test_foreign_user_receipt_does_not_claim_managed_engine_ready(self):
+        with patch('screento3d_app.user_data.APP_ROOT',self.root),\
+             patch('screento3d_app.engine_cache.device_identity',return_value={'uuid':'fixture'}):
+            target=models.installed_path('da2-base');target.mkdir(parents=True)
+            for width in (896,924):
+                folder=target/f'518x{width}-fp16';folder.mkdir();(folder/'model.plan').write_bytes(b'fixture')
+            (target/'.verified').write_text(self.pack.sha);(target/'build.receipt').write_bytes(b'foreign')
+            with patch('screento3d_app.engine_cache.local_record',side_effect=ValueError('foreign user')):
+                self.assertFalse(models.available('da2-base',target))
+
     @unittest.skipUnless(os.name == 'nt', 'Windows user-bound receipt')
     def test_vda_fp32_and_mixed_receipts_are_revision_specific(self):
         from screento3d_app import engine_cache

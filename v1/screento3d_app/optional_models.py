@@ -98,8 +98,13 @@ def available(key, directory):
     if key in GRAPH_HASHES and (path.is_relative_to(model_root(key)) or old_vda or encoder_vda):
         names = ('model.plan',) if key == 'da2-base' else ('warmup.plan', 'cached.plan')
         suffix = 'fp32' if old_vda else 'fp16'
-        return ((path/'build.receipt').is_file() and (path/'.verified').is_file()
-                and all((path/f'518x{w}-{suffix}'/n).is_file() for w in (896, 924) for n in names))
+        present=((path/'build.receipt').is_file() and (path/'.verified').is_file()
+                 and all((path/f'518x{w}-{suffix}'/n).is_file() for w in (896, 924) for n in names))
+        if not present:return False
+        try:
+            from .engine_cache import local_record
+            return all(local_record(path/f'518x{w}-{suffix}',key) is not None for w in (896,924))
+        except (OSError,ValueError,KeyError,TypeError,RuntimeError):return False
     if key == 'vfg':
         from .vfg_runtime import PINS
         return all((path / name).is_file() for name in PINS)
@@ -112,6 +117,7 @@ def available(key, directory):
 
 def source_for(key):
     pack = PACKS[key]
+    if key in GRAPH_HASHES and source_pack(key).is_file():return source_pack(key)
     if key == 'vfg':
         return 'https://pypi.nvidia.com/nvidia-vfx/' + pack.filename
     category='runtime-packs' if key in BUILDER_PACKS or key in COMPONENT_PACKS else 'packs'
@@ -127,6 +133,27 @@ def source_for(key):
     origin = ROOT / 'model-origin.txt'
     base = origin.read_text(encoding='utf-8') if origin.is_file() else MODEL_ORIGIN
     return model_downloads(base)[key]['url']
+
+
+def source_pack(key):
+    return data_root()/'models/_sources'/PACKS[key].sha[:16]/PACKS[key].filename
+
+
+def retain_source(key,archive):
+    """Keep verified graphs for rebuilding after a GPU/user change."""
+    import os
+    target=source_pack(key)
+    if target.exists():return
+    from .user_data import _check
+    _check(target,data_root());target.parent.mkdir(parents=True,exist_ok=True)
+    try:os.link(archive,target)
+    except FileExistsError:pass
+    except OSError:
+        with tempfile.TemporaryDirectory(dir=target.parent) as folder:
+            stage=Path(folder)/'source.zip'
+            _copy_verified_archive(Path(archive),stage,PACKS[key],lambda *_:None,lambda:None)
+            try:stage.rename(target)
+            except FileExistsError:pass
 
 
 def optimize(key, payload, cancelled):
@@ -179,6 +206,8 @@ def install(key, source, target, progress, cancelled):
             else:
                 _copy_verified_archive(source,archive,pack,progress,check)
             _extract_archive(key,archive,payload,check)
+            if key in GRAPH_HASHES and target.resolve().is_relative_to(model_root(key).resolve()):
+                retain_source(key,archive)
         if key == 'vfg':
             (payload/'licenses/NOTICE.txt').write_text(
                 'Licensed by NVIDIA Corporation under the NVIDIA Open Model License\n', encoding='utf-8')
@@ -193,10 +222,23 @@ def install(key, source, target, progress, cancelled):
             progress(M('Optimizing and validating the engine for this GPU…'), -1)
             optimize(key, payload, cancelled)
         check()
+        (payload / '.verified').write_text(pack.sha, encoding='ascii')
         try:
-            (payload / '.verified').write_text(pack.sha, encoding='ascii')
             payload.rename(target)
         except OSError:
+            if key in GRAPH_HASHES and target.exists() and target.resolve()==installed_path(key).resolve() and not available(key,target):
+                # A copied portable engine may belong to another Windows user.
+                # Preserve it while publishing the newly verified local build.
+                from uuid import uuid4
+                from .user_data import _check
+                _check(target,model_root(key))
+                backup=target.with_name(target.name+'.previous-'+uuid4().hex)
+                target.rename(backup)
+                try:payload.rename(target)
+                except BaseException:
+                    if not target.exists():backup.rename(target)
+                    raise
+                return target
             # Another process may have installed this exact immutable revision.
             mark = target / '.verified'
             if not available(key, target) or not mark.is_file() or mark.read_text(encoding='ascii') != pack.sha:

@@ -58,6 +58,11 @@ def save_record(path, data):
     path.write_bytes(_dpapi(json.dumps(data, sort_keys=True).encode(), protect=True))
 
 
+@lru_cache(maxsize=64)
+def _record(path,size,modified):
+    return json.loads(_dpapi(Path(path).read_bytes(),protect=False))
+
+
 def local_record(folder, key):
     """Arbitrary import directories must continue through the legacy pinned loader."""
     from .optional_models import PACKS, model_root
@@ -79,9 +84,10 @@ def local_record(folder, key):
     if folder.parent != root or folder.name not in {f'518x{w}-{suffix}' for w in (896, 924)}:
         raise ValueError(E('E_ENGINE_GPU_INCOMPATIBLE'))
     receipt = root/'build.receipt'
-    if receipt.resolve().parent != root or receipt.stat().st_size > 65536:
+    stat=receipt.stat()
+    if receipt.resolve().parent != root or stat.st_size > 65536:
         raise ValueError('Invalid local build record')
-    record = json.loads(_dpapi(receipt.read_bytes(), protect=False))
+    record = _record(str(receipt),stat.st_size,stat.st_mtime_ns)
     if record['source'] != source or record['device'] != device:
         raise ValueError(E('E_ENGINE_CONFIG_CHANGED'))
     return record['profiles'][folder.name]
