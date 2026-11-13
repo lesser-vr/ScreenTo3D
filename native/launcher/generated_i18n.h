@@ -8,10 +8,10 @@ inline constexpr Language languages[] = {
     {L"en", L"en-US"},
 };
 inline constexpr std::size_t default_language = 1;
-enum Text { ErrorId, Details, WindowsCode, Title, E_LAUNCH_LOCATION, E_LAUNCH_COMPONENTS, E_LAUNCH_USER_FOLDER, E_LAUNCH_LOG_FOLDER, E_LAUNCH_LOG_OPEN, E_LAUNCH_INPUT, E_LAUNCH_PROCESS, E_LAUNCH_EXIT };
-inline constexpr const wchar_t* ids[] = {L"", L"", L"", L"", L"E_LAUNCH_LOCATION", L"E_LAUNCH_COMPONENTS", L"E_LAUNCH_USER_FOLDER", L"E_LAUNCH_LOG_FOLDER", L"E_LAUNCH_LOG_OPEN", L"E_LAUNCH_INPUT", L"E_LAUNCH_PROCESS", L"E_LAUNCH_EXIT"};
-inline constexpr const wchar_t* text[][ 12 ] = {
-    {L"오류 ID", L"상세 정보", L"Windows 오류 코드", L"ScreenTo3D 실행 오류", L"실행 파일 위치를 확인할 수 없습니다.", L"실행 구성요소가 없습니다. ScreenTo3D 배포 폴더 전체를 확인해 주세요.", L"사용자 로그 폴더를 찾을 수 없습니다.", L"실행 로그 폴더를 만들 수 없습니다.", L"실행 로그를 열 수 없습니다.", L"입력 스트림을 준비할 수 없습니다.", L"ScreenTo3D를 실행할 수 없습니다.", L"ScreenTo3D가 오류로 종료되었습니다."},
-    {L"Error ID", L"Details", L"Windows error code", L"ScreenTo3D launch error", L"Cannot locate the executable.", L"Required launch components are missing. Check the complete ScreenTo3D distribution folder.", L"Cannot locate the user log folder.", L"Cannot create the launch log folder.", L"Cannot open the launch log.", L"Cannot prepare the input stream.", L"Cannot start ScreenTo3D.", L"ScreenTo3D exited with an error."},
+enum Text { ErrorId, Details, WindowsCode, Title, E_LAUNCH_LOCATION, E_LAUNCH_COMPONENTS, E_LAUNCH_USER_FOLDER, E_LAUNCH_LOG_FOLDER, E_LAUNCH_LOG_OPEN, E_LAUNCH_INPUT, E_LAUNCH_PROCESS, E_LAUNCH_EXIT, E_PORTABLE_WRITE, E_PORTABLE_PATH };
+inline constexpr const wchar_t* ids[] = {L"", L"", L"", L"", L"E_LAUNCH_LOCATION", L"E_LAUNCH_COMPONENTS", L"E_LAUNCH_USER_FOLDER", L"E_LAUNCH_LOG_FOLDER", L"E_LAUNCH_LOG_OPEN", L"E_LAUNCH_INPUT", L"E_LAUNCH_PROCESS", L"E_LAUNCH_EXIT", L"E_PORTABLE_WRITE", L"E_PORTABLE_PATH"};
+inline constexpr const wchar_t* text[][ 14 ] = {
+    {L"오류 ID", L"상세 정보", L"Windows 오류 코드", L"ScreenTo3D 실행 오류", L"실행 파일 위치를 확인할 수 없습니다.", L"실행 구성요소가 없습니다. ScreenTo3D 배포 폴더 전체를 확인해 주세요.", L"사용자 로그 폴더를 찾을 수 없습니다.", L"실행 로그 폴더를 만들 수 없습니다.", L"실행 로그를 열 수 없습니다.", L"입력 스트림을 준비할 수 없습니다.", L"ScreenTo3D를 실행할 수 없습니다.", L"ScreenTo3D가 오류로 종료되었습니다.", L"앱 폴더에 저장할 수 없습니다. ScreenTo3D를 쓰기 가능한 폴더로 옮긴 뒤 다시 시도하세요.", L"포터블 데이터 경로에 링크가 있거나 앱 폴더를 벗어납니다. 일반 data 폴더를 사용하세요."},
+    {L"Error ID", L"Details", L"Windows error code", L"ScreenTo3D launch error", L"Cannot locate the executable.", L"Required launch components are missing. Check the complete ScreenTo3D distribution folder.", L"Cannot locate the user log folder.", L"Cannot create the launch log folder.", L"Cannot open the launch log.", L"Cannot prepare the input stream.", L"Cannot start ScreenTo3D.", L"ScreenTo3D exited with an error.", L"The app folder is not writable. Move ScreenTo3D to a writable folder and try again.", L"The portable data path contains a link or leaves the app folder. Use a regular data folder."},
 };
 } // namespace launcher_i18n

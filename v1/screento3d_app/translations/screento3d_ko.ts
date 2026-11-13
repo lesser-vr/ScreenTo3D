@@ -499,6 +499,18 @@ Applied only when stable bar boundaries and a suitable uniform background are de
       <source>Off by default. Uses NVIDIA VFG to double the file's output FPS while preserving playback duration and audio. No interpolation crosses detected scene cuts. This uses additional GPU resources and may increase conversion time. The VFG runtime must be installed. File settings apply to the next conversion queue and are independent of live 3D.</source>
       <translation>기본은 꺼짐입니다. NVIDIA VFG로 출력 파일의 FPS를 2배로 높이며 재생 길이와 오디오는 유지합니다. 감지된 장면 전환 사이에서는 보간하지 않습니다. GPU 자원을 추가로 사용하며 변환 시간이 늘어날 수 있습니다. VFG 런타임 설치가 필요합니다. 파일 설정은 다음 변환 대기열에 적용되며 실시간 3D 설정과 별개입니다.</translation>
     </message>
+    <message>
+      <source>Import existing data…</source>
+      <translation>기존 데이터 가져오기…</translation>
+    </message>
+    <message>
+      <source>Open data folder</source>
+      <translation>데이터 폴더 열기</translation>
+    </message>
+    <message>
+      <source>Portable data</source>
+      <translation>포터블 데이터</translation>
+    </message>
   </context>
   <context>
     <name>ModelInstall</name>
@@ -2066,6 +2078,22 @@ Previously downloaded files are reused.</source>
 {terms}
 이미 다운로드한 파일은 재사용합니다.</translation>
     </message>
+    <message>
+      <source>Cancelling after the current file operation…</source>
+      <translation>현재 파일 작업을 정리한 뒤 취소하는 중…</translation>
+    </message>
+    <message>
+      <source>Copying and verifying existing data…</source>
+      <translation>기존 데이터 복사·검증 중…</translation>
+    </message>
+    <message>
+      <source>Existing files can be copied and verified here. Current files and settings take priority.</source>
+      <translation>기존 파일을 이곳에 복사하고 검증할 수 있습니다. 현재 파일과 설정을 우선 유지합니다.</translation>
+    </message>
+    <message>
+      <source>Imported {files} files · {conflicts} conflicts kept · {removed} originals removed · {preserved} originals retained</source>
+      <translation>{files}개 파일 가져옴 · 충돌 {conflicts}개 보존 · 원본 {removed}개 정리 · 원본 {preserved}개 유지</translation>
+    </message>
   </context>
   <context>
     <name>StereoLayoutPicker</name>
@@ -2890,6 +2918,56 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <extracomment>Could not migrate saved settings. Existing settings were preserved. Close other app instances and try again.</extracomment>
       <translation>저장된 설정을 옮기지 못했습니다. 기존 설정은 보존됐습니다. 다른 앱 창을 닫고 다시 시도하세요.</translation>
     </message>
+    <message>
+      <source>E_DATA_IMPORT_BUSY</source>
+      <extracomment>Another data import is using this folder. Wait and try again.</extracomment>
+      <translation>다른 데이터 가져오기가 이 폴더를 사용 중입니다. 완료된 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_CANCELLED</source>
+      <extracomment>Data import cancelled. Verified copies remain available.</extracomment>
+      <translation>데이터 가져오기를 취소했습니다. 검증된 복사본은 계속 사용할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_CHANGED</source>
+      <extracomment>A source file changed during import. Existing files were preserved. Close other app instances and try again.</extracomment>
+      <translation>가져오는 동안 원본 파일이 변경됐습니다. 기존 파일은 보존됐습니다. 다른 앱 창을 닫고 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_LIMIT</source>
+      <extracomment>The previous data folder contains too many files or nested folders to import safely.</extracomment>
+      <translation>이전 데이터 폴더의 파일 또는 하위 폴더가 너무 많아 안전하게 가져올 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_SOURCE</source>
+      <extracomment>The import source overlaps the destination or is not a valid previous data folder.</extracomment>
+      <translation>가져올 위치가 대상과 겹치거나 올바른 이전 데이터 폴더가 아닙니다.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_SPACE</source>
+      <extracomment>There is not enough free space to copy the previous data. Free space on the app drive and try again.</extracomment>
+      <translation>이전 데이터를 복사할 공간이 부족합니다. 앱이 있는 드라이브의 공간을 확보한 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_VERIFY</source>
+      <extracomment>A copied file failed verification. The original file was preserved. Try importing again.</extracomment>
+      <translation>복사한 파일을 검증하지 못했습니다. 원본은 보존됐습니다. 다시 가져오세요.</translation>
+    </message>
+    <message>
+      <source>E_PORTABLE_PATH</source>
+      <extracomment>The portable data path contains a link or leaves the app folder. Use a regular data folder.</extracomment>
+      <translation>포터블 데이터 경로에 링크가 있거나 앱 폴더를 벗어납니다. 일반 data 폴더를 사용하세요.</translation>
+    </message>
+    <message>
+      <source>E_PORTABLE_WRITE</source>
+      <extracomment>The app folder is not writable. Move ScreenTo3D to a writable folder and try again.</extracomment>
+      <translation>앱 폴더에 저장할 수 없습니다. ScreenTo3D를 쓰기 가능한 폴더로 옮긴 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_FILE_INVALID</source>
+      <extracomment>The settings file is invalid. Restore data/settings.ini from a backup or rename it to start with default settings.</extracomment>
+      <translation>설정 파일이 올바르지 않습니다. data/settings.ini를 백업에서 복원하거나 이름을 바꾸면 기본 설정으로 시작할 수 있습니다.</translation>
+    </message>
   </context>
   <context>
     <name>PublicErrors</name>
@@ -3678,6 +3756,56 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <extracomment>Could not migrate saved settings. Existing settings were preserved. Close other app instances and try again.</extracomment>
       <translation>저장된 설정을 옮기지 못했습니다. 기존 설정은 보존됐습니다. 다른 앱 창을 닫고 다시 시도하세요.</translation>
     </message>
+    <message>
+      <source>E_DATA_IMPORT_BUSY</source>
+      <extracomment>Another data import is using this folder. Wait and try again.</extracomment>
+      <translation>다른 데이터 가져오기가 이 폴더를 사용 중입니다. 완료된 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_CANCELLED</source>
+      <extracomment>Data import cancelled. Verified copies remain available.</extracomment>
+      <translation>데이터 가져오기를 취소했습니다. 검증된 복사본은 계속 사용할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_CHANGED</source>
+      <extracomment>A source file changed during import. Existing files were preserved. Close other app instances and try again.</extracomment>
+      <translation>가져오는 동안 원본 파일이 변경됐습니다. 기존 파일은 보존됐습니다. 다른 앱 창을 닫고 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_LIMIT</source>
+      <extracomment>The previous data folder contains too many files or nested folders to import safely.</extracomment>
+      <translation>이전 데이터 폴더의 파일 또는 하위 폴더가 너무 많아 안전하게 가져올 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_SOURCE</source>
+      <extracomment>The import source overlaps the destination or is not a valid previous data folder.</extracomment>
+      <translation>가져올 위치가 대상과 겹치거나 올바른 이전 데이터 폴더가 아닙니다.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_SPACE</source>
+      <extracomment>There is not enough free space to copy the previous data. Free space on the app drive and try again.</extracomment>
+      <translation>이전 데이터를 복사할 공간이 부족합니다. 앱이 있는 드라이브의 공간을 확보한 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_DATA_IMPORT_VERIFY</source>
+      <extracomment>A copied file failed verification. The original file was preserved. Try importing again.</extracomment>
+      <translation>복사한 파일을 검증하지 못했습니다. 원본은 보존됐습니다. 다시 가져오세요.</translation>
+    </message>
+    <message>
+      <source>E_PORTABLE_PATH</source>
+      <extracomment>The portable data path contains a link or leaves the app folder. Use a regular data folder.</extracomment>
+      <translation>포터블 데이터 경로에 링크가 있거나 앱 폴더를 벗어납니다. 일반 data 폴더를 사용하세요.</translation>
+    </message>
+    <message>
+      <source>E_PORTABLE_WRITE</source>
+      <extracomment>The app folder is not writable. Move ScreenTo3D to a writable folder and try again.</extracomment>
+      <translation>앱 폴더에 저장할 수 없습니다. ScreenTo3D를 쓰기 가능한 폴더로 옮긴 뒤 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>E_SETTINGS_FILE_INVALID</source>
+      <extracomment>The settings file is invalid. Restore data/settings.ini from a backup or rename it to start with default settings.</extracomment>
+      <translation>설정 파일이 올바르지 않습니다. data/settings.ini를 백업에서 복원하거나 이름을 바꾸면 기본 설정으로 시작할 수 있습니다.</translation>
+    </message>
   </context>
   <context>
     <name>RuntimeSetup</name>
@@ -3704,6 +3832,61 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     <message>
       <source>Prepare required files</source>
       <translation>필수 파일 준비</translation>
+    </message>
+  </context>
+  <context>
+    <name>PortableData</name>
+    <message>
+      <source>Cancel</source>
+      <translation>취소</translation>
+    </message>
+    <message>
+      <source>Close</source>
+      <translation>닫기</translation>
+    </message>
+    <message>
+      <source>Destination</source>
+      <translation>저장 위치</translation>
+    </message>
+    <message>
+      <source>Import</source>
+      <translation>가져오기</translation>
+    </message>
+    <message>
+      <source>Import previous settings once</source>
+      <translation>이전 설정 가져오기(한 번만)</translation>
+    </message>
+    <message>
+      <source>Keep everything in this app folder</source>
+      <translation>앱 폴더에서 함께 관리</translation>
+    </message>
+    <message>
+      <source>No previous model files found. Saved settings can still be imported.</source>
+      <translation>이전 모델 파일을 찾지 못했습니다. 저장된 설정은 가져올 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>Only successfully copied, unchanged source files are eligible for removal. Conflicts and other files stay where they are.</source>
+      <translation>복사·검증이 끝났고 변경되지 않은 원본만 정리합니다. 충돌 파일과 다른 파일은 그대로 둡니다.</translation>
+    </message>
+    <message>
+      <source>Open data folder</source>
+      <translation>데이터 폴더 열기</translation>
+    </message>
+    <message>
+      <source>Previous locations · %1 GB to import</source>
+      <translation>이전 위치 · 가져올 용량 %1 GB</translation>
+    </message>
+    <message>
+      <source>Remove imported original files after verification</source>
+      <translation>검증이 끝난 뒤 가져온 원본 파일 정리</translation>
+    </message>
+    <message>
+      <source>ScreenTo3D · Portable data</source>
+      <translation>ScreenTo3D · 포터블 데이터</translation>
+    </message>
+    <message>
+      <source>Settings, models, runtimes and caches are saved under data. Moving this app folder keeps them together.</source>
+      <translation>설정·모델·런타임·캐시는 data에 저장합니다. 앱 폴더를 옮기면 함께 이동합니다.</translation>
     </message>
   </context>
 </TS>

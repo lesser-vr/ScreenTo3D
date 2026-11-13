@@ -74,7 +74,7 @@ def model_downloads(origin=MODEL_ORIGIN):
 
 
 def model_root(key):
-    return data_root() / 'models' / key / PACKS[key].sha[:16]
+    return data_root() / ('models' if key in GRAPH_HASHES else 'runtimes') / key / PACKS[key].sha[:16]
 
 
 def installed_path(key):

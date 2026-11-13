@@ -9,7 +9,7 @@ import os
 
 from .config import MODES, OUTPUTS, validate_mode_model
 
-ROOT = Path(__file__).resolve().parents[2]
+from .user_data import APP_ROOT as ROOT
 PORTABLE_DESKTOP = (ROOT / "desktop-portable").is_file()
 BUNDLE = ROOT / "out/gpu-preview/ScreenTo3D-GPU-Preview/_internal"
 MODELS = {

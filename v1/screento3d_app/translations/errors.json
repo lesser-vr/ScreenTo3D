@@ -828,6 +828,58 @@
       "source": "Could not open the download in your browser. Download the pack from the ScreenTo3D release page, then use Install from file.",
       "public": "Could not open the download in your browser. Download the pack from the ScreenTo3D release page, then use Install from file.",
       "category": "installation"
+    },
+    "E_PORTABLE_WRITE": {
+      "source": "The app folder is not writable. Move ScreenTo3D to a writable folder and try again.",
+      "public": "The app folder is not writable. Move ScreenTo3D to a writable folder and try again.",
+      "category": "paths",
+      "native": true
+    },
+    "E_PORTABLE_PATH": {
+      "source": "The portable data path contains a link or leaves the app folder. Use a regular data folder.",
+      "public": "The portable data path contains a link or leaves the app folder. Use a regular data folder.",
+      "category": "paths",
+      "native": true
+    },
+    "E_SETTINGS_FILE_INVALID": {
+      "source": "The settings file is invalid. Restore data/settings.ini from a backup or rename it to start with default settings.",
+      "public": "The settings file is invalid. Restore data/settings.ini from a backup or rename it to start with default settings.",
+      "category": "paths"
+    },
+    "E_DATA_IMPORT_BUSY": {
+      "source": "Another data import is using this folder. Wait and try again.",
+      "public": "Another data import is using this folder. Wait and try again.",
+      "category": "paths"
+    },
+    "E_DATA_IMPORT_SOURCE": {
+      "source": "The import source overlaps the destination or is not a valid previous data folder.",
+      "public": "The import source overlaps the destination or is not a valid previous data folder.",
+      "category": "paths"
+    },
+    "E_DATA_IMPORT_LIMIT": {
+      "source": "The previous data folder contains too many files or nested folders to import safely.",
+      "public": "The previous data folder contains too many files or nested folders to import safely.",
+      "category": "paths"
+    },
+    "E_DATA_IMPORT_SPACE": {
+      "source": "There is not enough free space to copy the previous data. Free space on the app drive and try again.",
+      "public": "There is not enough free space to copy the previous data. Free space on the app drive and try again.",
+      "category": "paths"
+    },
+    "E_DATA_IMPORT_CANCELLED": {
+      "source": "Data import cancelled. Verified copies remain available.",
+      "public": "Data import cancelled. Verified copies remain available.",
+      "category": "paths"
+    },
+    "E_DATA_IMPORT_CHANGED": {
+      "source": "A source file changed during import. Existing files were preserved. Close other app instances and try again.",
+      "public": "A source file changed during import. Existing files were preserved. Close other app instances and try again.",
+      "category": "paths"
+    },
+    "E_DATA_IMPORT_VERIFY": {
+      "source": "A copied file failed verification. The original file was preserved. Try importing again.",
+      "public": "A copied file failed verification. The original file was preserved. Try importing again.",
+      "category": "paths"
     }
   }
 }

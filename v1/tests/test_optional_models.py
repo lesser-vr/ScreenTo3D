@@ -79,7 +79,7 @@ class OptionalInstallTests(unittest.TestCase):
         from screento3d_app import engine_cache
         from screento3d_app.vda_artifacts import artifact_profiles, uses_mixed_fp16
         device = {'uuid': 'gpu-a'}
-        with patch.dict(os.environ, LOCALAPPDATA=str(self.root)), patch.object(engine_cache, 'device_identity', return_value=device):
+        with patch('screento3d_app.user_data.APP_ROOT',self.root), patch.object(engine_cache, 'device_identity', return_value=device):
             for source, suffix in ((models.PACKS['vda-small'].sha, 'fp16'), (engine_cache.VDA_FP32_PACK, 'fp32')):
                 root = models.model_root('vda-small').parent/source[:16]/engine_cache.device_key(device)
                 records = {}
@@ -105,7 +105,7 @@ class OptionalInstallTests(unittest.TestCase):
         from screento3d_app import engine_cache
         from screento3d_app.da2_base import checked_plan
         device = {'uuid': 'gpu-a'}
-        with patch.dict(os.environ, LOCALAPPDATA=str(self.root)), patch.object(engine_cache, 'device_identity', return_value=device):
+        with patch('screento3d_app.user_data.APP_ROOT',self.root), patch.object(engine_cache, 'device_identity', return_value=device):
             root = models.installed_path('da2-base')
             profile = root/'518x896-fp16'
             profile.mkdir(parents=True)

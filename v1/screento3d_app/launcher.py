@@ -12,6 +12,8 @@ def main():
         sys.stdout = sys.stderr = log
         faulthandler.enable(log)
         try:
+            from .user_data import prepare_environment
+            prepare_environment()
             from .desktop import main as desktop_main
             return desktop_main()
         except Exception:

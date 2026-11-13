@@ -131,7 +131,8 @@ class LivePreview(QObject):
         self.output_window = None
         from .desktop_jobs import ROOT
         from .output_placement import OutputPlacement
-        self.output_placement = OutputPlacement(ROOT / "out" / "desktop-output-placement.json")
+        from .user_data import data_root
+        self.output_placement = OutputPlacement(data_root()/'window-state.json')
         self._restore_output = False
         self.output_excluded = False
         self.output_presented = 0

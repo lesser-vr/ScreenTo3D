@@ -56,7 +56,7 @@ def resource_path(relative: str) -> Path:
 
 
 def cache_root() -> Path:
-    path = data_root() / 'engines'
+    path = data_root() / 'cache/engines'
     path.mkdir(parents=True, exist_ok=True)
     return path
 

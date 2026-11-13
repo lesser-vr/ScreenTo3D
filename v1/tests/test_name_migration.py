@@ -48,6 +48,31 @@ class NameMigrationTests(unittest.TestCase):
         folder=tempfile.TemporaryDirectory();self.addCleanup(folder.cleanup)
         return tuple(QSettings(str(Path(folder.name)/name),QSettings.IniFormat) for name in ('new.ini','old.ini'))
 
+    def test_default_settings_use_only_explicit_ini_and_survive_reopen(self):
+        from screento3d_app.desktop_preferences import DesktopPreferences
+        from screento3d_app import user_data
+        with tempfile.TemporaryDirectory() as folder,patch.object(user_data,'APP_ROOT',Path(folder)),\
+             patch('screento3d_app.portable_settings.read_legacy_settings') as legacy:
+            current=DesktopPreferences()
+            self.assertEqual(current.store.format(),QSettings.IniFormat)
+            self.assertEqual(Path(current.store.fileName()),Path(folder)/'data/settings.ini')
+            current.remember('live','balanced','da2-base','half-sbs')
+            current.store.setValue('ui/language','ko');current.store.setValue('SbsOutput/fullscreenStats',True);current.store.sync()
+            reopened=DesktopPreferences()
+            self.assertEqual(reopened.selection('live',{'balanced','performance'}),
+                             dict(mode='balanced',model='da2-base',stereo_layout='half-sbs'))
+            self.assertEqual(reopened.store.value('ui/language'),'ko')
+            legacy.assert_not_called()
+
+    def test_malformed_ini_fails_with_stable_error_instead_of_resetting(self):
+        from screento3d_app.desktop_preferences import DesktopPreferences
+        from screento3d_app import user_data
+        with tempfile.TemporaryDirectory() as folder,patch.object(user_data,'APP_ROOT',Path(folder)):
+            path=user_data.settings_file();path.parent.mkdir();path.write_text('[broken\nvalue=1\n')
+            with self.assertRaises(OSError) as result:DesktopPreferences()
+            self.assertEqual(result.exception.args[0].error_id,'E_SETTINGS_FILE_INVALID')
+            self.assertEqual(path.read_text(),'[broken\nvalue=1\n')
+
     def test_settings_adopt_owned_values_and_retain_the_legacy_store(self):
         current,legacy=self.stores()
         values={'ui/language':'ko','live/model':'da2-base','live/mode':'balanced',

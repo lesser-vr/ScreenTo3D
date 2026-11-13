@@ -478,7 +478,8 @@ class DesktopController(QObject):
         else:
             self.lease.acquire("file")
         try:
-            self.temp = tempfile.TemporaryDirectory(prefix="screento3d-desktop-")
+            from .user_data import data_root
+            self.temp = tempfile.TemporaryDirectory(prefix="job-",dir=data_root()/'temp')
             self.cancel_path = Path(self.temp.name) / "cancel"
             self.active = job
             self.complete = self.cancelling = False
@@ -805,8 +806,8 @@ class DesktopController(QObject):
 
 
 def create_app(preferences=None):
-    from .user_data import migrate_legacy_data
-    migrate_legacy_data()
+    from .user_data import prepare_environment
+    prepare_environment()
     if sys.platform == "win32":
         import ctypes
         result = ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("ScreenTo3D.Desktop")

@@ -33,7 +33,7 @@ def open_https(request):
 
 
 def cache_root():
-    return data_root()/'downloads'
+    return data_root()/'cache/downloads'
 
 
 def check_cancel(cancelled):

@@ -5,30 +5,21 @@ from PySide6.QtCore import QSettings
 
 from .config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES
 from .stereo_layout import LAYOUTS
-
-
-def migrate_settings(current,*legacies):
-    """Adopt only owned missing values; retain old settings for older versions."""
-    keys=['ui/language']+[f'{scope}/{key}' for scope in ('live','file')
-                          for key in ('mode','model','stereoLayout')]
-    current.sync()
-    if current.status()!=QSettings.NoError:
-        raise OSError(E('E_SETTINGS_MIGRATION'))
-    for legacy in legacies:
-        legacy.sync()
-        if legacy.status()!=QSettings.NoError:raise OSError(E('E_SETTINGS_MIGRATION'))
-        for key in keys:
-            if not current.contains(key) and legacy.contains(key):
-                current.setValue(key,legacy.value(key))
-    current.sync()
-    if current.status()!=QSettings.NoError:raise OSError(E('E_SETTINGS_MIGRATION'))
-    return current
+from .user_data import settings_file
+from .portable_settings import migrate_settings
 
 
 class DesktopPreferences:
     def __init__(self, store=None, *, portable=False):
-        self.store = store if store is not None else migrate_settings(
-            QSettings('ScreenTo3D','ScreenTo3D'),QSettings('StereoTo3D','StereoTo3D'),QSettings('DepthSBS','DepthSBS'))
+        if store is None:
+            from .user_data import _check,data_root
+            _check(settings_file(),data_root())
+            if settings_file().exists() and settings_file().stat().st_size>1024**2:
+                raise OSError(E('E_SETTINGS_FILE_INVALID'))
+        self.store = store if store is not None else QSettings(str(settings_file()),QSettings.IniFormat)
+        self.store.setFallbacksEnabled(False)
+        self.store.allKeys()
+        if self.store.status()!=QSettings.NoError:raise OSError(E('E_SETTINGS_FILE_INVALID'))
         self.portable = portable
 
     def selection(self, scope, modes):

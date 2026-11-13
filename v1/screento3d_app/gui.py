@@ -145,8 +145,10 @@ class ScreenTo3DGui:
         self.geometry_value.set('Reading input dimensions...')
         self.refinement_value.set('')
         token = f"screento3d-{time.time_ns()}"
-        self.status_file = Path(tempfile.gettempdir()) / f"{token}.jsonl"
-        self.cancel_file = Path(tempfile.gettempdir()) / f"{token}.cancel"
+        from .user_data import prepare_environment
+        folder=prepare_environment()/'temp'
+        self.status_file = folder / f"{token}.jsonl"
+        self.cancel_file = folder / f"{token}.cancel"
         arguments = [
             "--worker", "--input", str(source), "--output", str(destination),
             "--mode", self.mode_value.get(), "--status-file", str(self.status_file),
