@@ -14,8 +14,12 @@ TensorRT SDK, FFmpeg를 수동으로 설치할 필요는 없습니다. NVIDIA �
 Small 모델은 앱에 포함됩니다. Base·VDA 변환 팩은 별도 공개 모델 저장소에서
 로그인 없이 받고, 크기·해시 확인 후 이 GPU용 엔진을 준비합니다. 모델 선택만으로는
 다운로드하지 않습니다. 준비 취소·실패 후에는 작업을 다시 시작하세요.
-모델과 캐시는 %LOCALAPPDATA%\ScreenTo3D에 저장합니다. 기존 DepthSBS 폴더의
-데이터는 시작 시 이관하며, 저장된 언어·모델·출력 선택은 유지합니다.
+설정은 앱 폴더의 data/settings.ini, 모델·런타임·캐시·로그도 data 아래에 저장합니다.
+기존 데이터가 있으면 가져오기 안내가 열립니다. 가져오기를 눌러야 복사하며 원본 삭제는
+기본 미선택입니다. 설정 및 진단에서 다시 열 수 있습니다. 앱 폴더 전체를 옮기세요.
+업데이트할 때 앱을 닫고 프로그램 파일을 교체하되 data 폴더는 유지하세요.
+다른 사용자·GPU에서는 엔진을 다시 준비할 수 있습니다. 앱 폴더 삭제 시 이 복사본의
+데이터도 삭제됩니다. 가져오기 때 보존한 기존 AppData 원본은 별도로 남습니다.
 GPU별 런타임 ZIP을 받은 경우 앱 폴더 옆 runtime-packs 폴더에 원래 이름으로
 두세요. 앱이 GPU에 맞는 파일만 검증·설치합니다. 파일이 없으면 설치 설정에서
 GPU 런타임을 설치하세요. 공통 TensorRT·미디어 도구 팩도 같은 폴더에 둘 수 있습니다.
@@ -49,8 +53,12 @@ Downloads are cached and interrupted transfers can resume. Small stays in the ap
 Converted Base/VDA packs download from the separate public model repository without
 sign-in, then their GPU engines are prepared. Selecting a model alone does not download it.
 Cancellation or failure keeps the task stopped until you start it again.
-Models and caches live under %LOCALAPPDATA%\ScreenTo3D. Startup migrates the former
-DepthSBS data while preserving saved language, model and output selections.
+Settings use data/settings.ini in the app folder; models, runtimes, caches and
+logs also stay under data/. Existing files are offered for explicit import;
+original removal starts unchecked. Reopen this window in Settings and diagnostics.
+Move the whole app folder. Close the app before updating program files and keep
+data/. A different user/GPU may need new engines. Deleting this app folder removes
+its data; original AppData files retained during import remain separately.
 For GPU-selected bundles, keep the matching runtime ZIP under runtime-packs/
 next to the app folder, using its original name. The app verifies and installs
 only the required resource. If absent, install the GPU runtime from installation

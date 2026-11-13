@@ -41,22 +41,31 @@ Processing-backend default and delivery-path default are separate decisions.
 
 ## Components and ownership
 
-`user_data.py` owns the `ScreenTo3D` LocalAppData root shared by optional-model,
-download and engine caches. Path discovery is pure; desktop startup explicitly
-migrates the interim StereoTo3D root, then the older DepthSBS root before cache
-lookup. Migration rejects linked roots,
-merges missing entries under a bounded OS lock and preserves conflicts without
-overwriting. Physical roots must be siblings, preventing Store Python's private
-namespace from importing a different backing namespace. The launcher writes logs
-under the new root. `desktop_preferences.migrate_settings` adopts only missing
-owned keys into the new QSettings namespace, preserving the old store. The native
-launcher's pre-GUI language lookup follows the same new-first, legacy-fallback
-order (ScreenTo3D, StereoTo3D, DepthSBS). `environment.py` reads new options first
+`user_data.py` owns the application-relative `data/` root independently of the
+working directory. Path discovery is pure; startup checks writability/reparse
+paths and directs Qt, CUDA, Torch and job temporary caches inside `data` before
+initializing those libraries. The launcher uses the same root for logs and reads
+pre-GUI language from `data/settings.ini`, falling back to the system language.
+`desktop_preferences.py` uses an explicit, fallback-disabled QSettings INI file;
+the fullscreen overlay preference shares it instead of QML registry settings.
+
+`portable_import.py` inventories old AppData without mutation and owns bounded,
+cancelable copy/hash verification, a cross-process import lock and opt-in cleanup
+of only unchanged, verified originals. `data_manager.py` adapts it to a protected
+utility window under the shared processing lease. Normal launch never imports
+registry settings: `portable_settings.py` reads allowlisted legacy settings only
+after the explicit action and adopts missing INI keys. Current values/conflicts
+and legacy registry stores are preserved. An unpackaged official source interpreter
+prepared by `prepare-source-python.py` avoids Store Python's redirected AppData
+namespace. `optional_models.py` retains verified source archives and preserves
+incompatible managed engine folders before publishing a newly validated build.
+
+`environment.py` reads new options first
 and legacy options dynamically in that order,
 without copying them into the environment. Old executable module wrappers call
 the canonical implementation, retaining one worker/message type identity.
-An older launcher's currently open log directory remains in place during data
-adoption and can be adopted on a later current-name launch.
+The portable packager fixes the internal archive root to `ScreenTo3D/` and excludes
+all `data/` content, even license-like paths, so updating app files preserves data.
 
 `media_process.py` owns file-job FFmpeg/FFprobe children, concurrent diagnostic
 drains, bounded log tails/metadata, cancellation during blocked pipe I/O and
@@ -185,7 +194,7 @@ arrangement; text stays at the same logical size in the output window.
   Windows command timeout implies forced application closure. GUI tests inject
   command/process factories and never execute a real shutdown.
 - `desktop_preferences.py` owns validated mode/model/layout selections in the
-  ScreenTo3D QSettings namespace, separated by live/file scope. Explicit
+  shared `data/settings.ini`, separated by live/file scope. Explicit
   UI activation saves them; diagnostic setters and fixed comparisons do not.
   No source, artifact path, VFG state or license consent is restored from it.
 - `model_presentation.py` owns the shared live/file model labels and precision

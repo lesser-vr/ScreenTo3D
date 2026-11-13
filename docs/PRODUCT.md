@@ -27,16 +27,31 @@ image or a 4K model input is not equivalent to 4K per eye.
 
 ## Desktop experience
 
-User-installed models and runtimes live under `%LOCALAPPDATA%\ScreenTo3D\models`;
-download and Small-engine caches share the `ScreenTo3D` root. At startup the app
-adopts the interim `StereoTo3D` data, then older `DepthSBS` data, without downloading
-or rebuilding it. Existing
-destination files win; conflicting legacy files are preserved. Saved language,
-model and layout choices migrate into the `ScreenTo3D/ScreenTo3D` settings store;
-existing new choices win, the interim settings precede older settings, and both
-legacy stores remain available to old versions.
-Qt's automatic UI caches use the new internal name too. The product display name
-remains ScreenTo3D.
+The app is portable. Its extracted folder contains `data/settings.ini`,
+`data/window-state.json`, `data/models`, `data/runtimes`, `data/cache`, `data/logs`
+and `data/temp`. Normal launch reads and writes app preferences only in the INI
+file, including the fullscreen debug overlay selection; it does not use the app
+settings registry. Qt/CUDA/application caches and job temporary files use `data`.
+A nonwritable or linked data location produces an actionable error rather than
+silently falling back to AppData.
+
+On first launch, existing AppData model locations open a separate **Portable
+data** window. Settings also offers this window and **Open data folder**. Only
+the explicit **Import** action copies models, runtimes, download/engine caches
+and, if selected, previous registry settings. Current files/settings win; source
+priority is ScreenTo3D, StereoTo3D, then DepthSBS. Copying verifies SHA-256 and
+supports cancellation. Original removal is a separate, initially unchecked option:
+only unchanged, verified copies are eligible, and conflicts/unrelated files stay.
+The old settings registry is never modified. Previous source output placement can
+also be imported when no current placement exists.
+
+Moving the whole app folder carries its settings and prepared files. Base/VDA
+engines require valid user/GPU-bound receipts; Small's cache is keyed by model,
+GPU and runtime identity. Another user/GPU may need compatible engines prepared. Verified Base/VDA
+source packs are retained for rebuilding. Release ZIPs always contain the fixed
+`ScreenTo3D/` root and exclude `data/`. Close the app before updating its program
+files in the same folder, preserving `data/`. Removing that folder removes this
+copy's app-managed data; originals retained during import remain separately.
 
 The desktop supports Korean and English. **Settings and diagnostics → Language**
 offers System default, 한국어 and English; the default follows the system UI
@@ -181,7 +196,7 @@ The app is named ScreenTo3D. The prepared source and portable launcher is
 `ScreenTo3D.exe`. It runs without a
 console, resolves runtime paths relative to itself and reports launch failures
 in a Windows error dialog. Per-launch logs are saved in
-`%LOCALAPPDATA%\ScreenTo3D\logs`. Build it with
+`data/logs` beside the executable. Build it with
 `scripts/build-desktop-launcher.ps1`; the portable builder does this automatically.
 The source checkout also retains `Run-ScreenTo3D.cmd`. Source-local features do not
 automatically appear in old portable packages. The present app uses one exclusive

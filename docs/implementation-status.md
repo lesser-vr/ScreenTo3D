@@ -1,5 +1,22 @@
 # Current implementation status
 
+Portable storage implemented locally (2026-11-13, not yet released), superseding
+the automatic AppData/registry migration described in earlier entries below.
+The EXE uses application-relative `data/`, explicit INI preferences and window
+placement, separate model/runtime directories, redirected caches/logs/temp, and
+an explicit protected import window. Copy/hash verification preserves originals
+by default; optional cleanup is restricted to unchanged verified files. Releases
+use a fixed `ScreenTo3D/` archive root and exclude user data. Existing GPU/user
+receipts are checked before claiming engines ready; incompatible managed builds
+are preserved when replaced, and new installations retain verified source packs.
+572 CPU/Qt contracts and the 121-binary Qt dependency check pass. Actual import
+verified 45 files / 3,240,056,869 bytes with old settings and originals unchanged.
+Small/Base/VDA live output, four audio/full-decode file conversions, actual
+Unicode/space-folder relocation and ZIP extraction/EXE launch pass. The 182.74 MB
+ZIP contains no user data; four publisher and two model anonymous URL probes pass. See
+[portable storage evidence](evidence/portable-data-20261113.md) for packaging and
+the distinction between local correctness, cross-PC checks and user acceptance.
+
 Internal name corrected to ScreenTo3D locally (2026-11-13, not yet released),
 superseding the interim StereoTo3D naming in the earlier entries below. Canonical
 source/build/QML names, settings, user data, icons and current documentation now

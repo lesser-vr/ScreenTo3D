@@ -39,6 +39,11 @@ Windows 종료는 기본으로 꺼져 있습니다.
 기본 동봉하고, Base·VDA Small·선택 기능인 NVIDIA VFG는 필요할 때 설치합니다.
 Small·Base·VDA의 TensorRT 엔진은 사용자의 NVIDIA GPU에서 생성합니다.
 
+현재 소스 빌드는 EXE 옆 `data/settings.ini`에 설정을, `data/` 아래에 모델·런타임·
+캐시·로그를 저장합니다. 기존 AppData 파일은 설정 화면에서 가져올 수 있으며,
+삭제를 선택하지 않으면 원본을 유지합니다. 앱 폴더 전체를 옮기고 업데이트할 때
+`data/`를 보존하세요. 이 포터블 저장 변경은 위 링크의 릴리스에는 아직 반영되지 않았습니다.
+
 목표는 Small + Lossless Scaling FG보다 나은 깊이 품질과 사용성, 눈당 3840×2160 /
 Full SBS 7680×2160 해상도에서 최종 60fps 출력입니다. 검증이 완료된 지원 사양은 아닙니다.
 

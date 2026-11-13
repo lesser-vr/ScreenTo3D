@@ -25,7 +25,7 @@
 소스 빌더의 기본 출력은 **Small 동봉·Base/VDA 공개 다운로드·공식 런타임 직접 다운로드형**입니다.
 TensorRT 11.2.1.2, CUDA Runtime 13.1.80, FFmpeg 9.0.1, VFG 0.2.0.0의
 고정 원본 URL·크기·해시는 `upstream_sources.json`이 소유합니다. 전체 원본은
-`%LOCALAPPDATA%\ScreenTo3D\downloads`에 보관하고 같은 파일을 다시 받지 않습니다.
+앱 폴더의 `data/cache/downloads`에 보관하고 같은 파일을 다시 받지 않습니다.
 `--export-runtime-packs`를 지정한 경우에만 기존 오프라인 런타임 ZIP을 추가로 만듭니다.
 오프라인 팩을 함께 전달할 때 `runtime-packs/`는
 `ScreenTo3D-1.0.0/`와 나란히 둡니다. 추출 도구는 내려받은 런타임 ZIP을 풀지
@@ -54,7 +54,10 @@ Base·VDA는 최초 설치 중 준비된 TensorRT로 현재 보이는 첫 번째
 포터블 빌더는 MSVC 2022 도구로 콘솔 없는 `ScreenTo3D.exe`를 함께 빌드한다.
 소스 체크아웃에서는 `scripts/build-desktop-launcher.ps1`로 만든
 `out/desktop-launcher/ScreenTo3D.exe`를 저장소 루트에 복사해 실행할 수 있다.
-실행 오류창은 `%LOCALAPPDATA%\ScreenTo3D\logs` 아래의 해당 실행 로그를 안내한다.
+실행 오류창은 앱 폴더의 `data/logs` 아래 해당 실행 로그를 안내한다.
+소스 실행은 `scripts/prepare-source-python.py`가 해시 고정 공식 ZIP으로 준비한
+`out/desktop-python` 인터프리터를 사용한다. 런처 빌드도 캐시된 ZIP이 있으면 이를
+준비한다. Store Python의 AppData 경로 가상화에 의존하지 않는다.
 
 네이티브 DLL은 준비된 MSVC·CUDA 개발 환경에서 `scripts/build-portable-cuda.ps1`로 만든다. 패키저는 VDA 입력 모듈을 포함한 각 DLL의 해시를 확인한다. DLL을 새로 빌드하면 결과를 검증한 뒤 릴리스 해시를 갱신한다.
 
@@ -62,9 +65,9 @@ v3 그래프를 재생성할 때는 ONNX·TensorRT 빌드 환경에서 `v1/build
 
 ```powershell
 python scripts/build-model-packs.py out/desktop-distribution/packs
-python scripts/build-desktop-portable.py out/desktop-distribution/ScreenTo3D-1.0.0 `
+python scripts/build-desktop-portable.py out/desktop-distribution/ScreenTo3D `
     --python-zip out/desktop-distribution/python-3.13.9-embed-amd64.zip
-python scripts/package-desktop-release.py out/desktop-distribution/ScreenTo3D-1.0.0 `
+python scripts/package-desktop-release.py out/desktop-distribution/ScreenTo3D `
     out/desktop-distribution/assets
 ```
 
@@ -85,14 +88,27 @@ python scripts/check-upstream-downloads.py --models --full --report out/upstream
 
 오프라인 전달 시 앱과 `packs/`, 필요한 `runtime-packs/`를 나란히 둔다. 모델은 **로컬 팩 설치**로 가져오고 공통·미디어·GPU 런타임은 첫 작업 전에 검증·설치한다. 별도로 받은 파일은 **파일에서 설치**로 선택한다. VFG는 동일한 버전의 원본 NVIDIA wheel을 선택할 수 있다.
 
-설치는 `%LOCALAPPDATA%\ScreenTo3D\models` 아래에서 진행한다. SHA-256과 크기가 고정값과 일치해야 압축을 풀고, 취소나 오류 뒤에는 작업 폴더를 정리한다. 최종 폴더는 설치가 완료된 시점에 공개한다. 런타임은 기존 엔진·DLL 검증을 수행한다.
-앱 시작 시 임시 오타 이름 `StereoTo3D`, 기존 `DepthSBS` 순으로 새 루트에
-데이터를 이관한다. 이미 있는 새 파일은
-덮어쓰지 않고 충돌한 이전 파일은 원래 위치에 보존한다. 모델·다운로드·엔진 캐시와
-로그가 함께 이동하며, QSettings에 저장한 언어·모델·출력 선택은 새
-`ScreenTo3D/ScreenTo3D` 저장소로 가져온다. 새 값이 있으면 우선하며 옛 설정은
-보존한다. Qt 화면 캐시도 새 이름으로 생성한다. 새 소스 모듈은
-`screento3d_app`이며 기존 실행 명령은 얇은 호환 진입점으로 연결한다.
+모델은 앱 폴더의 `data/models`, 런타임·VFG는 `data/runtimes`, 다운로드·Small 엔진·
+Qt/CUDA 캐시는 `data/cache`, 임시 파일은 `data/temp`에 저장한다. 설정은 레지스트리
+대신 `data/settings.ini`, 출력 창 위치는 `data/window-state.json`을 사용한다.
+SHA-256과 크기가 고정값과 일치해야 압축을 풀고, 취소나 오류 뒤에는 작업 폴더를
+정리한다. 최종 폴더는 설치 완료 시 공개한다. 런타임의 엔진·DLL 검증은 유지한다.
+
+기존 AppData가 있으면 첫 실행 시 **포터블 데이터** 창을 연다. 설정에서도 다시 열 수
+있다. **가져오기**를 눌러야 모델·런타임·다운로드·엔진 캐시를 복사하고 검증한다.
+이전 설정 가져오기는 선택 사항이며 현재 INI 값이 우선한다. 우선순위는 ScreenTo3D,
+StereoTo3D, DepthSBS이다. 원본 삭제는 기본 미선택이다. 선택해도 전체 복사·검증에
+성공한 뒤 바뀌지 않은 파일만 삭제하며 충돌·무관한 파일·옛 레지스트리 설정은 남긴다.
+실행 중 경로를 쓸 수 없으면 AppData로 우회하지 않고 오류를 안내한다.
+
+앱 폴더 전체를 옮기면 설정과 파일이 함께 이동한다. 같은 사용자·GPU의 검증된 엔진은
+재사용하지만 다른 사용자·GPU는 새 엔진 준비가 필요할 수 있다. Base·VDA의 검증된
+원본 팩은 `data/models/_sources`에 보관해 재빌드에 쓴다. 호환되지 않는 기존 엔진은
+보존하고 새 빌드로 교체한다. ZIP 내부 루트는 버전과 무관하게 `ScreenTo3D/`이며
+ZIP에는 `data/`를 넣지 않는다. 업데이트 전 앱을 닫고 프로그램 파일을 같은 폴더에
+덮어쓰되 `data/`를 유지한다. 추출 보조 도구는 기존 대상 폴더를 덮어쓰지 않으므로
+새 위치에 푼 뒤 프로그램 파일만 교체해도 된다. 기존 실행 명령은 얇은 호환 진입점으로
+`screento3d_app`에 연결한다.
 
 빌더는 개발용 라이브러리·헤더·CMake 파일과 C/C++·CUDA·Cython 소스
 (`.c`, `.cc`, `.cpp`, `.cxx`, `.cu`, `.pyx`, `.pxd`, `.pxi`), 미사용 Qt WebEngine을
