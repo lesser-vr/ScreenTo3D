@@ -31,6 +31,7 @@ def validate_qt_source(directory):
 def exclusion(relative,*,is_dir=False):
     path=PurePosixPath(str(relative).replace('\\','/'))
     name=path.name.lower()
+    if path.parts and path.parts[0].lower()=='data':return 'user-data'
     # Generated code can contain private build paths, including in licenses/.
     if '__pycache__' in (p.lower() for p in path.parts) or name.endswith(('.pyc','.pyo')):
         return 'bytecode'

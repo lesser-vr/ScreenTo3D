@@ -37,8 +37,8 @@ def package(app,output,packs,runtime_packs=None):
         sys.path.insert(0,str(ROOT/'v1'))
         from screento3d_app.upstream_check import check
         model_checks=check(model_downloads,model_downloads)
-    version=info['product_version'];name=f'ScreenTo3D-{version}'
-    if app.name!=name:raise ValueError(f'The portable folder must be named {name}.')
+    version=info['product_version'];name=f'ScreenTo3D-{version}';app_root='ScreenTo3D'
+    if app.name not in (name,app_root):raise ValueError('The portable folder must be named ScreenTo3D.')
     if output.exists():raise ValueError('Choose a new archive output directory.')
     import sys
     sys.path.insert(0,str(ROOT/'v1'))
@@ -57,14 +57,14 @@ def package(app,output,packs,runtime_packs=None):
             if archive is None:return
             path=Path(archive.filename);archive.close();archive=None
             assert path.stat().st_size<2*1024**3
-            assets.append(dict(name=path.name,kind='application',root=name,bytes=path.stat().st_size,sha256=digest(path)))
+            assets.append(dict(name=path.name,kind='application',root=app_root,bytes=path.stat().st_size,sha256=digest(path)))
             print('Archived',path.name,path.stat().st_size,flush=True)
         try:
             for index,path in enumerate(files):
                 if archive is not None and archive.fp.tell()+path.stat().st_size+32*1024**2>MAX_ASSET:finish()
                 if archive is None:
                     part+=1;archive=ZipFile(stage/f'{name}-windows-x64-part{part:02d}.zip','w',compression=ZIP_DEFLATED,compresslevel=6,allowZip64=True)
-                archive.write(path,arcname=f'{name}/{path.relative_to(app).as_posix()}')
+                archive.write(path,arcname=f'{app_root}/{path.relative_to(app).as_posix()}')
                 if index%500==0:print('Packing',index+1,'/',len(files),flush=True)
             finish()
         finally:
@@ -110,9 +110,9 @@ def package(app,output,packs,runtime_packs=None):
                 try:os.link(source,stage/source.name)
                 except OSError:shutil.copy2(source,stage/source.name)
                 assets.append(dict(name=source.name,kind='component-runtime',root='runtime-packs',bytes=item['size'],sha256=item['sha']))
-        manifest=dict(product='ScreenTo3D',product_version=version,source_commit=info['source_commit'],
+        manifest=dict(product='ScreenTo3D',product_version=version,source_commit=info['source_commit'],app_root=app_root,data_directory='data',
             app_bytes=sum(p.stat().st_size for p in files),app_files=len(files),assets=assets,upstream_download_checks=upstream_checks,model_download_checks=model_checks,
-            extraction='All application ZIPs have disjoint entries; extract into the same new directory. Optional packs are siblings of the app.')
+            extraction='Application root is ScreenTo3D. User data is never included. Close the app before replacing application files; keep data/. Optional packs are siblings of the app.')
         (stage/'release-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
         for file in ('Extract-ScreenTo3D.cmd','Extract-ScreenTo3D.ps1'):
             shutil.copy2(ROOT/'distribution'/file,stage/file)

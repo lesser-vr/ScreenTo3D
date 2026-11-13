@@ -1,4 +1,4 @@
-import importlib.util,json,tempfile,unittest,hashlib
+import importlib.util,json,tempfile,unittest,hashlib,os,subprocess
 from pathlib import Path
 from unittest.mock import patch
 from zipfile import ZipFile
@@ -9,6 +9,46 @@ packager=importlib.util.module_from_spec(spec);spec.loader.exec_module(packager)
 
 
 class ReleasePackagingTests(unittest.TestCase):
+    @unittest.skipUnless(os.name=='nt','Windows extraction helper')
+    def test_extraction_helper_accepts_current_and_old_roots_and_rejects_escapes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            for index,(archive_root,entry,success) in enumerate([
+                ('ScreenTo3D','ScreenTo3D/ScreenTo3D.exe',True),
+                ('ScreenTo3D-1.0.0','ScreenTo3D-1.0.0/ScreenTo3D.exe',True),
+                ('untrusted','untrusted/ScreenTo3D.exe',False),
+                ('ScreenTo3D','ScreenTo3D/../../escape.bin',False),
+            ]):
+                with self.subTest(root=archive_root,entry=entry):
+                    case=root/str(index);case.mkdir();archive=case/'app.zip';destination=case/'extracted'
+                    with ZipFile(archive,'w') as zip:zip.writestr(entry,b'owned fixture')
+                    manifest=dict(product_version='1.0.0',assets=[dict(kind='application',root=archive_root,
+                        name=archive.name,sha256=packager.digest(archive),bytes=archive.stat().st_size)])
+                    (case/'release-manifest.json').write_text(json.dumps(manifest))
+                    helper=case/'Extract.ps1';helper.write_bytes((ROOT/'distribution/Extract-ScreenTo3D.ps1').read_bytes())
+                    result=subprocess.run(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(helper),
+                        '-Destination',str(destination)],capture_output=True,timeout=15,creationflags=subprocess.CREATE_NO_WINDOW)
+                    self.assertEqual(result.returncode==0,success,result.stderr)
+                    self.assertEqual(destination.exists(),success)
+                    if success:self.assertEqual((destination/archive_root/'ScreenTo3D.exe').read_bytes(),b'owned fixture')
+            self.assertFalse((root/'escape.bin').exists())
+
+    def test_fixed_archive_root_preserves_data_across_version_updates(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);installed=root/'installed';saved=installed/'ScreenTo3D/data/settings.ini'
+            saved.parent.mkdir(parents=True);saved.write_bytes(b'owned user settings')
+            for version in ('1.0.0','1.0.1'):
+                app=root/f'ScreenTo3D-{version}';app.mkdir()
+                (app/'build-manifest.json').write_text(json.dumps(dict(product_version=version,source_commit='fixture')))
+                (app/'ScreenTo3D.exe').write_bytes(version.encode())
+                packager.package(app,root/version,None)
+                manifest=json.loads((root/version/'release-manifest.json').read_text())
+                self.assertEqual(manifest['app_root'],'ScreenTo3D')
+                for asset in manifest['assets']:
+                    with ZipFile(root/version/asset['name']) as archive:archive.extractall(installed)
+                self.assertEqual(saved.read_bytes(),b'owned user settings')
+                self.assertEqual((installed/'ScreenTo3D/ScreenTo3D.exe').read_bytes(),version.encode())
+
     def run_package(self,maximum=None):
         temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup)
         folder=Path(temp.name);app=folder/'ScreenTo3D-1.0.0';app.mkdir()
@@ -18,6 +58,9 @@ class ReleasePackagingTests(unittest.TestCase):
         licenses=app/'packages/packaging/licenses';(licenses/'__pycache__').mkdir(parents=True)
         (licenses/'__pycache__/__init__.cpython-313.pyc').write_bytes(b'private build path fixture')
         (licenses/'COPYING.LIB').write_bytes(b'copyright notice must survive')
+        (app/'data/licenses').mkdir(parents=True)
+        (app/'data/licenses/NOTICE.txt').write_bytes(b'private user data must not ship')
+        (app/'data/settings.ini').write_text('[ui]\nlanguage=ko\n')
         output=folder/'assets'
         with patch.object(packager,'MAX_ASSET',maximum or packager.MAX_ASSET):packager.package(app,output,None)
         manifest=json.loads((output/'release-manifest.json').read_text())
@@ -28,9 +71,10 @@ class ReleasePackagingTests(unittest.TestCase):
             with ZipFile(archive) as zip:
                 for entry in zip.infolist():
                     self.assertNotIn(entry.filename,seen);seen.add(entry.filename)
-                    self.assertEqual(zip.read(entry), (folder/entry.filename).read_bytes())
+                    self.assertEqual(zip.read(entry), (app/Path(entry.filename).relative_to('ScreenTo3D')).read_bytes())
         self.assertEqual(len(seen),6)
-        self.assertIn(app.name+'/packages/packaging/licenses/COPYING.LIB',seen)
+        self.assertIn('ScreenTo3D/packages/packaging/licenses/COPYING.LIB',seen)
+        self.assertFalse(any(name.startswith('ScreenTo3D/data/') for name in seen))
         self.assertFalse(any('__pycache__' in name or name.endswith(('.pyc','.pyo')) for name in seen))
         return manifest
 

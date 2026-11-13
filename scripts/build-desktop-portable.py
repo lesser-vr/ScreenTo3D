@@ -100,7 +100,7 @@ def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None
     if digest(ROOT/small) != manifest['onnx_sha256']:
         raise ValueError('Bundled DA2 Small identity mismatch.')
     subprocess.run(['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass',
-                    '-File', str(ROOT/'scripts/build-desktop-launcher.ps1')], check=True)
+                    '-File', str(ROOT/'scripts/build-desktop-launcher.ps1'),'-PythonZip',str(python_zip)], check=True)
     dest.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=dest.parent) as scratch:
         excluded={}
@@ -167,6 +167,7 @@ def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None
                 for src in matches:
                     copy(src, stage/'packages'/src.name,package_root=stage,excluded=excluded)
         metadata=dict(product='ScreenTo3D',product_version=__version__,
+            data_layout='app-relative data; explicit INI settings; schema 1',
             source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
             source_dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),
             packaging_exclusions=excluded,

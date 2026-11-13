@@ -31,18 +31,10 @@ static std::size_t match_language(const std::wstring& requested, bool exact) {
     return i18n::default_language;
 }
 
-static std::size_t selected_language() {
+static std::size_t selected_language(const fs::path& root) {
     wchar_t choice[128]{};
-    DWORD bytes = sizeof(choice);
-    LSTATUS status=ERROR_FILE_NOT_FOUND;
-    for (const wchar_t* key : {L"Software\\ScreenTo3D\\ScreenTo3D\\ui",
-                              L"Software\\StereoTo3D\\StereoTo3D\\ui",
-                              L"Software\\DepthSBS\\DepthSBS\\ui"}) {
-        bytes=sizeof(choice);
-        status=RegGetValueW(HKEY_CURRENT_USER,key,L"language",RRF_RT_REG_SZ,nullptr,choice,&bytes);
-        if (status!=ERROR_FILE_NOT_FOUND && status!=ERROR_PATH_NOT_FOUND)break;
-    }
-    if (status==ERROR_SUCCESS) {
+    if (!root.empty() && GetPrivateProfileStringW(L"ui",L"language",L"system",choice,DWORD(std::size(choice)),
+                                (root/L"data/settings.ini").c_str())) {
         for (const auto& entry : i18n::languages)
             if (std::wstring(choice) == entry.code) return match_language(choice, true);
     }
@@ -68,24 +60,27 @@ static int fail(i18n::Text error, DWORD code = 0, const std::wstring& details = 
 }
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
-    language = selected_language();
+    language=selected_language({});
     std::vector<wchar_t> filename(32768);
     DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
     if (!length || length >= filename.size()) return fail(i18n::E_LAUNCH_LOCATION, GetLastError());
     const fs::path root = fs::path(filename.data()).parent_path();
+    language = selected_language(root);
     const bool portable = fs::exists(root / L"desktop-portable");
-    const fs::path python = root / (portable ? L"python/pythonw.exe" : L"out/vda-oracle-env/Scripts/pythonw.exe");
+    const fs::path python = root / (portable ? L"python/pythonw.exe" : L"out/desktop-python/pythonw.exe");
     if (!fs::exists(python) || !fs::exists(root / L"v1/screento3d_app/launcher.py"))
         return fail(i18n::E_LAUNCH_COMPONENTS, 0, root.wstring());
 
-    PWSTR local = nullptr;
-    HRESULT result = SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_CREATE, nullptr, &local);
-    if (FAILED(result)) return fail(i18n::E_LAUNCH_USER_FOLDER, DWORD(result));
-    fs::path logs = fs::path(local) / L"ScreenTo3D/logs";
-    CoTaskMemFree(local);
+    const fs::path data=root/L"data";
+    fs::path logs = data/L"logs";
+    for (const auto& path : {data,logs}) {
+        const DWORD attrs=GetFileAttributesW(path.c_str());
+        if (attrs!=INVALID_FILE_ATTRIBUTES && (attrs&FILE_ATTRIBUTE_REPARSE_POINT))
+            return fail(i18n::E_PORTABLE_PATH);
+    }
     std::error_code error;
     fs::create_directories(logs, error);
-    if (error) return fail(i18n::E_LAUNCH_LOG_FOLDER, DWORD(error.value()), logs.wstring());
+    if (error) return fail(i18n::E_PORTABLE_WRITE, DWORD(error.value()), data.wstring());
     // Each concurrent launcher owns its log, including native stdout/stderr.
     fs::path log = logs / (L"launch-" + std::to_wstring(GetCurrentProcessId()) + L".log");
     SECURITY_ATTRIBUTES security{sizeof(SECURITY_ATTRIBUTES), nullptr, TRUE};
@@ -99,6 +94,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
         return fail(i18n::E_LAUNCH_INPUT, code);
     }
     SetEnvironmentVariableW(L"SCREENTO3D_LAUNCH_LOG", log.c_str());
+    SetEnvironmentVariableW(L"PYTHONDONTWRITEBYTECODE",L"1");
     if (!portable) {
         std::wstring paths;
         for (const auto* part : {L"v1", L"out/gui-python-deps", L"out/capture-python-deps", L"out/v1-python-deps"}) {

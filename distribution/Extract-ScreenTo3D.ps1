@@ -13,10 +13,13 @@ if (-not $Destination) { $Destination = Join-Path $PSScriptRoot "ScreenTo3D-$($m
 $targetRoot = [System.IO.Path]::GetFullPath($Destination)
 if (Test-Path -LiteralPath $targetRoot) { throw 'Choose a new destination folder; existing files will not be replaced.' }
 $assetNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+$applicationRoots = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
 foreach ($asset in $manifest.assets) {
-    $validRoot = if ($asset.kind -eq 'application') { "ScreenTo3D-$($manifest.product_version)" } elseif ($asset.kind -eq 'optional-models') { 'packs' } elseif ($asset.kind -in @('gpu-runtime', 'component-runtime')) { 'runtime-packs' } else { throw 'Unknown archive kind.' }
-    if ($asset.root -cne $validRoot -or [System.IO.Path]::GetFileName($asset.name) -cne $asset.name -or $asset.name -notlike '*.zip' -or -not $assetNames.Add($asset.name)) { throw 'Invalid or duplicate archive root or filename.' }
+    $validRoots = if ($asset.kind -eq 'application') { @('ScreenTo3D', "ScreenTo3D-$($manifest.product_version)") } elseif ($asset.kind -eq 'optional-models') { @('packs') } elseif ($asset.kind -in @('gpu-runtime', 'component-runtime')) { @('runtime-packs') } else { throw 'Unknown archive kind.' }
+    if ($asset.root -cnotin $validRoots -or [System.IO.Path]::GetFileName($asset.name) -cne $asset.name -or $asset.name -notlike '*.zip' -or -not $assetNames.Add($asset.name)) { throw 'Invalid or duplicate archive root or filename.' }
+    if ($asset.kind -eq 'application') { $applicationRoots.Add($asset.root) | Out-Null }
 }
+if ($applicationRoots.Count -ne 1) { throw 'All application archives must share one supported root.' }
 $archives = @($manifest.assets | Where-Object { $_.kind -eq 'application' -or (Test-Path -LiteralPath (Join-Path $PSScriptRoot $_.name)) })
 if (-not @($archives | Where-Object kind -eq 'application').Count) { throw 'No application archives were listed.' }
 $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
@@ -48,4 +51,5 @@ foreach ($asset in $archives) {
         [System.IO.Compression.ZipFile]::ExtractToDirectory((Join-Path $PSScriptRoot $asset.name), $targetRoot)
     }
 }
-Write-Host "Ready: $targetRoot\ScreenTo3D-$($manifest.product_version)\ScreenTo3D.exe"
+$appRoot = ($manifest.assets | Where-Object { $_.kind -eq 'application' } | Select-Object -First 1).root
+Write-Host "Ready: $targetRoot\$appRoot\ScreenTo3D.exe"

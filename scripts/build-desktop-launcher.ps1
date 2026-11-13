@@ -1,4 +1,4 @@
-param([string]$Python = '')
+param([string]$Python = '',[string]$PythonZip = '')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 if (-not $Python) {
@@ -7,6 +7,11 @@ if (-not $Python) {
 }
 & $Python (Join-Path $PSScriptRoot 'build-translations.py') --native-only
 if ($LASTEXITCODE) { throw 'Launcher translation generation failed.' }
+if (-not $PythonZip) { $PythonZip = Join-Path $repo 'out/desktop-distribution/python-3.13.9-embed-amd64.zip' }
+if (Test-Path -LiteralPath $PythonZip) {
+    & $Python (Join-Path $PSScriptRoot 'prepare-source-python.py') $PythonZip
+    if ($LASTEXITCODE) { throw 'Source interpreter preparation failed.' }
+}
 $build = Join-Path $repo 'out/desktop-launcher'
 $source = Join-Path $repo 'native/launcher'
 New-Item -ItemType Directory -Path $build -Force | Out-Null
