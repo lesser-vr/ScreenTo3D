@@ -28,7 +28,7 @@ class UserDataTests(unittest.TestCase):
         module=importlib.util.module_from_spec(spec)
         with patch.object(sys,'frozen',True,create=True),patch.object(sys,'executable',str(self.app/'ScreenTo3D.exe')):
             spec.loader.exec_module(module)
-        self.assertEqual(module.data_root(),self.app/'data')
+        self.assertEqual(module.data_root(),self.app.resolve()/'data')
 
     def test_preparation_redirects_caches_and_temp_without_automatic_import(self):
         source=self.local/'ScreenTo3D/models/old.plan';source.parent.mkdir(parents=True);source.write_bytes(b'owned source')
