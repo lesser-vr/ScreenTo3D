@@ -40,11 +40,10 @@ The [current desktop portable build](docs/models/desktop-distribution.md) bundle
 DA2 Small and installs Base, VDA Small and optional NVIDIA VFG on demand.
 Small, Base and VDA build their TensorRT engines on the user's NVIDIA GPU.
 
-Current source builds keep preferences in `data/settings.ini` and models,
+The refreshed 1.0.0 portable build keeps preferences in `data/settings.ini` and models,
 runtimes, caches and logs under `data/` beside the EXE. Existing AppData files
 can be explicitly imported from Settings; originals remain unless removal is
-selected. Move the whole app folder and preserve `data/` when updating. This
-portable-storage change has not yet replaced the linked release.
+selected. Move the whole app folder and preserve `data/` when updating.
 
 The goal is better depth and easier use than Small + Lossless Scaling FG, with
 3840x2160 per eye / 7680x2160 Full SBS at final 60 fps. This is not certified support.

@@ -1,6 +1,6 @@
 # Current implementation status
 
-Portable storage implemented locally (2026-11-13, not yet released), superseding
+Portable storage included in the v1.0.0 distribution refresh (2026-11-13), superseding
 the automatic AppData/registry migration described in earlier entries below.
 The EXE uses application-relative `data/`, explicit INI preferences and window
 placement, separate model/runtime directories, redirected caches/logs/temp, and
