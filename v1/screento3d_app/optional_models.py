@@ -226,7 +226,8 @@ def install(key, source, target, progress, cancelled):
         try:
             payload.rename(target)
         except OSError:
-            if key in GRAPH_HASHES and target.exists() and target.resolve()==installed_path(key).resolve() and not available(key,target):
+            if (key in GRAPH_HASHES and target.exists() and target.resolve().is_relative_to(model_root(key).resolve())
+                    and target.resolve()==installed_path(key).resolve() and not available(key,target)):
                 # A copied portable engine may belong to another Windows user.
                 # Preserve it while publishing the newly verified local build.
                 from uuid import uuid4

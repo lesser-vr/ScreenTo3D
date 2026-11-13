@@ -27,6 +27,7 @@ class OptionalInstallTests(unittest.TestCase):
         return models.install('da2-base', self.archive, self.target, lambda *args: None, cancel)
 
     def test_cancel_then_retry_and_duplicate_publication(self):
+        self.enterContext(patch('screento3d_app.engine_cache.device_identity',side_effect=AssertionError('External installs must not require CUDA')))
         with self.assertRaises(InterruptedError):
             self.install(cancel=lambda: True)
         self.assertEqual(list(self.target.parent.iterdir()), [])
@@ -67,6 +68,7 @@ class OptionalInstallTests(unittest.TestCase):
             with self.assertRaises(ValueError):models.source_for('da2-base')
 
     def test_other_existing_directory_is_preserved(self):
+        self.enterContext(patch('screento3d_app.engine_cache.device_identity',side_effect=AssertionError('External installs must not require CUDA')))
         self.target.mkdir(parents=True)
         sentinel = self.target/'user-data'
         sentinel.write_bytes(b'preserve')
