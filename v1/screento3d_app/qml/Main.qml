@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
-import QtCore
 
 ApplicationWindow {
     id: root
@@ -16,7 +15,6 @@ ApplicationWindow {
     color: theme.window
     font.family: theme.family
     font.pixelSize: 14
-    Settings { id: outputPreferences; category: "SbsOutput"; property bool fullscreenStats: false }
     property bool fileWorkspace: false
     property size liveSize: Qt.size(420, 260)
     property size fileSize: Qt.size(860, 740)
@@ -95,6 +93,7 @@ ApplicationWindow {
 
     LivePage { id: livePage; anchors.fill: parent; visible: root.page !== 1 }
     RuntimeSetup { mainWindow: root }
+    PortableData { mainWindow: root }
         Item {
             objectName: "filesPage"; anchors.fill: parent; visible: root.page === 1
             ColumnLayout {
@@ -325,6 +324,12 @@ ApplicationWindow {
                         onActivated: i18n.setLanguage(currentValue)
                         Accessible.name: qsTr("Language")
                     }
+                    Label { text: qsTr("Portable data"); color: root.ink; font.bold: true }
+                    Copy { text: desktop.dataManager.path; font.pixelSize: 12 }
+                    RowLayout {
+                        Action { text: qsTr("Open data folder"); onClicked: desktop.dataManager.openFolder() }
+                        Action { objectName: "managePortableData"; text: qsTr("Import existing data…"); enabled: !desktop.busy; onClicked: desktop.dataManager.open() }
+                    }
                     Label { text: qsTr("Check installation"); color: root.ink; font.bold: true }
                     Picker { id: setupTarget; objectName: "setupTarget"; enabled: !desktop.busy; model: [qsTr("Live 3D"), qsTr("File conversion")]; Accessible.name: qsTr("Installation check target") }
                     Copy { objectName: "setupModel"; text: qsTr("Model to check · ") + (setupTarget.currentIndex === 0 ? live.liveModelLabel : desktop.models.filter(function(m) { return m.key === desktop.settings.model })[0].label); font.pixelSize: 14 }
@@ -359,8 +364,8 @@ ApplicationWindow {
             }
         }
             LiveOptions {
-                fullscreenStats: outputPreferences.fullscreenStats
-                onFullscreenStatsRequested: enabled => outputPreferences.fullscreenStats = enabled
+                fullscreenStats: desktop.fullscreenStats
+                onFullscreenStatsRequested: enabled => desktop.setFullscreenStats(enabled)
                 onDiagnosticsRequested: root.openPage(2)
             }
         }
@@ -401,7 +406,7 @@ ApplicationWindow {
                     MenuItem { text: sbsOutput.visibility === Window.FullScreen ? qsTr("Windowed · Esc") : qsTr("Fullscreen · F11"); onTriggered: { live.rememberOutput(); sbsOutput.visibility === Window.FullScreen ? sbsOutput.showNormal() : sbsOutput.showFullScreen() } }
                     MenuItem { text: qsTr("Stop 3D"); onTriggered: live.stop() }
                     MenuItem { text: qsTr("Frame interpolation (VFG) · Ctrl+Alt+S"); visible: live.vfgConfigurable; checkable: true; checked: live.vfgEnabled; enabled: !live.stoppingNow && !live.vfgSwitching && (live.vfgEnabled || live.vfgUnavailableReason.length === 0); onTriggered: live.setVfg(checked) }
-                    MenuItem { text: qsTr("Fullscreen performance information"); checkable: true; checked: outputPreferences.fullscreenStats; onTriggered: outputPreferences.fullscreenStats = checked }
+                    MenuItem { text: qsTr("Fullscreen performance information"); checkable: true; checked: desktop.fullscreenStats; onTriggered: desktop.setFullscreenStats(checked) }
                 }
             }
             Image { objectName: "outputImage"; anchors.fill: parent; source: sbsOutput.visible && !live.nativeEnabled ? live.imageUrl : ""; fillMode: Image.PreserveAspectFit; cache: false; asynchronous: false }
@@ -420,7 +425,7 @@ ApplicationWindow {
                 anchors.centerIn: parent
                 width: live.outputAspect > 0 ? Math.min(parent.width, parent.height * live.outputAspect) : parent.width
                 height: live.outputAspect > 0 ? width / live.outputAspect : parent.height
-                visible: sbsOutput.visibility === Window.FullScreen && outputPreferences.fullscreenStats && live.hasFrame
+                visible: sbsOutput.visibility === Window.FullScreen && desktop.fullscreenStats && live.hasFrame
                 Repeater {
                     model: 2
                     Item {
