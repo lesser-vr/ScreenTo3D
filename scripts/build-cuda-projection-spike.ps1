@@ -15,7 +15,7 @@ New-Item -ItemType Directory -Path $output -Force | Out-Null
 Push-Location $output
 try {
     $defines = @()
-    if ($GpuPreview) { $defines = @('-DDEPTHSBS_GPU_PREVIEW=1') }
+    if ($GpuPreview) { $defines = @('-DSCREENTO3D_GPU_PREVIEW=1') }
     # Local RTX 5090 spike only; deliberately not a multi-architecture release.
     & nvcc @defines -shared -O2 --fmad=false -arch=sm_120 -std=c++17 -Xcompiler /MD -Xcompiler /utf-8 `
         (Join-Path $repoRoot 'experiments/cuda_projection/projection.cu') -o projection.dll

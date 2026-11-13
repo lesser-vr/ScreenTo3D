@@ -9,10 +9,10 @@ $vsPath = & $vswhere -latest -version '[17.0,18.0)' -products * -requires Micros
 & (Join-Path $vsPath 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
 $buildDir = Join-Path $repoRoot "out/$OutputName"
 $guideFlags = @()
-if ($OutputName -eq 'guide-fp32') { $guideFlags += '-DDEPTHSBS_GUIDE_FLOAT=1' }
-if ($OutputName -in @('guide-compensated','guide-common','guide-fixed8','guide-two-thirds','static-sbs')) { $guideFlags += '-DDEPTHSBS_GUIDE_COMPENSATED=1' }
-if ($OutputName -eq 'guide-two-thirds') { $guideFlags += '-DDEPTHSBS_GUIDE_TWO_THIRDS=1' }
-if ($OutputName -in @('guide-fixed8','static-sbs')) { $guideFlags += '-DDEPTHSBS_FIXED_GUIDE_8=1' }
+if ($OutputName -eq 'guide-fp32') { $guideFlags += '-DSCREENTO3D_GUIDE_FLOAT=1' }
+if ($OutputName -in @('guide-compensated','guide-common','guide-fixed8','guide-two-thirds','static-sbs')) { $guideFlags += '-DSCREENTO3D_GUIDE_COMPENSATED=1' }
+if ($OutputName -eq 'guide-two-thirds') { $guideFlags += '-DSCREENTO3D_GUIDE_TWO_THIRDS=1' }
+if ($OutputName -in @('guide-fixed8','static-sbs')) { $guideFlags += '-DSCREENTO3D_FIXED_GUIDE_8=1' }
 New-Item -ItemType Directory -Force $buildDir | Out-Null
 Push-Location $buildDir
 try {
@@ -21,11 +21,11 @@ try {
     if ($CompanionsOnly) { $sources = @('live_texture_runtime','small_input') }
     if ($Diagnostics) { $sources += @('resolve_probe','guide_sum_probe') }
     foreach ($sourceName in $sources) {
-        & nvcc -shared -O2 --fmad=false -arch=sm_120 -std=c++17 -DDEPTHSBS_FAST_GUIDE=1 -DDEPTHSBS_BITMAP_RESOLVE=1 @guideFlags -Xcompiler /MD -Xcompiler /utf-8 (Join-Path $repoRoot "experiments/cuda_projection/$sourceName.cu") -o "$sourceName.dll" -ld3d11 -ldxgi
+        & nvcc -shared -O2 --fmad=false -arch=sm_120 -std=c++17 -DSCREENTO3D_FAST_GUIDE=1 -DSCREENTO3D_BITMAP_RESOLVE=1 @guideFlags -Xcompiler /MD -Xcompiler /utf-8 (Join-Path $repoRoot "experiments/cuda_projection/$sourceName.cu") -o "$sourceName.dll" -ld3d11 -ldxgi
         if ($LASTEXITCODE -ne 0) { throw "GPU load candidate build failed: $sourceName" }
     }
     [ordered]@{
-        architecture='sm_120';flags='-O2 --fmad=false; DEPTHSBS_FAST_GUIDE, DEPTHSBS_BITMAP_RESOLVE'
+        architecture='sm_120';flags='-O2 --fmad=false; SCREENTO3D_FAST_GUIDE, SCREENTO3D_BITMAP_RESOLVE'
         guide_accumulation=$OutputName;guide_flags=$guideFlags
         fixed_guide_radii=if ($OutputName -in @('guide-fixed8','static-sbs')) { @(4,8,12) } else { @(4,12) }
         scope='Prepared-local pinned runtime; not a public release'

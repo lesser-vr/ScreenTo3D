@@ -12,7 +12,7 @@ $env:TMP = $env:TEMP = Join-Path $dir 'temp'
 New-Item -Type Directory -Force $env:TMP | Out-Null
 Push-Location $dir
 try {
-    & nvcc -shared -O2 --fmad=false '-gencode=arch=compute_75,code=compute_75' '-gencode=arch=compute_120,code=sm_120' -std=c++17 -DDEPTHSBS_FAST_GUIDE=1 -DDEPTHSBS_BITMAP_RESOLVE=1 -DDEPTHSBS_GUIDE_COMPENSATED=1 -DDEPTHSBS_FIXED_GUIDE_8=1 -Xcompiler /MD -Xcompiler /utf-8 $source -o ovda_postprocess.dll
+    & nvcc -shared -O2 --fmad=false '-gencode=arch=compute_75,code=compute_75' '-gencode=arch=compute_120,code=sm_120' -std=c++17 -DSCREENTO3D_FAST_GUIDE=1 -DSCREENTO3D_BITMAP_RESOLVE=1 -DSCREENTO3D_GUIDE_COMPENSATED=1 -DSCREENTO3D_FIXED_GUIDE_8=1 -Xcompiler /MD -Xcompiler /utf-8 $source -o ovda_postprocess.dll
     if ($LASTEXITCODE) { throw 'oVDA postprocessing bridge build failed' }
 } finally { Pop-Location; $env:TMP = $priorTmp; $env:TEMP = $priorTemp }
 [ordered]@{

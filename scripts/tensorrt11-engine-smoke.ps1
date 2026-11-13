@@ -39,13 +39,13 @@ if ($LASTEXITCODE -ne 0) { throw 'FP16 ONNX fixture generation failed.' }
 
 & $cmake -S (Join-Path $repoRoot 'tools\tensorrt11-smoke') -B $buildPath -G Ninja `
     -DCMAKE_BUILD_TYPE=Release `
-    "-DDEPTHSBS_TENSORRT_ROOT=$($tensorRt.root)" `
-    "-DDEPTHSBS_CUDA_ROOT=$env:CUDA_PATH"
+    "-DSCREENTO3D_TENSORRT_ROOT=$($tensorRt.root)" `
+    "-DSCREENTO3D_CUDA_ROOT=$env:CUDA_PATH"
 if ($LASTEXITCODE -ne 0) { throw 'TensorRT 11 smoke configure failed.' }
 & $cmake --build $buildPath
 if ($LASTEXITCODE -ne 0) { throw 'TensorRT 11 smoke build failed.' }
 
-$executable = Join-Path $buildPath 'depthsbs_tensorrt11_smoke.exe'
+$executable = Join-Path $buildPath 'screento3d_tensorrt11_smoke.exe'
 $result = & $executable $modelPath $enginePath
 if ($LASTEXITCODE -ne 0) { throw 'TensorRT 11 engine smoke failed.' }
 $parsed = $result | ConvertFrom-Json

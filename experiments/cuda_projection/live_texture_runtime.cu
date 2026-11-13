@@ -1,4 +1,4 @@
-#define DEPTHSBS_TEXTURE_TIMING
+#define SCREENTO3D_TEXTURE_TIMING
 #include "live_texture_pool.cu"
 
 // Synthetic integration-test producer; never selected by the live worker.

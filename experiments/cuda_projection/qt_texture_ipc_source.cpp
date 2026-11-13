@@ -54,9 +54,11 @@ struct IpcSource {
         D3D11_QUERY_DESC query={D3D11_QUERY_EVENT,0};hr(device->CreateQuery(&query,&completion),"GPU query");
         child.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args){args->flags|=CREATE_NO_WINDOW;});
         QStringList args={QString::number(GetCurrentProcessId()),QString::number(w),QString::number(h)};
-        if(qEnvironmentVariableIsSet("DEPTHSBS_TEXTURE_PUBLIC")) {
+        if(qEnvironmentVariableIsSet("SCREENTO3D_TEXTURE_PUBLIC") || qEnvironmentVariableIsSet("STEREOTO3D_TEXTURE_PUBLIC") || qEnvironmentVariableIsSet("DEPTHSBS_TEXTURE_PUBLIC")) {
             args.prepend(QCoreApplication::applicationDirPath()+"/../../v1/texture_public_worker.py");
-            const QString interpreter=qEnvironmentVariable("DEPTHSBS_TEXTURE_PYTHON");
+            const QString interpreter=qEnvironmentVariableIsSet("SCREENTO3D_TEXTURE_PYTHON")
+                ? qEnvironmentVariable("SCREENTO3D_TEXTURE_PYTHON")
+                : qEnvironmentVariableIsSet("STEREOTO3D_TEXTURE_PYTHON") ? qEnvironmentVariable("STEREOTO3D_TEXTURE_PYTHON") : qEnvironmentVariable("DEPTHSBS_TEXTURE_PYTHON");
             if(interpreter.isEmpty())throw std::runtime_error("Missing explicit test interpreter");
             child.start(interpreter,args);
         } else {

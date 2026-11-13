@@ -98,7 +98,7 @@ __global__ void resolve_bitmap(const unsigned char* rgb,const unsigned long long
 static void launch_resolve_parallel(const unsigned char* rgb,
     const unsigned long long* owners, unsigned char* output,
     int width, int height, cudaStream_t stream) {
-#ifdef DEPTHSBS_BITMAP_RESOLVE
+#ifdef SCREENTO3D_BITMAP_RESOLVE
     if(width<=1024)resolve_bitmap<4><<<height,256,0,stream>>>(rgb,owners,output,width);
     else if(width<=2048)resolve_bitmap<8><<<height,256,0,stream>>>(rgb,owners,output,width);
     else resolve_bitmap<16><<<height,256,0,stream>>>(rgb,owners,output,width);

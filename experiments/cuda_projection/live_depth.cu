@@ -1,5 +1,5 @@
 // Local device-resident DA2 postprocess candidate. Existing projection is reused.
-#define DEPTHSBS_GPU_PREVIEW 1
+#define SCREENTO3D_GPU_PREVIEW 1
 #include "projection.cu"
 #include "resolve_parallel.cuh"
 #include <cub/device/device_radix_sort.cuh>
@@ -299,7 +299,7 @@ __global__ void guided(LiveDepth c,int radius) {
     c.aligned[i]=fminf(1.f,fmaxf(0.f,float(a*scale)*c.guide[i]+float(b*scale)));
 }
 // Wider guide windows reuse sums within bounded 64-pixel chunks.
-#ifndef DEPTHSBS_GUIDE_REFERENCE_ONLY
+#ifndef SCREENTO3D_GUIDE_REFERENCE_ONLY
 constexpr int GUIDE_CHUNK=64;
 __global__ void moments_x_rolling(LiveDepth c,int radius) {
     int segments=(c.w+GUIDE_CHUNK-1)/GUIDE_CHUNK,id=blockIdx.x*blockDim.x+threadIdx.x;
@@ -353,16 +353,16 @@ __global__ void guided_y_rolling(LiveDepth c,int radius) {
     }
 }
 #include "guide_fixed.cuh"
-#ifdef DEPTHSBS_GUIDE_TWO_THIRDS
+#ifdef SCREENTO3D_GUIDE_TWO_THIRDS
 #include "guide_reduced.cuh"
 #endif
 static cudaError_t live_guide(LiveDepth* c,int radius,cudaStream_t stream) {
-#ifdef DEPTHSBS_FAST_GUIDE
+#ifdef SCREENTO3D_FAST_GUIDE
     if(radius==12)return fixed_guide<12>(c,stream);
     if(radius==4)return fixed_guide<4>(c,stream);
-#ifdef DEPTHSBS_GUIDE_TWO_THIRDS
+#ifdef SCREENTO3D_GUIDE_TWO_THIRDS
     if(radius==8)return guide_two_thirds(c,stream);
-#elif defined(DEPTHSBS_FIXED_GUIDE_8)
+#elif defined(SCREENTO3D_FIXED_GUIDE_8)
     if(radius==8)return fixed_guide<8>(c,stream);
 #endif
 #endif
@@ -558,7 +558,7 @@ static int finish_live_depth(LiveDepth* c,int radius,double alpha,float color_th
     double temporal_weight=pixel_alpha<0. ? alpha : pixel_alpha;
     temporal<<<blocks,256,0,s>>>(*c,float(temporal_weight),float(1.0-temporal_weight),depth_threshold,float(transition),float(double(depth_threshold)-transition),reset);
     C(cudaEventRecord(c->events[5],s));
-#ifdef DEPTHSBS_GUIDE_REFERENCE_ONLY
+#ifdef SCREENTO3D_GUIDE_REFERENCE_ONLY
     moments_x<<<blocks,256,0,s>>>(*c,radius);
     coefficients<<<blocks,256,0,s>>>(*c,radius);
     coefficients_x<<<blocks,256,0,s>>>(*c,radius);

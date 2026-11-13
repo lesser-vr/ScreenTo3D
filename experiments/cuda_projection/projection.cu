@@ -102,7 +102,7 @@ static int create_context(void** output, int width, int height, int fail_stage) 
 }
 
 extern "C" __declspec(dllexport) int projection_create(void** output, int width, int height) {
-#ifdef DEPTHSBS_GPU_PREVIEW
+#ifdef SCREENTO3D_GPU_PREVIEW
     int device = -1, driver = 0;
     cudaDeviceProp properties{};
     auto status = cudaGetDevice(&device);
@@ -111,7 +111,7 @@ extern "C" __declspec(dllexport) int projection_create(void** output, int width,
     if (status != cudaSuccess) return int(status);
     status = cudaDriverGetVersion(&driver);
     if (status != cudaSuccess) return int(status);
-#ifdef DEPTHSBS_PORTABLE_CUDA
+#ifdef SCREENTO3D_PORTABLE_CUDA
     if (properties.major * 10 + properties.minor < 75) return int(cudaErrorInvalidDevice);
 #else
     if (properties.major != 12 || properties.minor != 0) return int(cudaErrorInvalidDevice);
@@ -122,7 +122,7 @@ extern "C" __declspec(dllexport) int projection_create(void** output, int width,
 }
 
 // Fault injection only in the experimental DLL; no persistent global state.
-#ifndef DEPTHSBS_GPU_PREVIEW
+#ifndef SCREENTO3D_GPU_PREVIEW
 extern "C" __declspec(dllexport) int projection_create_injected(void** output, int width, int height, int stage) {
     if (stage < 1 || stage > 6) return int(cudaErrorInvalidValue);
     return create_context(output, width, height, stage);

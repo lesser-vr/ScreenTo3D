@@ -1,4 +1,4 @@
-// Isolated DepthSBS probe using the pinned local DLSS project's MIT NVOF bridge.
+// Isolated ScreenTo3D probe using the pinned local DLSS project's MIT NVOF bridge.
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>

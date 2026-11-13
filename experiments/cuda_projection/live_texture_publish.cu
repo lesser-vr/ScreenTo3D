@@ -51,7 +51,7 @@ extern "C" __declspec(dllexport) int live_texture_publish(void* value,void* live
         if(!clear && texture->layout==3)
             return publish_reduced_half(texture,c,convergence,scale,coverage,refined,index,1);
         auto& slot=texture->slots[index];auto stream=c->stream;int blocks=(c->n+255)/256;
-#ifdef DEPTHSBS_TEXTURE_TIMING
+#ifdef SCREENTO3D_TEXTURE_TIMING
         CU(cudaEventRecord(c->events[7],stream));
 #endif
         if(!clear) {
@@ -66,33 +66,33 @@ extern "C" __declspec(dllexport) int live_texture_publish(void* value,void* live
             paint<<<dim3((texture->out_w+31)/32,(texture->out_h+7)/8),dim3(32,8),0,stream>>>(slot.surface,texture->out_w,texture->out_h,0,true);
         } else {
             CU(live_make_shift(c,convergence,scale));
-#ifdef DEPTHSBS_TEXTURE_TIMING
+#ifdef SCREENTO3D_TEXTURE_TIMING
             CU(cudaEventRecord(c->projection_events[0],stream));
 #endif
             for(int eye=0;eye<2;eye++) {
                 if(eye)negate_shift<<<blocks,256,0,stream>>>(c->shift,c->n);
                 CU(cudaMemsetAsync(c->owners,0,c->n*8,stream));
                 splat<<<blocks,256,0,stream>>>(c->aligned,c->shift,c->owners,c->w,c->n,coverage!=0);
-#ifdef DEPTHSBS_TEXTURE_TIMING
+#ifdef SCREENTO3D_TEXTURE_TIMING
                 CU(cudaEventRecord(c->projection_events[eye*3+1],stream));
 #endif
                 if(c->parallel_resolve)launch_resolve_parallel(c->rgb,c->owners,c->output,c->w,c->h,stream);
                 else resolve<<<(c->h+63)/64,64,0,stream>>>(c->rgb,c->owners,c->output,c->w,c->h);
                 live_reconstruct(c);
                 live_mask_window(c,eye);
-#ifdef DEPTHSBS_TEXTURE_TIMING
+#ifdef SCREENTO3D_TEXTURE_TIMING
                 CU(cudaEventRecord(c->projection_events[eye*3+2],stream));
 #endif
                 int packed_pixels=texture->out_w*texture->out_h/2;
                 pack_eye_surface<<<(packed_pixels+255)/256,256,0,stream>>>(c->output,slot.surface,c->w,c->h,eye,texture->layout);
-#ifdef DEPTHSBS_TEXTURE_TIMING
+#ifdef SCREENTO3D_TEXTURE_TIMING
                 CU(cudaEventRecord(c->projection_events[eye*3+3],stream));
 #endif
             }
         }
         CU(cudaGetLastError());cudaExternalSemaphoreSignalParams signal={};signal.params.keyedMutex.key=1;
         CU(cudaSignalExternalSemaphoresAsync(&slot.semaphore,&signal,1,stream));
-#ifdef DEPTHSBS_TEXTURE_TIMING
+#ifdef SCREENTO3D_TEXTURE_TIMING
         CU(cudaEventRecord(c->events[8],stream));
 #endif
         CU(cudaStreamSynchronize(stream));return 1;

@@ -3,7 +3,7 @@
 #include <exception>
 #include <iostream>
 
-namespace depthsbs::test {
+namespace screento3d::test {
 
 std::vector<TestCase>& registry() {
     static std::vector<TestCase> tests;
@@ -14,11 +14,11 @@ Registrar::Registrar(std::string name, TestFunction function) {
     registry().emplace_back(std::move(name), std::move(function));
 }
 
-}  // namespace depthsbs::test
+}  // namespace screento3d::test
 
 int main() {
     int failures = 0;
-    for (const auto& [name, function] : depthsbs::test::registry()) {
+    for (const auto& [name, function] : screento3d::test::registry()) {
         try {
             function();
             std::cout << "PASS " << name << '\n';
@@ -27,7 +27,7 @@ int main() {
             std::cerr << "FAIL " << name << ": " << error.what() << '\n';
         }
     }
-    std::cout << depthsbs::test::registry().size() << " test(s), " << failures
+    std::cout << screento3d::test::registry().size() << " test(s), " << failures
               << " failure(s)\n";
     return failures == 0 ? 0 : 1;
 }

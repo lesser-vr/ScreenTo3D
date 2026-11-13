@@ -50,7 +50,7 @@ void report_parser_errors(const nvonnxparser::IParser& parser) {
 
 int main(const int argc, char** argv) {
     if (argc != 3) {
-        std::cerr << "Usage: depthsbs_tensorrt11_smoke <model.onnx> <engine.plan>\n";
+        std::cerr << "Usage: screento3d_tensorrt11_smoke <model.onnx> <engine.plan>\n";
         return 2;
     }
 

@@ -1,7 +1,7 @@
 // Diagnostic extension only. Borrows the exact pinned LiveDepth layout and stream.
 // No application DLL or Python runtime path is replaced by this experiment.
 #include "live_depth.cu"
-#define DEPTHSBS_TEXTURE_LIBRARY
+#define SCREENTO3D_TEXTURE_LIBRARY
 #include "texture_handoff_probe.cu"
 #include <thread>
 

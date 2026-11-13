@@ -110,7 +110,7 @@ struct Slot {
     }
 };
 
-#ifndef DEPTHSBS_TEXTURE_LIBRARY
+#ifndef SCREENTO3D_TEXTURE_LIBRARY
 static void run_case(ID3D11Device* writer,ID3D11Device1* reader,
     ID3D11DeviceContext* consumer,cudaStream_t stream,int w,int h,int cycle) {
     Slot slots[2];

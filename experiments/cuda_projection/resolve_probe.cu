@@ -1,5 +1,5 @@
 // Standalone diagnostic. Never loaded by the GUI or file converter.
-#define DEPTHSBS_GPU_PREVIEW 1
+#define SCREENTO3D_GPU_PREVIEW 1
 #include "projection.cu"
 #include "resolve_parallel.cuh"
 

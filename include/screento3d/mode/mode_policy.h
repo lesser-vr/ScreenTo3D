@@ -4,7 +4,7 @@
 #include <string>
 #include <string_view>
 
-namespace depthsbs {
+namespace screento3d {
 
 enum class ProcessingMode {
     performance,
@@ -36,4 +36,4 @@ struct ProcessingPlan {
 [[nodiscard]] std::string_view to_string(TemporalPolicy policy) noexcept;
 [[nodiscard]] std::string to_json(const ProcessingPlan& plan, bool pretty);
 
-}  // namespace depthsbs
+}  // namespace screento3d

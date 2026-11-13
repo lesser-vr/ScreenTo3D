@@ -75,10 +75,10 @@ public:
 };
 int main(int argc,char** argv) {
     QGuiApplication app(argc,argv);
-    const bool publicVideo=qEnvironmentVariableIsSet("DEPTHSBS_TEXTURE_PUBLIC");
+    const bool publicVideo=qEnvironmentVariableIsSet("SCREENTO3D_TEXTURE_PUBLIC") || qEnvironmentVariableIsSet("STEREOTO3D_TEXTURE_PUBLIC") || qEnvironmentVariableIsSet("DEPTHSBS_TEXTURE_PUBLIC");
     const int timeScale=publicVideo?3:1;
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Direct3D11);
-    QQuickWindow window;window.setTitle("DepthSBS native texture boundary test");
+    QQuickWindow window;window.setTitle("ScreenTo3D native texture boundary test");
     window.setFlags(Qt::Window|Qt::WindowStaysOnTopHint);
     window.setPersistentSceneGraph(false);window.setPersistentGraphics(false);
     window.setColor(Qt::black);window.resize(960,publicVideo?270:540);

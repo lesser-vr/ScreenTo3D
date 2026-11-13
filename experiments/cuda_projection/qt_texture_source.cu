@@ -1,5 +1,5 @@
 // Standalone Qt boundary source, deliberately not part of the live application.
-#define DEPTHSBS_TEXTURE_LIBRARY
+#define SCREENTO3D_TEXTURE_LIBRARY
 #include "texture_handoff_probe.cu"
 #include <thread>
 #include <atomic>

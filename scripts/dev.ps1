@@ -60,7 +60,7 @@ switch ($Action) {
     }
     'capability' {
         Invoke-Build
-        $executable = Join-Path $repoRoot "out\build\$preset\depthsbs.exe"
+        $executable = Join-Path $repoRoot "out\build\$preset\screento3d.exe"
         & $executable capability
         if ($LASTEXITCODE -ne 0) { throw 'Capability probe failed.' }
     }

@@ -282,7 +282,10 @@ protected:
 
 extern "C" {
 __declspec(dllexport) int native_register() {
-    return qmlRegisterType<NativeSurface>("DepthSBS.Native",1,0,"NativeSurface")>=0;
+    const int current=qmlRegisterType<NativeSurface>("ScreenTo3D.Native",1,0,"NativeSurface");
+    const int interim=qmlRegisterType<NativeSurface>("StereoTo3D.Native",1,0,"NativeSurface");
+    const int legacy=qmlRegisterType<NativeSurface>("DepthSBS.Native",1,0,"NativeSurface");
+    return current>=0 && interim>=0 && legacy>=0;
 }
 __declspec(dllexport) const char* native_error() {
     static thread_local std::string result;std::lock_guard<std::mutex> guard(errorMutex);

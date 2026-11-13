@@ -1,5 +1,5 @@
 // Owned synthetic producer for the cross-process Qt boundary experiment.
-#define DEPTHSBS_TEXTURE_LIBRARY
+#define SCREENTO3D_TEXTURE_LIBRARY
 #include "texture_handoff_probe.cu"
 #include <tlhelp32.h>
 
@@ -63,7 +63,7 @@ int main(int argc,char** argv) {
                 index<0 || index>1 || frame<0 || (clear!=0 && clear!=1))
                 throw std::runtime_error("Invalid frame command");
             // Explicit fault injection in this standalone executable only.
-            if(std::getenv("DEPTHSBS_TEXTURE_TEST_CRASH") && ++commands==10)
+            if((std::getenv("SCREENTO3D_TEXTURE_TEST_CRASH") || std::getenv("STEREOTO3D_TEXTURE_TEST_CRASH") || std::getenv("DEPTHSBS_TEXTURE_TEST_CRASH")) && ++commands==10)
                 TerminateProcess(GetCurrentProcess(),42);
             auto& slot=slots[index];cudaExternalSemaphoreWaitParams wait={};
             wait.params.keyedMutex.key=0;wait.params.keyedMutex.timeoutMs=2000;

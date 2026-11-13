@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace depthsbs {
+namespace screento3d {
 
 enum class Availability {
     available,
@@ -43,4 +43,4 @@ struct SystemCapabilities {
 [[nodiscard]] std::string to_json(const SystemCapabilities& capabilities, bool pretty);
 [[nodiscard]] std::string_view to_string(Availability availability) noexcept;
 
-}  // namespace depthsbs
+}  // namespace screento3d

@@ -1,30 +1,30 @@
 #include "test_support.h"
 
-#include "depthsbs/foundation/capabilities.h"
+#include "screento3d/foundation/capabilities.h"
 
 #include <string>
 
-DEPTHSBS_TEST("availability strings are stable") {
-    depthsbs::test::require(depthsbs::to_string(depthsbs::Availability::available) ==
+SCREENTO3D_TEST("availability strings are stable") {
+    screento3d::test::require(screento3d::to_string(screento3d::Availability::available) ==
                                 "available",
                             "available spelling changed");
-    depthsbs::test::require(depthsbs::to_string(depthsbs::Availability::unavailable) ==
+    screento3d::test::require(screento3d::to_string(screento3d::Availability::unavailable) ==
                                 "unavailable",
                             "unavailable spelling changed");
-    depthsbs::test::require(depthsbs::to_string(depthsbs::Availability::unknown) == "unknown",
+    screento3d::test::require(screento3d::to_string(screento3d::Availability::unknown) == "unknown",
                             "unknown spelling changed");
 }
 
-DEPTHSBS_TEST("capability JSON escapes diagnostics") {
-    depthsbs::SystemCapabilities capabilities;
+SCREENTO3D_TEST("capability JSON escapes diagnostics") {
+    screento3d::SystemCapabilities capabilities;
     capabilities.platform = "test";
-    capabilities.cuda_driver = {depthsbs::Availability::unavailable, "",
+    capabilities.cuda_driver = {screento3d::Availability::unavailable, "",
                                 "quoted \"value\"\nnext"};
     capabilities.gpus.push_back({0, "GPU \\ sample", 1, 2, 4096});
-    const auto json = depthsbs::to_json(capabilities, false);
-    depthsbs::test::require(
+    const auto json = screento3d::to_json(capabilities, false);
+    screento3d::test::require(
         json.find("quoted \\\"value\\\"\\nnext") != std::string::npos,
         "diagnostic was not escaped");
-    depthsbs::test::require(json.find("GPU \\\\ sample") != std::string::npos,
+    screento3d::test::require(json.find("GPU \\\\ sample") != std::string::npos,
                             "GPU name was not escaped");
 }

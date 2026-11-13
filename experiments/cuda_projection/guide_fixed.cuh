@@ -1,7 +1,7 @@
 // Fixed radius, 2-D launch. Default retains the reference double sums.
 // Experimental FP32 accumulation is built separately and requires bounded-error
 // depth, stereo and temporal validation before its artifact can be pinned.
-#if defined(DEPTHSBS_GUIDE_COMPENSATED)
+#if defined(SCREENTO3D_GUIDE_COMPENSATED)
 struct GuideAccum {
     // TwoSum retains each addition's residual in a second FP32 component.
     // Unlike a rounded Kahan result, it carries low bits into the final mean.
@@ -16,7 +16,7 @@ struct GuideAccum {
     }
     __device__ operator double() const {return double(hi)+double(lo);}
 };
-#elif defined(DEPTHSBS_GUIDE_FLOAT)
+#elif defined(SCREENTO3D_GUIDE_FLOAT)
 using GuideAccum=float;
 #else
 using GuideAccum=double;

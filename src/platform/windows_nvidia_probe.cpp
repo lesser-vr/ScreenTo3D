@@ -1,4 +1,4 @@
-#include "depthsbs/foundation/capabilities.h"
+#include "screento3d/foundation/capabilities.h"
 
 #if defined(_WIN32)
 
@@ -14,7 +14,7 @@
 #include <string_view>
 #include <vector>
 
-namespace depthsbs {
+namespace screento3d {
 namespace {
 
 using CuResult = int;
@@ -180,11 +180,11 @@ SystemCapabilities probe_system_capabilities() {
     return capabilities;
 }
 
-}  // namespace depthsbs
+}  // namespace screento3d
 
 #else
 
-namespace depthsbs {
+namespace screento3d {
 
 SystemCapabilities probe_system_capabilities() {
     SystemCapabilities capabilities;
@@ -199,6 +199,6 @@ SystemCapabilities probe_system_capabilities() {
     return capabilities;
 }
 
-}  // namespace depthsbs
+}  // namespace screento3d
 
 #endif

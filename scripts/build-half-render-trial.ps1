@@ -8,7 +8,7 @@ $build = Join-Path $repo "out/$OutputName"
 New-Item -ItemType Directory -Path $build -Force | Out-Null
 Push-Location $build
 try {
-    & nvcc -shared -O2 --fmad=false '-gencode=arch=compute_75,code=compute_75' '-gencode=arch=compute_120,code=sm_120' -std=c++17 -Xcompiler /MD -Xcompiler /utf-8 -DDEPTHSBS_FAST_GUIDE=1 -DDEPTHSBS_BITMAP_RESOLVE=1 -DDEPTHSBS_GUIDE_COMPENSATED=1 -DDEPTHSBS_FIXED_GUIDE_8=1 (Join-Path $repo 'experiments/cuda_projection/half_render_trial.cu') -o half_render_trial.dll -ld3d11 -ldxgi
+    & nvcc -shared -O2 --fmad=false '-gencode=arch=compute_75,code=compute_75' '-gencode=arch=compute_120,code=sm_120' -std=c++17 -Xcompiler /MD -Xcompiler /utf-8 -DSCREENTO3D_FAST_GUIDE=1 -DSCREENTO3D_BITMAP_RESOLVE=1 -DSCREENTO3D_GUIDE_COMPENSATED=1 -DSCREENTO3D_FIXED_GUIDE_8=1 (Join-Path $repo 'experiments/cuda_projection/half_render_trial.cu') -o half_render_trial.dll -ld3d11 -ldxgi
     if ($LASTEXITCODE) { throw 'Half render trial build failed.' }
     Get-FileHash half_render_trial.dll | Select-Object Hash
 } finally { Pop-Location }

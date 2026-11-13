@@ -1,5 +1,5 @@
-#include "depthsbs/foundation/capabilities.h"
-#include "depthsbs/mode/mode_policy.h"
+#include "screento3d/foundation/capabilities.h"
+#include "screento3d/mode/mode_policy.h"
 
 #include <iostream>
 #include <string_view>
@@ -7,10 +7,10 @@
 namespace {
 
 void print_usage(std::ostream& output) {
-    output << "DepthSBS foundation CLI\n\n"
+    output << "ScreenTo3D foundation CLI\n\n"
               "Usage:\n"
-              "  depthsbs capability [--compact]\n"
-              "  depthsbs mode <performance|balanced|video-quality|offline-quality> "
+              "  screento3d capability [--compact]\n"
+              "  screento3d mode <performance|balanced|video-quality|offline-quality> "
               "[--compact]\n";
 }
 
@@ -33,7 +33,7 @@ int main(const int argc, char** argv) {
     const bool pretty = !compact_requested(argc, argv);
 
     if (command == "capability") {
-        std::cout << depthsbs::to_json(depthsbs::probe_system_capabilities(), pretty);
+        std::cout << screento3d::to_json(screento3d::probe_system_capabilities(), pretty);
         return 0;
     }
 
@@ -43,12 +43,12 @@ int main(const int argc, char** argv) {
             print_usage(std::cerr);
             return 2;
         }
-        const auto mode = depthsbs::parse_processing_mode(argv[2]);
+        const auto mode = screento3d::parse_processing_mode(argv[2]);
         if (!mode.has_value()) {
             std::cerr << "unknown processing mode: " << argv[2] << '\n';
             return 2;
         }
-        std::cout << depthsbs::to_json(depthsbs::resolve_processing_plan(*mode), pretty);
+        std::cout << screento3d::to_json(screento3d::resolve_processing_plan(*mode), pretty);
         return 0;
     }
 

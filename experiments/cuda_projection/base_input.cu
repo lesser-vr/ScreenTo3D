@@ -47,7 +47,7 @@
 #include <cuda_runtime.h>
 #include <cstdint>
 
-#ifdef DEPTHSBS_VDA_INPUT
+#ifdef SCREENTO3D_VDA_INPUT
 using ResizePixel = float;
 #define PREPARE_ENTRY vda_prepare
 #else
@@ -70,7 +70,7 @@ __global__ void prepare(const unsigned char* src, size_t pitch, int w, int h,
     int c=i/(oh*ow), y=(i/ow)%oh, x=i%ow;
     x=min(max(x-left,0),rw-1); y=min(max(y-top,0),rh-1);
     double px=(x+.5)*(double(w)/rw)-.5, py=(y+.5)*(double(h)/rh)-.5;
-#ifdef DEPTHSBS_VDA_INPUT
+#ifdef SCREENTO3D_VDA_INPUT
     int sx=int(floor(px)), sy=int(floor(py));
     float fx=float(px-sx), fy=float(py-sy);
 #else

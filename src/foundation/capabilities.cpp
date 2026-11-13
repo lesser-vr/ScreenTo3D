@@ -1,10 +1,10 @@
-#include "depthsbs/foundation/capabilities.h"
+#include "screento3d/foundation/capabilities.h"
 
 #include <iomanip>
 #include <sstream>
 #include <string_view>
 
-namespace depthsbs {
+namespace screento3d {
 namespace {
 
 std::string escape_json(std::string_view value) {
@@ -110,4 +110,4 @@ std::string to_json(const SystemCapabilities& capabilities, const bool pretty) {
     return output.str();
 }
 
-}  // namespace depthsbs
+}  // namespace screento3d

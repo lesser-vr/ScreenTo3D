@@ -20,13 +20,13 @@ def main() -> None:
     )
     graph = helper.make_graph(
         [helper.make_node("Identity", ["input"], ["output"], name="fp16_identity")],
-        "depthsbs_tensorrt11_smoke",
+        "screento3d_tensorrt11_smoke",
         [input_info],
         [output_info],
     )
     model = helper.make_model(
         graph,
-        producer_name="DepthSBS",
+        producer_name="ScreenTo3D",
         opset_imports=[helper.make_opsetid("", 17)],
     )
     checker.check_model(model)

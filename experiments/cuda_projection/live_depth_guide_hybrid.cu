@@ -1,12 +1,12 @@
 // Isolated hybrid: exact direct sums for radius 4, rolling windows for 8/12.
 // Never loaded by the app.
-#define DEPTHSBS_GUIDE_REFERENCE_ONLY 1
+#define SCREENTO3D_GUIDE_REFERENCE_ONLY 1
 #define live_post live_post_reference_export
 #define live_post_source live_post_source_reference_export
 #include "live_depth.cu"
 #undef live_post
 #undef live_post_source
-#undef DEPTHSBS_GUIDE_REFERENCE_ONLY
+#undef SCREENTO3D_GUIDE_REFERENCE_ONLY
 
 constexpr int GUIDE_CHUNK=64;
 __global__ void moments_x_hybrid(LiveDepth c,int radius) {

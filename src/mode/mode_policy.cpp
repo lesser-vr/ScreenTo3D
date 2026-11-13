@@ -1,11 +1,11 @@
-#include "depthsbs/mode/mode_policy.h"
+#include "screento3d/mode/mode_policy.h"
 
 #include <algorithm>
 #include <cctype>
 #include <sstream>
 #include <stdexcept>
 
-namespace depthsbs {
+namespace screento3d {
 namespace {
 
 std::string normalize(std::string_view value) {
@@ -91,4 +91,4 @@ std::string to_json(const ProcessingPlan& plan, const bool pretty) {
     return output.str();
 }
 
-}  // namespace depthsbs
+}  // namespace screento3d

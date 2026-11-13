@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(DepthSBSVfgProbe LANGUAGES CXX)
+project(ScreenTo3DVfgProbe LANGUAGES CXX)
 find_package(CUDAToolkit REQUIRED)
 if(NOT EXISTS "${VFXSDK_ROOT}/nvvfx/include/nvVideoEffects.h")
   message(FATAL_ERROR "Set VFXSDK_ROOT to the official extracted SDK")
