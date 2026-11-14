@@ -129,6 +129,8 @@ class LivePreview(QObject):
         self.processing_stats = None
         self.final_processing_stats = [0] * STAT_COUNT
         self.output_window = None
+        self.output_policy = None
+        self.output_shortcut = ""
         from .desktop_jobs import ROOT
         from .output_placement import OutputPlacement
         from .user_data import data_root
@@ -442,6 +444,26 @@ class LivePreview(QObject):
     @localized
     def vfgShortcut(self):
         return self.vfg_shortcut
+
+    @Property(str, notify=changed)
+    @localized
+    def outputShortcut(self):
+        return self.output_shortcut
+
+    @Slot()
+    def toggleOutputFullscreen(self):
+        if self.output_policy is not None:
+            self.output_policy.toggle_fullscreen()
+
+    @Slot()
+    def beginOutputMenu(self):
+        if self.output_policy is not None:
+            self.output_policy.begin()
+
+    @Slot()
+    def endOutputMenu(self):
+        if self.output_policy is not None:
+            self.output_policy.end()
 
     @Property(str, notify=frameChanged)
     @localized
@@ -971,6 +993,8 @@ class LivePreview(QObject):
             )
             self.process.start()
             self.source = source
+            if self.output_policy is not None and self.vfg_switch is None:
+                self.output_policy.arm(source)
             self.session += 1
             self.version = self.submitted = self.presented = 0
             self.output_presented = 0
@@ -1005,6 +1029,8 @@ class LivePreview(QObject):
 
     @Slot()
     def stop(self, *, switching=False):
+        if not switching and self.output_policy is not None:
+            self.output_policy.stop_session()
         if not switching:
             was_switching = self.vfgSwitching
             self._cancel_vfg_switch()

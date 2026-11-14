@@ -109,6 +109,22 @@ VFG 전환 중…</translation>
       <source>VFG frame interpolation help</source>
       <translation>프레임 보간 VFG 도움말</translation>
     </message>
+    <message>
+      <source>Use the original window for keyboard and mouse input. Drag the 3D title bar or right-click the 3D window to manage it.</source>
+      <translation>키보드와 마우스는 원본 창에서 조작하세요. 3D 창의 제목표시줄을 드래그하거나 우클릭하면 출력 창을 조작할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>Toggle 3D fullscreen</source>
+      <translation>3D 전체화면 전환</translation>
+    </message>
+    <message>
+      <source>3D window controls help</source>
+      <translation>3D 창 조작 도움말</translation>
+    </message>
+    <message>
+      <source>F11 and Esc work while the 3D window is active. Window controls return focus to the original window when finished.</source>
+      <translation>3D 창이 활성화된 동안에는 F11과 Esc도 사용할 수 있습니다. 창 조작을 마치면 원본 창으로 포커스가 돌아갑니다.</translation>
+    </message>
   </context>
   <context>
     <name>LivePage</name>
@@ -510,6 +526,10 @@ Applied only when stable bar boundaries and a suitable uniform background are de
     <message>
       <source>Portable data</source>
       <translation>포터블 데이터</translation>
+    </message>
+    <message>
+      <source> · Ctrl+Alt+Enter Fullscreen</source>
+      <translation> · Ctrl+Alt+Enter 전체화면</translation>
     </message>
   </context>
   <context>
@@ -2093,6 +2113,10 @@ Previously downloaded files are reused.</source>
     <message>
       <source>Imported {files} files · {conflicts} conflicts kept · {removed} originals removed · {preserved} originals retained</source>
       <translation>{files}개 파일 가져옴 · 충돌 {conflicts}개 보존 · 원본 {removed}개 정리 · 원본 {preserved}개 유지</translation>
+    </message>
+    <message>
+      <source>Toggle fullscreen · {v0}</source>
+      <translation>전체화면 전환 · {v0}</translation>
     </message>
   </context>
   <context>

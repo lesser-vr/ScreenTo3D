@@ -929,6 +929,9 @@ def create_app(preferences=None):
     # Retire graphics with the scene graph. Keeping only graphics persistent
     # can leave Qt's native-texture wrapper without a window RHI on re-exposure.
     controller.live.output_window.setPersistentGraphics(False)
+    from .output_window import OutputWindowPolicy
+    controller.live.output_policy = OutputWindowPolicy(app, controller.live, window)
+    window.destroyed.connect(controller.live.output_policy.close)
     controller.live.output_window.frameSwapped.connect(
         controller.live.outputFrameSwapped
     )

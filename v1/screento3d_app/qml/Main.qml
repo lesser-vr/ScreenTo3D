@@ -374,9 +374,10 @@ ApplicationWindow {
     Window {
         id: sbsOutput
         objectName: "sbsOutput"
+        flags: Qt.Window | Qt.WindowDoesNotAcceptFocus
         width: 1280; height: 720; visible: false; color: "black"
         property string stats: ""
-        title: "ScreenTo3D · " + live.stereoLayoutLabel + " · " + stats + qsTr(" · F11 Fullscreen")
+        title: "ScreenTo3D · " + live.stereoLayoutLabel + " · " + stats + qsTr(" · Ctrl+Alt+Enter Fullscreen")
         Timer {
             interval: 1000; repeat: true; triggeredOnStart: true
             running: sbsOutput.visible && live.active
@@ -390,11 +391,10 @@ ApplicationWindow {
         onHeightChanged: positionTimer.restart()
         Item {
             anchors.fill: parent; focus: true
-            Keys.onEscapePressed: { if (sbsOutput.visibility === Window.FullScreen) sbsOutput.showNormal() }
+            Keys.onEscapePressed: { if (sbsOutput.visibility === Window.FullScreen) live.toggleOutputFullscreen() }
             Keys.onPressed: function(event) {
                 if (event.key === Qt.Key_F11) {
-                    live.rememberOutput()
-                    sbsOutput.visibility === Window.FullScreen ? sbsOutput.showNormal() : sbsOutput.showFullScreen()
+                    live.toggleOutputFullscreen()
                     event.accepted = true
                 }
             }
@@ -402,8 +402,10 @@ ApplicationWindow {
                 anchors.fill: parent; acceptedButtons: Qt.RightButton
                 onClicked: outputMenu.popup()
                 Menu {
-                    id: outputMenu
-                    MenuItem { text: sbsOutput.visibility === Window.FullScreen ? qsTr("Windowed · Esc") : qsTr("Fullscreen · F11"); onTriggered: { live.rememberOutput(); sbsOutput.visibility === Window.FullScreen ? sbsOutput.showNormal() : sbsOutput.showFullScreen() } }
+                    id: outputMenu; objectName: "outputMenu"
+                    onAboutToShow: live.beginOutputMenu()
+                    onClosed: live.endOutputMenu()
+                    MenuItem { text: sbsOutput.visibility === Window.FullScreen ? qsTr("Windowed · Esc") : qsTr("Fullscreen · F11"); onTriggered: live.toggleOutputFullscreen() }
                     MenuItem { text: qsTr("Stop 3D"); onTriggered: live.stop() }
                     MenuItem { text: qsTr("Frame interpolation (VFG) · Ctrl+Alt+S"); visible: live.vfgConfigurable; checkable: true; checked: live.vfgEnabled; enabled: !live.stoppingNow && !live.vfgSwitching && (live.vfgEnabled || live.vfgUnavailableReason.length === 0); onTriggered: live.setVfg(checked) }
                     MenuItem { text: qsTr("Fullscreen performance information"); checkable: true; checked: desktop.fullscreenStats; onTriggered: desktop.setFullscreenStats(checked) }

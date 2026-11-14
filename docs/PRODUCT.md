@@ -123,10 +123,31 @@ popup explains each model's purpose and FP32/FP16 boundaries. There is no second
 model picker or implied quality ladder. Internal mode keys and their processing
 policies remain stable, preserving existing saved mode/model selections.
 
-The sole SBS result window can be moved normally and toggled fullscreen with F11
-or its context menu; Escape exits fullscreen. Last normal output geometry and
-screen identity are remembered locally, with bounds clamped to an available
-screen on restart. No source titles or captured pixels enter that preference.
+The 3D result window stays visible without taking playback input focus. Use the
+original window for keyboard, mouse clicks and dragging while watching the 3D
+monitor. This does not relay mouse coordinates from a different output monitor.
+Title-bar dragging, resizing and the right-click menu temporarily allow output
+activation; finishing returns to the previous valid input window or captured
+window. A title-bar click without movement keeps management focus for local F11.
+After fullscreen/windowed transition completes, playback focus returns; an actual
+move or resize still returns focus as soon as the operation ends. An unrelated app selected meanwhile keeps its focus. After the first
+frame, a validated window source is activated once only if the app still owns
+foreground focus. Monitor capture never guesses an input window. Hidden,
+minimized, cloaked or recycled handles are rejected; Windows foreground restrictions
+are respected without retries or injected input.
+
+Ctrl+Alt+Enter toggles fullscreen globally during visible playback. Live output
+settings provide a fallback button and shortcut-conflict help. F11/Esc remain
+local to an active output window; the right-click menu also controls fullscreen
+and stopping. VFG Ctrl+Alt+S remains unchanged. Playback is nonactivating and
+normally topmost, but its ordering stays below overlapping Owl3D display-mirror
+surfaces and active app controls/error dialogs. Window/foreground notifications
+handle changes without frame-rate focus polling. The main application remains
+accessible in the taskbar; the nonactivating output need not have a separate item.
+Last normal output geometry and screen identity are remembered locally, with
+bounds clamped to an available screen on restart. No source titles or captured
+pixels enter that preference. Actual Owl3D and physical mouse acceptance remain
+separate from generated-window regression tests.
 Live output settings and file conversion settings offer one stereo format picker:
 Full SBS, Half SBS, Full Top-and-Bottom and Half Top-and-Bottom (default).
 Live and file tasks each remember the user's mode/model and stereo format across

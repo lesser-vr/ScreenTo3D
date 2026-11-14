@@ -26,6 +26,10 @@ GPU 런타임을 설치하세요. 공통 TensorRT·미디어 도구 팩도 같�
 오프라인 빌드는 필요한 런타임과 모델이 모두 동봉된 경우 추가 다운로드가 없습니다.
 
 실시간 3D: 창이나 모니터 선택 -> 3D 시작.
+3D는 보이는 상태로 유지하고 키보드·마우스는 원본 창에서 조작하세요.
+제목표시줄 이동·테두리 크기 조절·우클릭 메뉴를 마치면 원본 조작으로 돌아갑니다.
+Ctrl+Alt+Enter로 원본 조작 중 전체화면을 전환합니다. 실시간 출력 설정에도 버튼이 있습니다.
+F11/Esc는 3D 창을 직접 조작할 때만 동작합니다. VFG 전환은 Ctrl+Alt+S입니다.
 파일 변환: 영상 추가 -> 깊이 모델과 출력 형식 선택 -> 변환 시작.
 입체감 기본값은 0.5, 기본 출력은 Half Top-and-Bottom, VFG는 꺼짐입니다.
 실시간 모델은 DA2 Small, 파일 변환의 최초 모델은 DA2 Base입니다.
@@ -72,6 +76,10 @@ settings. Common TensorRT and media component ZIPs also belong in runtime-packs/
 Offline builds need no downloads when all required runtimes and models are included.
 
 Live 3D: select a window or monitor, then Start 3D.
+Keep keyboard and mouse input in the original window while viewing 3D.
+Title-bar moves, border resizing and right-click menus return to original input when finished.
+Ctrl+Alt+Enter toggles fullscreen globally; Live output settings also provide a button.
+F11/Esc apply to the active 3D window only. VFG still uses Ctrl+Alt+S.
 Files: add videos, select a depth model and layout, then start conversion.
 Defaults: strength 0.5, Half Top-and-Bottom, VFG off. Live initially uses
 DA2 Small; file conversion initially selects DA2 Base and requests installation
