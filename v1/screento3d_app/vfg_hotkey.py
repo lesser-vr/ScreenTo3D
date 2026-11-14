@@ -1,5 +1,6 @@
 """Application-owned Windows global hotkey; never intercept another app's key."""
 
+from .shortcut_keys import VFG
 from .messages import Message as M
 
 import ctypes
@@ -10,10 +11,10 @@ from PySide6.QtCore import QAbstractNativeEventFilter
 
 
 class VfgHotkey(QAbstractNativeEventFilter):
-    shortcut = "Ctrl+Alt+S"
-    identifier = 0x5310
-    modifiers = 0x4003  # MOD_NOREPEAT | MOD_CONTROL | MOD_ALT
-    key = 0x53
+    shortcut = VFG.keys
+    identifier = VFG.identifier
+    modifiers = VFG.modifiers
+    key = VFG.key
 
     def __init__(self, app, live):
         super().__init__()

@@ -6,6 +6,7 @@ import sys
 from PySide6.QtCore import QAbstractNativeEventFilter, QTimer
 from PySide6.QtGui import QWindow
 
+from .shortcut_keys import FULLSCREEN
 from .messages import Message as M
 from .output_focus import FocusSession, NOACTIVATE, Win32Windows
 
@@ -15,8 +16,8 @@ class StyleChange(C.Structure):
 
 
 class OutputWindowPolicy(QAbstractNativeEventFilter):
-    shortcut = 'Ctrl+Alt+Enter'
-    identifier = 0x5311
+    shortcut = FULLSCREEN.keys
+    identifier = FULLSCREEN.identifier
 
     def __init__(self, app, live, main, *, api=None):
         super().__init__()
@@ -66,7 +67,7 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
         if shown:
             self.refresh_handle()
             self.hooks, self.event_callback = self.api.watch_windows(self.queue_order)
-            self.registered = bool(self.api.user.RegisterHotKey(None, self.identifier, 0x4003, 0x0D))
+            self.registered = bool(self.api.user.RegisterHotKey(None, self.identifier, FULLSCREEN.modifiers, FULLSCREEN.key))
             self.live.output_shortcut = (M('Toggle fullscreen · {v0}', v0=self.shortcut) if self.registered else
                 M('Cannot register {v0} · Check whether another app uses this shortcut.', v0=self.shortcut))
             self.live.changed.emit()
