@@ -15,7 +15,7 @@ class LiveModelTests(unittest.TestCase):
         bound = small.bind_capture(original,True)
         self.assertIs(bound.spec,original.spec)
         self.assertIs(bound.prepare,prepare)
-        with patch('screento3d_app.small_gpu_input.SmallGpuCaptureEngine') as engine:
+        with patch('screento3d_app.native_small.NativeSmallEngine') as engine:
             bound.engine_factory(None)
             engine.assert_called_once_with(None)
         factory.assert_not_called()
