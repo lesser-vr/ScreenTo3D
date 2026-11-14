@@ -36,6 +36,9 @@ VDA Small은 Apache-2.0입니다. NVIDIA VFG는 앱에서 공식 파일을 별�
 Base와 VDA 엔진도 사용자 GPU에서 생성됩니다. oVDA 연구 모델은 본 배포에 포함하지 않습니다.
 
 설정 및 진단 -> 언어에서 시스템 언어, 한국어 또는 English를 선택할 수 있습니다.
+오류창 내용은 data/logs/errors.jsonl에 발생 시각·오류 ID·상세 내용과 함께 저장됩니다.
+창을 닫아도 남으며, 약 1MB마다 errors.1.jsonl 한 개를 이전 기록으로 보관합니다.
+기록은 이 앱 폴더에만 저장하며 자동 업로드하지 않습니다.
 패키지의 licenses 폴더와 각 packages/*/LICENSE* 고지를 보존하세요.
 릴리스: https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0
 
@@ -54,7 +57,10 @@ Converted Base/VDA packs download from the separate public model repository with
 sign-in, then their GPU engines are prepared. Selecting a model alone does not download it.
 Cancellation or failure keeps the task stopped until you start it again.
 Settings use data/settings.ini in the app folder; models, runtimes, caches and
-logs also stay under data/. Existing files are offered for explicit import;
+logs also stay under data/. Error-window reports stay in data/logs/errors.jsonl
+with timestamps, error IDs and available details after dismissal. At about 1 MiB,
+errors.1.jsonl keeps one previous log. These local records are not uploaded.
+Existing files are offered for explicit import;
 original removal starts unchecked. Reopen this window in Settings and diagnostics.
 Move the whole app folder. Close the app before updating program files and keep
 data/. A different user/GPU may need new engines. Deleting this app folder removes

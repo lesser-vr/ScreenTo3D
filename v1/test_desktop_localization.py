@@ -180,7 +180,8 @@ def main():
 
         error=desktop.error_dialog
         original='opaque diagnostic CODE-17 / 한글'
-        error.showError(E('E_OUTPUT_FRAME_DELIVERY',v0=original,details='driver result CODE-17'))
+        with patch('screento3d_app.user_data.data_root',return_value=args.output/'data'):
+            error.showError(E('E_OUTPUT_FRAME_DELIVERY',v0=original,details='driver result CODE-17'))
         language.setLanguage('en');pump()
         assert 'Direct GPU frame delivery failed:' in error.text.toPlainText()
         assert 'Error ID: E_OUTPUT_FRAME_DELIVERY' in error.text.toPlainText()

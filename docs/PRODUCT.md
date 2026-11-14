@@ -69,6 +69,17 @@ bar close button remain available. An unknown error uses a generic explanation
 and keeps its original diagnostic details. Pre-GUI launcher failures use the
 same language selection and stable IDs. Default file-worker logs omit private
 diagnostics; detailed file errors require the explicit diagnostic option.
+Errors reported to the native error window are also saved locally in
+`data/logs/errors.jsonl`, including an offset-aware timestamp, error ID, localized
+message, available diagnostics, displayed text and language-independent payload.
+The per-launch log filename and process ID correlate reports with a session.
+Dismissal and language changes do not erase or duplicate a report. Reports are
+written even when capture protection prevents showing the error window. The
+history rotates at 1 MiB to one `errors.1.jsonl` backup; unusually large records
+are bounded and marked as truncated while preserving error identity. Logging
+failure cannot suppress the original error window. These local diagnostics are
+not uploaded and are excluded with the rest of `data/` from application packages.
+This does not change the default file-worker stream redaction policy above.
 
 The Qt/QML desktop opens a compact 420x260 logical-pixel control window (minimum
 380x260). Its primary controls are an explicit source picker and SBS start/stop.

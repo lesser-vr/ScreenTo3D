@@ -53,7 +53,7 @@ class LocalizationTests(unittest.TestCase):
         owner=QQuickWindow();dialog=LiveErrorDialog(owner)
         self.addCleanup(dialog.deleteLater);self.addCleanup(owner.deleteLater)
         self.language.refresh=dialog.retranslate
-        with patch('screento3d_app.capture_sources.exclude_preview',return_value=True):
+        with patch('screento3d_app.error_dialog.record_error'),patch('screento3d_app.capture_sources.exclude_preview',return_value=True):
             self.assertTrue(dialog.showError(E('E_OUTPUT_FRAME_DELIVERY',v0='opaque',details='driver code 17 {path}')))
         self.addCleanup(dialog.close)
         before=dialog.text.toPlainText()

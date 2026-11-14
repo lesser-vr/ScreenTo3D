@@ -2,6 +2,7 @@
 
 from .messages import Message as M, ErrorMessage, as_error
 from .localization import render
+from .error_journal import record_error
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QFont, QKeySequence
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QPlainTextEdit, QVBoxLayout
@@ -53,6 +54,13 @@ class LiveErrorDialog(QDialog):
         self.title_source = title
         self.message_source = as_error(message)
         self.retranslate()
+        # Preserve the report even if capture protection prevents showing it.
+        # Language changes only retranslate the window and never add records.
+        try:
+            record_error(self.message_source, title=render(title),
+                         message=render(self.message_source), displayed_text=self.text.toPlainText())
+        except Exception:
+            pass  # Error-history failures must not suppress the original window.
         if not exclude_preview(self.winId()):
             self.hide()
             return False
