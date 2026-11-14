@@ -136,6 +136,22 @@ foreground focus. Monitor capture never guesses an input window. Hidden,
 minimized, cloaked or recycled handles are rejected; Windows foreground restrictions
 are respected without retries or injected input.
 
+A small **?** beside the main live settings icon opens **조작·단축키 안내**
+(Controls and shortcuts). Live output settings offers the same guide at its top.
+It separates shortcuts usable while controlling the original window from F11/Esc,
+which require output keyboard focus. The nonmodal, app-contained popover preserves
+the control window size. It starts at the top on every opening, keeps its heading
+and Close button fixed, and scrolls within small windows with room reserved for
+the scrollbar. Mouse click or keyboard activation opens it; Escape, Close and
+outside clicks dismiss it and restore focus to its visible opener.
+
+Registration values and displayed shortcut keys share one definition. A failed
+global registration shows its status and a button alternative in the guide. Once
+output frames are ready, a six-second main status notice points to **?**, once per
+failed key per session, without opening an error dialog or stealing playback focus.
+Repeated statistics do not rebuild the guide or introduce frame-rate polling.
+Guide text, states and output-menu labels follow the selected app language.
+
 Ctrl+Alt+Enter toggles fullscreen globally during visible playback. Live output
 settings provide a fallback button and shortcut-conflict help. F11/Esc remain
 local to an active output window; the right-click menu also controls fullscreen

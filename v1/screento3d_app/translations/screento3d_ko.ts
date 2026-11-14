@@ -125,6 +125,10 @@ VFG 전환 중…</translation>
       <source>F11 and Esc work while the 3D window is active. Window controls return focus to the original window when finished.</source>
       <translation>3D 창이 활성화된 동안에는 F11과 Esc도 사용할 수 있습니다. 창 조작을 마치면 원본 창으로 포커스가 돌아갑니다.</translation>
     </message>
+    <message>
+      <source>Controls and shortcuts</source>
+      <translation>조작·단축키 안내</translation>
+    </message>
   </context>
   <context>
     <name>LivePage</name>
@@ -530,6 +534,18 @@ Applied only when stable bar boundaries and a suitable uniform background are de
     <message>
       <source> · Ctrl+Alt+Enter Fullscreen</source>
       <translation> · Ctrl+Alt+Enter 전체화면</translation>
+    </message>
+    <message>
+      <source>Frame interpolation (VFG) · %1</source>
+      <translation>프레임 보간 (VFG) · %1</translation>
+    </message>
+    <message>
+      <source>Fullscreen · %1</source>
+      <translation>전체화면 · %1</translation>
+    </message>
+    <message>
+      <source>Windowed · %1</source>
+      <translation>창 모드 · %1</translation>
     </message>
   </context>
   <context>
@@ -2118,6 +2134,46 @@ Previously downloaded files are reused.</source>
       <source>Toggle fullscreen · {v0}</source>
       <translation>전체화면 전환 · {v0}</translation>
     </message>
+    <message>
+      <source>Exit fullscreen</source>
+      <translation>전체화면 종료</translation>
+    </message>
+    <message>
+      <source>Fullscreen</source>
+      <translation>전체화면</translation>
+    </message>
+    <message>
+      <source>Shortcut unavailable: {keys}. Open ? for controls.</source>
+      <translation>단축키 사용 불가: {keys}. ?에서 조작 방법을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>Toggle VFG</source>
+      <translation>VFG 전환</translation>
+    </message>
+    <message>
+      <source>Toggle fullscreen</source>
+      <translation>전체화면 전환</translation>
+    </message>
+    <message>
+      <source>Toggle fullscreen, then return to the original window</source>
+      <translation>전체화면 전환 후 원본 복귀</translation>
+    </message>
+    <message>
+      <source>Unavailable · Check whether another app uses this shortcut.</source>
+      <translation>사용 불가 · 다른 앱의 단축키 사용 여부를 확인하세요.</translation>
+    </message>
+    <message>
+      <source>When the 3D window is selected</source>
+      <translation>3D 창 선택 시</translation>
+    </message>
+    <message>
+      <source>While using the original window</source>
+      <translation>원본 창 조작 중에도 사용</translation>
+    </message>
+    <message>
+      <source>{keys} Fullscreen</source>
+      <translation>{keys} 전체화면</translation>
+    </message>
   </context>
   <context>
     <name>StereoLayoutPicker</name>
@@ -2143,6 +2199,10 @@ Previously downloaded files are reused.</source>
     <message>
       <source>Live output settings</source>
       <translation>실시간 출력 설정</translation>
+    </message>
+    <message>
+      <source>Controls and shortcuts</source>
+      <translation>조작·단축키 안내</translation>
     </message>
   </context>
   <context>
@@ -3911,6 +3971,29 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     <message>
       <source>Settings, models, runtimes and caches are saved under data. Moving this app folder keeps them together.</source>
       <translation>설정·모델·런타임·캐시는 data에 저장합니다. 앱 폴더를 옮기면 함께 이동합니다.</translation>
+    </message>
+  </context>
+  <context>
+    <name>ShortcutGuide</name>
+    <message>
+      <source>Close</source>
+      <translation>닫기</translation>
+    </message>
+    <message>
+      <source>Close controls guide</source>
+      <translation>조작 안내 닫기</translation>
+    </message>
+    <message>
+      <source>Controls and shortcuts</source>
+      <translation>조작·단축키 안내</translation>
+    </message>
+    <message>
+      <source>Shortcut buttons are also available in Live output settings.</source>
+      <translation>실시간 출력 설정에서도 버튼으로 조작할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>Use the original window for keyboard and mouse input. Click the 3D title bar, then press F11 to enter fullscreen and return to the original window.</source>
+      <translation>키보드와 마우스는 원본 창에서 조작하세요. 3D 제목표시줄을 클릭한 뒤 F11을 누르면 전체화면으로 전환하고 원본으로 돌아갑니다.</translation>
     </message>
   </context>
 </TS>

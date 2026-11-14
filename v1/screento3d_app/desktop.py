@@ -884,6 +884,10 @@ def create_app(preferences=None):
     )
     engine.rootContext().setContextProperty("desktop", controller)
     engine.rootContext().setContextProperty("live", controller.live)
+    from .shortcut_help import ShortcutHelp
+    from types import SimpleNamespace
+    controller.shortcut_help = ShortcutHelp(controller.live, SimpleNamespace(registered=False))
+    engine.rootContext().setContextProperty("shortcutHelp", controller.shortcut_help)
     engine.rootContext().setContextProperty("i18n", controller.language)
     engine.addImageProvider("live", controller.live.provider)
     engine.addImageProvider("transition", controller.live.transition_provider)
@@ -907,6 +911,7 @@ def create_app(preferences=None):
         controller.changed.emit()
         controller.downloads.changed.emit()
         controller.live.changed.emit()
+        controller.shortcut_help.changed.emit()
         controller.error_dialog.retranslate()
     controller.language.refresh = refresh_language
     controller.language.errorOccurred.connect(controller.showModelError)
@@ -953,6 +958,8 @@ def create_app(preferences=None):
     from .vfg_hotkey import VfgHotkey
     controller.vfg_hotkey = VfgHotkey(app, controller.live)
     window.destroyed.connect(controller.vfg_hotkey.close)
+    controller.shortcut_help.vfg_hotkey = controller.vfg_hotkey
+    controller.shortcut_help.refresh()
     return app, engine, controller
 
 

@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 FocusScrollView {
     signal diagnosticsRequested()
+    signal shortcutHelpRequested(var opener)
     property bool fullscreenStats: false
     signal fullscreenStatsRequested(bool enabled)
     id: options
@@ -13,7 +14,11 @@ FocusScrollView {
     component Copy: Label { color: options.theme.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
     ColumnLayout {
         width: parent.width; spacing: 16
-        Label { text: qsTr("Live output settings"); color: options.theme.ink; font.pixelSize: 22; font.bold: true; Layout.margins: 24 }
+        RowLayout {
+            Layout.fillWidth: true; Layout.margins: 24; spacing: 12
+            Label { text: qsTr("Live output settings"); color: options.theme.ink; font.pixelSize: 22; font.bold: true; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            ActionButton { id: shortcutSettings; objectName: "openSettingsShortcutGuide"; text: qsTr("Controls and shortcuts"); implicitHeight: 32; onClicked: options.shortcutHelpRequested(shortcutSettings) }
+        }
         ColumnLayout {
             Layout.fillWidth: true; Layout.leftMargin: 24; Layout.rightMargin: 24; spacing: 12
             Copy { text: live.active ? qsTr("Stop 3D to change the depth model or FPS limit.") : qsTr("The depth model and FPS limit apply to the next live 3D session.") }
@@ -86,7 +91,6 @@ FocusScrollView {
             RowLayout {
                 Layout.fillWidth: true; spacing: 6
                 ActionButton { objectName: "toggleOutputFullscreen"; text: qsTr("Toggle 3D fullscreen"); enabled: live.active && !live.stoppingNow; onClicked: live.toggleOutputFullscreen() }
-                HelpButton { Accessible.name: qsTr("3D window controls help"); helpText: live.outputShortcut + "\n\n" + qsTr("F11 and Esc work while the 3D window is active. Window controls return focus to the original window when finished.") }
             }
             ActionButton { objectName: "openSettings"; text: qsTr("Settings and diagnostics"); onClicked: options.diagnosticsRequested() }
             Item { height: 16 }

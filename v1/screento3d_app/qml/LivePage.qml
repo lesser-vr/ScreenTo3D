@@ -5,6 +5,7 @@ import QtQuick.Window
 
 Item {
     id: page
+    signal helpRequested(var opener)
     function dismissSourcePicker() {
         if (!sourcePicker.popup.visible) return false
         sourcePicker.popup.close()
@@ -35,6 +36,7 @@ Item {
         TaskHeader {
             Layout.fillWidth: true
             onTaskSelected: index => page.Window.window.openPage(index)
+            onHelpRequested: opener => page.helpRequested(opener)
             onSettingsRequested: page.Window.window.openPage(3)
         }
         ChoicePicker {
@@ -124,7 +126,7 @@ Item {
             objectName: "captureStatus"; Layout.fillWidth: true
             color: page.theme.muted; wrapMode: Text.WordWrap; font.pixelSize: 12
             maximumLineCount: 2; elide: Text.ElideRight
-            text: live.vfgSwitching ? qsTr("Switching frame interpolation…") : live.stoppingNow ? qsTr("Stopping 3D…") : live.active ? (live.hasFrame ? qsTr("Live 3D is running") : qsTr("Preparing 3D output…")) : desktop.busy ? qsTr("You can start after the current task finishes") : live.status
+            text: live.vfgSwitching ? qsTr("Switching frame interpolation…") : live.stoppingNow ? qsTr("Stopping 3D…") : live.active ? (live.hasFrame ? (shortcutHelp.notice.length > 0 ? shortcutHelp.notice : qsTr("Live 3D is running")) : qsTr("Preparing 3D output…")) : desktop.busy ? qsTr("You can start after the current task finishes") : live.status
             Accessible.role: Accessible.StaticText
             }
         }

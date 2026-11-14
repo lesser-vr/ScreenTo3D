@@ -7,6 +7,7 @@ RowLayout {
     property bool files: false
     signal taskSelected(int index)
     signal settingsRequested()
+    signal helpRequested(var opener)
     spacing: 8
     readonly property Theme theme: Theme {}
     component Segment: TabButton {
@@ -39,6 +40,16 @@ RowLayout {
         onVisibleChanged: if (visible) currentIndex = header.files ? 1 : 0
     }
     Item { Layout.fillWidth: true }
+    ToolButton {
+        id: controlsHelp; objectName: "openShortcutGuide"
+        visible: !header.files; implicitWidth: 32; implicitHeight: 36
+        Accessible.name: qsTr("Controls and shortcuts")
+        background: Rectangle { radius: 8; color: controlsHelp.hovered || controlsHelp.down ? header.theme.hover : "transparent"; border.color: controlsHelp.activeFocus ? header.theme.blue : "transparent" }
+        contentItem: Text { text: "?"; color: header.theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+        ToolTip.visible: controlsHelp.visible && controlsHelp.enabled && (controlsHelp.hovered || controlsHelp.activeFocus)
+        ToolTip.text: qsTr("Controls and shortcuts")
+        onClicked: header.helpRequested(controlsHelp)
+    }
     ToolButton {
         id: settings
         visible: !header.files

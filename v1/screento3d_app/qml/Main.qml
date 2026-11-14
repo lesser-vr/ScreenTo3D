@@ -91,7 +91,8 @@ ApplicationWindow {
     }
     component Picker: ChoicePicker {}
 
-    LivePage { id: livePage; anchors.fill: parent; visible: root.page !== 1 }
+    ShortcutGuide { id: mainShortcutGuide; groups: shortcutHelp.groups; onActionRequested: action => shortcutHelp.activate(action); objectName: "mainShortcutGuide"; parent: root.contentItem }
+    LivePage { id: livePage; anchors.fill: parent; visible: root.page !== 1; onHelpRequested: opener => mainShortcutGuide.showFor(opener) }
     RuntimeSetup { mainWindow: root }
     PortableData { mainWindow: root }
         Item {
@@ -304,6 +305,7 @@ ApplicationWindow {
         title: root.page === 3 ? qsTr("ScreenTo3D · Live output settings") : qsTr("ScreenTo3D · Settings and diagnostics")
         onClosing: function(close) { close.accepted = false; root.page = 0 }
         onVisibleChanged: { if (visible) desktop.protectWindow(tools) }
+        ShortcutGuide { id: settingsShortcutGuide; groups: shortcutHelp.groups; onActionRequested: action => shortcutHelp.activate(action); objectName: "settingsShortcutGuide"; parent: tools.contentItem }
         StackLayout {
             anchors.fill: parent
             currentIndex: root.page === 3 ? 1 : 0
@@ -364,6 +366,7 @@ ApplicationWindow {
             }
         }
             LiveOptions {
+                onShortcutHelpRequested: opener => settingsShortcutGuide.showFor(opener)
                 fullscreenStats: desktop.fullscreenStats
                 onFullscreenStatsRequested: enabled => desktop.setFullscreenStats(enabled)
                 onDiagnosticsRequested: root.openPage(2)
@@ -377,7 +380,7 @@ ApplicationWindow {
         flags: Qt.Window | Qt.WindowDoesNotAcceptFocus
         width: 1280; height: 720; visible: false; color: "black"
         property string stats: ""
-        title: "ScreenTo3D · " + live.stereoLayoutLabel + " · " + stats + qsTr(" · Ctrl+Alt+Enter Fullscreen")
+        title: "ScreenTo3D · " + live.stereoLayoutLabel + " · " + stats + " · " + shortcutHelp.fullscreenTitle
         Timer {
             interval: 1000; repeat: true; triggeredOnStart: true
             running: sbsOutput.visible && live.active
@@ -405,9 +408,9 @@ ApplicationWindow {
                     id: outputMenu; objectName: "outputMenu"
                     onAboutToShow: live.beginOutputMenu()
                     onClosed: live.endOutputMenu()
-                    MenuItem { text: sbsOutput.visibility === Window.FullScreen ? qsTr("Windowed · Esc") : qsTr("Fullscreen · F11"); onTriggered: live.toggleOutputFullscreen() }
+                    MenuItem { text: sbsOutput.visibility === Window.FullScreen ? qsTr("Windowed · %1").arg(shortcutHelp.exitKey) : qsTr("Fullscreen · %1").arg(shortcutHelp.fullscreenLocalKey); onTriggered: live.toggleOutputFullscreen() }
                     MenuItem { text: qsTr("Stop 3D"); onTriggered: live.stop() }
-                    MenuItem { text: qsTr("Frame interpolation (VFG) · Ctrl+Alt+S"); visible: live.vfgConfigurable; checkable: true; checked: live.vfgEnabled; enabled: !live.stoppingNow && !live.vfgSwitching && (live.vfgEnabled || live.vfgUnavailableReason.length === 0); onTriggered: live.setVfg(checked) }
+                    MenuItem { text: qsTr("Frame interpolation (VFG) · %1").arg(shortcutHelp.vfgKey); visible: live.vfgConfigurable; checkable: true; checked: live.vfgEnabled; enabled: !live.stoppingNow && !live.vfgSwitching && (live.vfgEnabled || live.vfgUnavailableReason.length === 0); onTriggered: live.setVfg(checked) }
                     MenuItem { text: qsTr("Fullscreen performance information"); checkable: true; checked: desktop.fullscreenStats; onTriggered: desktop.setFullscreenStats(checked) }
                 }
             }
