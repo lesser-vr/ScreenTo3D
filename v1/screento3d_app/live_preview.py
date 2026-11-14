@@ -515,10 +515,23 @@ class LivePreview(QObject):
             return
         try:
             self.cadence = PresentationCadence(hz)
+            self.configureOutputTiming()
             self.timer.setInterval(self.cadence.poll_ms)
         except ValueError as error:
             self.reportError(error)
         self.changed.emit()
+
+    def configureOutputTiming(self):
+        # A CPU work limit does not synchronize scanout. With NoVSync, Qt's
+        # D3D11 swapchain can present with DXGI_PRESENT_ALLOW_TEARING even at
+        # 60 FPS. Request vsync on capped output only; controls keep their
+        # existing format and unlimited output keeps the unthrottled path.
+        if self.output_window is not None:
+            surface = self.output_window.requestedFormat()
+            interval = 1 if self.cadence.hz else 0
+            if surface.swapInterval() != interval:
+                surface.setSwapInterval(interval)
+                self.output_window.setFormat(surface)
 
     @Slot(str)
     def setMode(self, mode):
@@ -1215,6 +1228,17 @@ class LivePreview(QObject):
                     self.delivery_timer.start(max(1, (delay + 999_999) // 1_000_000))
             except Exception as error:
                 self.abort(E('E_OUTPUT_WAIT_FAILED', v0=error))
+
+    @Slot()
+    def updateFrameWindows(self):
+        # The minimal controller has no video consumer. Repainting it for every
+        # source frame adds a second render/Present stream on another display.
+        # QML state changes and user input still invalidate the controls normally.
+        main = getattr(self.desktop, "main_window", None)
+        if self.preview_visible and main is not None:
+            main.update()
+        if self.output_window is not None:
+            self.output_window.update()
 
     def notifyFrame(self):
         began = time.perf_counter_ns()

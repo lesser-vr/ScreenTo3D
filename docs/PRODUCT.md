@@ -290,8 +290,16 @@ worker cleanup before exit. File-work cancellation still asks before quitting.
    publications. This is a target rate, not an exact minimum gap between every
    pair of displayed frames. Host output and VFG retain their full-period
    publication caps; VFG's own scheduled frame times are also respected.
+   Frame arrivals request a repaint of the 3D output; the control-only window
+   repaints through ordinary state/input changes rather than once per video
+   frame. An explicitly enabled diagnostic preview still receives frame updates.
    Native delivery wakes when a frame/pool is ready or a pending deadline is due.
    Resource release, retirement and failure checks continue while waiting.
+   Capped 30/60 FPS output also requests vsync on the separate 3D window to
+   prevent horizontal tearing; limiting work alone does not synchronize scanout.
+   This can add display waiting and does not guarantee uniform frame intervals
+   or eliminate compositor discards. Control windows retain their existing
+   scheduling and the mixed-display VBlank-thread workaround remains enabled.
    Unlimited removes app pacing and requests Qt vsync off; source,
    processing, driver and display constraints can still limit achieved FPS.
    Small, Base, VDA Small and source-only oVDA window GPU sessions use GPU capture and preprocessing internally.

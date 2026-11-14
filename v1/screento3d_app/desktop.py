@@ -854,8 +854,8 @@ def create_app(preferences=None):
     # display topology. Use Qt's bounded platform timer scheduling, still D3D11.
     # This is explicit, not a software renderer or per-failure fallback.
     os.environ.setdefault("QT_D3D_NO_VBLANK_THREAD", "1")
-    # Output pacing is owned by PresentationCadence, not the display refresh.
-    # Qt/driver/compositor may still constrain physical presentation.
+    # Keep control windows unthrottled. LivePreview overrides the output
+    # window's requested format to synchronize capped 3D presentation.
     os.environ.setdefault("QSG_NO_VSYNC", "1")
     surface = QSurfaceFormat.defaultFormat()
     surface.setSwapInterval(0)
@@ -921,6 +921,7 @@ def create_app(preferences=None):
     controller.shutdown.errorOccurred.connect(controller.showLiveError)
     app.aboutToQuit.connect(controller.shutdown.cancel)
     controller.live.output_window = window.findChild(QQuickWindow, "sbsOutput")
+    controller.live.configureOutputTiming()
     controller.live.output_window.setTransientParent(None)
     # Hiding the only output on Stop must retire native scene-graph nodes even
     # when Qt will never render another frame for this window.
@@ -937,8 +938,7 @@ def create_app(preferences=None):
     app.screenAdded.connect(controller.live.screensChanged)
     app.screenRemoved.connect(controller.live.screensChanged)
     window.frameSwapped.connect(controller.live.frameSwapped)
-    controller.live.frameChanged.connect(window.update)
-    controller.live.frameChanged.connect(controller.live.output_window.update)
+    controller.live.frameChanged.connect(controller.live.updateFrameWindows)
     from .capture_sources import exclude_preview
 
     controller.live.excluded = exclude_preview(window.winId())

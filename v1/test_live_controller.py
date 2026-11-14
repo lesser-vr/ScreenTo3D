@@ -17,6 +17,27 @@ APP = QApplication.instance() or QApplication([])
 
 
 class LiveControllerTests(unittest.TestCase):
+    def test_capped_output_requests_vsync_and_unlimited_restores_no_vsync(self):
+        from PySide6.QtGui import QSurfaceFormat
+        from PySide6.QtQuick import QQuickWindow
+        window = QQuickWindow()
+        surface = QSurfaceFormat()
+        surface.setSwapInterval(0)
+        window.setFormat(surface)
+        self.live.output_window = window
+        try:
+            for hz, interval in ((60, 1), (30, 1), (0, 0), (60, 1)):
+                self.live.setPresentationHz(hz)
+                self.assertEqual(window.requestedFormat().swapInterval(), interval)
+            self.live.process = Mock()
+            self.live.setPresentationHz(0)
+            self.assertEqual(self.live.cadence.hz, 60)
+            self.assertEqual(window.requestedFormat().swapInterval(), 1)
+        finally:
+            self.live.process = None
+            self.live.output_window = None
+            window.close()
+
     def test_output_summary_includes_latest_gpu_usage_and_clears_stale_value(self):
         from screento3d_app.live_sbs import GPU_USAGE,GPU_USAGE_NS,STAT_COUNT
         self.live.processing_stats=[0]*STAT_COUNT
