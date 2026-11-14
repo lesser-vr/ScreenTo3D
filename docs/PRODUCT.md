@@ -198,6 +198,12 @@ console, resolves runtime paths relative to itself and reports launch failures
 in a Windows error dialog. Per-launch logs are saved in
 `data/logs` beside the executable. Build it with
 `scripts/build-desktop-launcher.ps1`; the portable builder does this automatically.
+The actual GUI and application worker processes use a native `ScreenTo3D.exe`
+host beside the unmodified embedded Python runtime, with the app icon and product
+name in Windows process metadata. The host preserves isolated multiprocessing,
+UTF-8 pipes and worker exit codes without opening a console. For a source checkout,
+close the app and use `scripts/build-desktop-launcher.ps1 -InstallSource` to install
+both the outer launcher and its matching host. Portable packages include both.
 The source checkout also retains `Run-ScreenTo3D.cmd`. Source-local features do not
 automatically appear in old portable packages. The present app uses one exclusive
 processing lease for live/file/installation work and snapshots settings at start.

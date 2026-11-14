@@ -110,6 +110,7 @@ def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None
         (stage/'python/python313._pth').write_text(
             'python313.zip\n.\n../v1\n../packages\nimport site\n', encoding='ascii')
         copy(ROOT/'out/desktop-launcher/ScreenTo3D.exe', stage/'ScreenTo3D.exe')
+        copy(ROOT/'out/desktop-launcher/host/ScreenTo3D.exe', stage/'python/ScreenTo3D.exe')
         (stage/'desktop-portable').touch()
         model_info=model_distribution(stage,origin,bundled_models)
         for name, pin in PINS.items():
@@ -178,6 +179,7 @@ def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None
             gpu_buffers='native CUDA; no Torch runtime',cuda_runtime_sha256=CUDA_RUNTIME_SHA,
             built_at_utc=datetime.now(timezone.utc).isoformat(),
             python='CPython 3.13.9 Windows x64 embeddable',python_zip_sha256=PYTHON_SHA,
+            python_host='ScreenTo3D.exe',python_host_sha256=digest(stage/'python/ScreenTo3D.exe'),
             small_onnx_sha256=manifest['onnx_sha256'],portable_cuda_sha256=PINS,
             optional_models='DA2 Base and VDA Small '+('bundled ONNX packs' if bundled_models else 'pinned public model downloads')+'; NVIDIA VFG official download, default off',
             **model_info,upstream_downloads=['tensorrt','cuda','ffmpeg','vfg'])

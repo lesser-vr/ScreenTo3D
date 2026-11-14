@@ -67,7 +67,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     const fs::path root = fs::path(filename.data()).parent_path();
     language = selected_language(root);
     const bool portable = fs::exists(root / L"desktop-portable");
-    const fs::path python = root / (portable ? L"python/pythonw.exe" : L"out/desktop-python/pythonw.exe");
+    const fs::path python = root / (portable ? L"python/ScreenTo3D.exe" : L"out/desktop-python/ScreenTo3D.exe");
     if (!fs::exists(python) || !fs::exists(root / L"v1/screento3d_app/launcher.py"))
         return fail(i18n::E_LAUNCH_COMPONENTS, 0, root.wstring());
 

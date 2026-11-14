@@ -1,8 +1,8 @@
 param([switch]$RowFlow)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
-$python = Join-Path $repo 'out/desktop-python/pythonw.exe'
-if (-not (Test-Path -LiteralPath $python)) { throw 'Prepare the local model environment first.' }
+$python = Join-Path $repo 'out/desktop-python/ScreenTo3D.exe'
+if (-not (Test-Path -LiteralPath $python)) { throw 'Close ScreenTo3D and run scripts/build-desktop-launcher.ps1 -InstallSource first.' }
 if (-not (Test-Path -LiteralPath (Join-Path $repo 'out/gui-python-deps/PySide6'))) {
     throw 'GUI dependencies missing. Install v1/requirements-gui.txt into out/gui-python-deps using the prepared Python.'
 }

@@ -1,4 +1,4 @@
-param([string]$Python = '',[string]$PythonZip = '')
+param([string]$Python = '',[string]$PythonZip = '',[switch]$InstallSource)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
 if (-not $Python) {
@@ -57,4 +57,16 @@ try {
     if ($LASTEXITCODE) { throw 'Launcher resources failed.' }
     & cl.exe /nologo /std:c++17 /EHsc /MT /O2 /utf-8 (Join-Path $source 'main.cpp') app.res /Fe:ScreenTo3D.exe /link /SUBSYSTEM:WINDOWS /MANIFEST:NO user32.lib shell32.lib ole32.lib advapi32.lib
     if ($LASTEXITCODE) { throw 'Launcher build failed.' }
+    $hostBuild = Join-Path $build 'host'
+    New-Item -ItemType Directory -Path $hostBuild -Force | Out-Null
+    # /MD shares CPython's UCRT so inherited stdout/stderr also work in workers.
+    & cl.exe /nologo /std:c++17 /EHsc /MD /O2 /utf-8 (Join-Path $source 'python_host.cpp') app.res ("/Fe:" + (Join-Path $hostBuild 'ScreenTo3D.exe')) /link /SUBSYSTEM:WINDOWS /MANIFEST:NO user32.lib shell32.lib
+    if ($LASTEXITCODE) { throw 'Branded Python host build failed.' }
 } finally { Pop-Location }
+if ($InstallSource) {
+    $sourceRuntime = Join-Path $repo 'out/desktop-python'
+    if (-not (Test-Path -LiteralPath (Join-Path $sourceRuntime 'python313.dll'))) { throw 'Prepare the pinned source runtime before installing the launcher.' }
+    # Install the host first, so the new launcher never points at a missing host.
+    Copy-Item -LiteralPath (Join-Path $build 'host/ScreenTo3D.exe') -Destination (Join-Path $sourceRuntime 'ScreenTo3D.exe') -ErrorAction Stop
+    Copy-Item -LiteralPath (Join-Path $build 'ScreenTo3D.exe') -Destination (Join-Path $repo 'ScreenTo3D.exe') -ErrorAction Stop
+}
