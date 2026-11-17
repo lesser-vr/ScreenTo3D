@@ -119,9 +119,25 @@ class ErrorJournalTests(unittest.TestCase):
         self.root.joinpath('logs').mkdir()
         with tempfile.TemporaryDirectory() as outside:
             target=Path(outside)/'sentinel';target.write_text('preserve',encoding='utf-8')
-            try:(self.root/'logs/errors.jsonl').symlink_to(target)
-            except OSError:self.skipTest('Symlink creation unavailable on this Windows account')
-            with contextlib.redirect_stderr(io.StringIO()):self.assertFalse(self.save(E('E_UNKNOWN')))
-            self.assertEqual(target.read_text(encoding='utf-8'),'preserve')
+            logs=self.root/'logs'
+            junction=False
+            try:
+                (logs/'errors.jsonl').symlink_to(target)
+            except OSError:
+                # Directory junctions exercise the same redirection boundary on
+                # Windows accounts without the file-symlink privilege.
+                import _winapi
+                logs.rmdir()
+                _winapi.CreateJunction(outside,str(logs))
+                self.assertTrue(logs.is_junction())
+                junction=True
+            try:
+                with contextlib.redirect_stderr(io.StringIO()):self.assertFalse(self.save(E('E_UNKNOWN')))
+                self.assertEqual(target.read_text(encoding='utf-8'),'preserve')
+                self.assertFalse(Path(outside,'errors.jsonl').exists())
+            finally:
+                if junction:
+                    self.assertTrue(logs.is_junction())
+                    logs.rmdir()
 
 if __name__=='__main__':unittest.main()
