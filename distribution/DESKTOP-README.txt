@@ -41,6 +41,7 @@ VDA Small은 Apache-2.0입니다. NVIDIA VFG는 앱에서 공식 파일을 별�
 Base와 VDA 엔진도 사용자 GPU에서 생성됩니다. oVDA 연구 모델은 본 배포에 포함하지 않습니다.
 
 설정 및 진단 -> 언어에서 시스템 언어, 한국어 또는 English를 선택할 수 있습니다.
+한글·영문용 Pretendard 글꼴도 앱에 포함되어 별도로 설치할 필요가 없습니다.
 오류창 내용은 data/logs/errors.jsonl에 발생 시각·오류 ID·상세 내용과 함께 저장됩니다.
 창을 닫아도 남으며, 약 1MB마다 errors.1.jsonl 한 개를 이전 기록으로 보관합니다.
 기록은 이 앱 폴더에만 저장하며 자동 업로드하지 않습니다.
@@ -96,6 +97,7 @@ not included in this portable distribution.
 Model packs: https://github.com/lesser-vr/ScreenTo3D-Models/releases/tag/packs-2026.11.1
 
 Settings and diagnostics -> Language selects System, Korean or English.
+The bundled Pretendard typeface needs no separate font installation.
 Keep licenses/ and all package license files when redistributing the package.
 The prepared runtime requires a GPU supported by bundled CUDA/TensorRT
 and CUDA driver API 13.1 or newer. Local hardware validation used RTX 5090;

@@ -22,15 +22,15 @@ Window {
     onClosing: function(close) { close.accepted = false; manager.dismiss() }
     ColumnLayout {
         anchors.fill: parent; anchors.margins: 24; spacing: 14
-        Label { text: qsTr("Keep everything in this app folder"); font.pixelSize: 22; font.bold: true; color: dialog.theme.ink; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+        Label { text: qsTr("Keep everything in this app folder"); font.pixelSize: 22; font.weight: Font.DemiBold; color: dialog.theme.ink; wrapMode: Text.WordWrap; Layout.fillWidth: true }
         FocusScrollView {
             Layout.fillWidth: true; Layout.fillHeight: true; contentWidth: availableWidth
             ColumnLayout {
                 width: parent.width; spacing: 12
                 Label { text: qsTr("Settings, models, runtimes and caches are saved under data. Moving this app folder keeps them together."); color: dialog.theme.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Label { text: qsTr("Destination"); color: dialog.theme.ink; font.bold: true }
+                Label { text: qsTr("Destination"); color: dialog.theme.ink; font.weight: Font.DemiBold }
                 TextArea { text: dialog.manager.path; readOnly: true; selectByMouse: true; wrapMode: TextEdit.Wrap; color: dialog.theme.ink; Layout.fillWidth: true; background: Rectangle { color: dialog.theme.surface; radius: 6 } }
-                Label { text: qsTr("Previous locations · %1 GB to import").arg(Number(dialog.manager.sourceGB).toLocaleString(Qt.locale(),"f",2)); color: dialog.theme.ink; font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Label { text: qsTr("Previous locations · %1 GB to import").arg(Number(dialog.manager.sourceGB).toLocaleString(Qt.locale(),"f",2)); color: dialog.theme.ink; font.weight: Font.DemiBold; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 TextArea { text: dialog.manager.sourcePaths || qsTr("No previous model files found. Saved settings can still be imported."); readOnly: true; selectByMouse: true; wrapMode: TextEdit.Wrap; color: dialog.theme.muted; Layout.fillWidth: true; background: Rectangle { color: dialog.theme.surface; radius: 6 } }
                 CheckOption { id: settings; objectName: "importLegacySettings"; text: qsTr("Import previous settings once"); checked: true; enabled: !dialog.manager.active }
                 CheckOption { id: cleanup; objectName: "removeImportedOriginals"; text: qsTr("Remove imported original files after verification"); checked: false; enabled: !dialog.manager.active }

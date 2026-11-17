@@ -4,7 +4,7 @@ from .messages import Message as M, ErrorMessage, as_error
 from .localization import render
 from .error_journal import record_error
 from PySide6.QtCore import QEvent, Qt
-from PySide6.QtGui import QFont, QKeySequence
+from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QPlainTextEdit, QVBoxLayout
 
 
@@ -15,7 +15,6 @@ class LiveErrorDialog(QDialog):
         self.title_source = M('3D error')
         self.message_source = ''
         self.setWindowTitle(render(self.title_source))
-        self.setFont(QFont("Segoe UI", 10))
         self.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint)
         self.setWindowModality(Qt.WindowModal)
         self.resize(620, 280)

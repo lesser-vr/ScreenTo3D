@@ -28,7 +28,7 @@ Popup {
         RowLayout {
             id: headerRow; objectName: "shortcutGuideHeader"
             Layout.fillWidth: true
-            Label { text: qsTr("Controls and shortcuts"); color: root.theme.ink; font.pixelSize: 17; font.bold: true; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Label { text: qsTr("Controls and shortcuts"); color: root.theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold; Layout.fillWidth: true; wrapMode: Text.Wrap }
             ToolButton { id: closeGuide; objectName: "closeShortcutGuide"; text: qsTr("Close"); Accessible.name: qsTr("Close controls guide"); onClicked: root.close() }
         }
         ScrollView {

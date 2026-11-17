@@ -16,7 +16,7 @@ FocusScrollView {
         width: parent.width; spacing: 16
         RowLayout {
             Layout.fillWidth: true; Layout.margins: 24; spacing: 12
-            Label { text: qsTr("Live output settings"); color: options.theme.ink; font.pixelSize: 22; font.bold: true; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: qsTr("Live output settings"); color: options.theme.ink; font.pixelSize: 22; font.weight: Font.DemiBold; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ActionButton { id: shortcutSettings; objectName: "openSettingsShortcutGuide"; text: qsTr("Controls and shortcuts"); implicitHeight: 32; onClicked: options.shortcutHelpRequested(shortcutSettings) }
         }
         ColumnLayout {

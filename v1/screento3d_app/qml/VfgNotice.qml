@@ -3,6 +3,7 @@ import QtQuick.Controls
 
 Item {
     id: notice
+    readonly property Theme theme: Theme {}
     objectName: "vfgNotice"
     property string stereoLayout: "full-sbs"
     property string message: ""
@@ -48,7 +49,7 @@ Item {
                     anchors.centerIn: parent
                     width: Math.min(implicitWidth, Math.max(0, parent.width - 24))
                     text: notice.message
-                    font.family: "Segoe UI"; font.pixelSize: 14; font.weight: Font.DemiBold
+                    font.family: notice.theme.family; font.pixelSize: 14; font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap
                     leftPadding: 20; rightPadding: 20; topPadding: 12; bottomPadding: 12
                     color: "#ffffff"

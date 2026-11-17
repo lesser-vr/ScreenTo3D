@@ -13,5 +13,5 @@ QtObject {
     readonly property color hover: "#eceef2"
     readonly property color disabled: "#e5e7eb"
     readonly property color disabledInk: "#8b9099"
-    readonly property string family: "Segoe UI"
+    readonly property string family: Application.font.family
 }

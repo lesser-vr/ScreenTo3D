@@ -109,7 +109,18 @@ minimum sizes shrink to the screen work area, accounting for native window frame
 so bottom actions remain reachable at smaller logical resolutions. Screen/DPI or
 work-area changes refit those controls. The file settings remain scrollable.
 The quality, file, settings and separate error windows share the light treatment;
-the SBS video surface itself remains black. QML color tokens live in Theme.qml.
+the SBS video surface itself remains black. QML color tokens live in Theme.qml. The portable Qt app loads the unmodified
+Pretendard Variable 1.3.9 asset before creating any windows. Korean, Latin and
+numerals share the same application family in QML, native error widgets and VFG
+notices; the theme reads the application's actual family. No OS font installation
+or runtime font download is required. Body text uses 400, selected values and
+ordinary action buttons 500, and headings/primary actions 600. The main body
+remains 14 logical pixels, source metadata is 12, and the explicitly chosen 8px
+performance overlay and 14px VFG notice sizes remain unchanged. The font and its
+upstream OFL/copyright notice ship with the app, with a pinned asset manifest
+validated before portable builds. A missing cosmetic font logs a diagnostic and
+keeps the system font usable rather than preventing access to the app. Native OS
+caption controls retain their platform styling.
 Tooltips and help overlays require nonempty, non-whitespace content and a visible
 owner; disabled help/select/settings controls do not retain their popups. The
 file save-location placeholder has no tooltip until an output path is available.

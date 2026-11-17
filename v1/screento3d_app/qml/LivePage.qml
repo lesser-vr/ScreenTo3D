@@ -111,7 +111,7 @@ Item {
                     }
                     ColumnLayout {
                         Layout.fillWidth: true; spacing: 3
-                        Text { text: live.sourceKind === "window" ? qsTr("Window or monitor to capture") : qsTr("Capture source · Entire monitor"); font.pixelSize: 11; color: page.theme.muted }
+                        Text { text: live.sourceKind === "window" ? qsTr("Window or monitor to capture") : qsTr("Capture source · Entire monitor"); font.pixelSize: 12; color: page.theme.muted }
                         Text { id: sourceTitle; text: sourcePicker.displayText; font.pixelSize: 14; font.weight: Font.Medium; color: page.theme.ink; elide: Text.ElideRight; Layout.fillWidth: true }
                     }
                 }

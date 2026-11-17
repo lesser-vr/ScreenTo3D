@@ -114,7 +114,7 @@ ApplicationWindow {
                     DropArea { id: drop; enabled: !desktop.busy; anchors.fill: parent; onDropped: function(event) { if (event.hasUrls) { desktop.dropFiles(event.urls); event.acceptProposedAction() } } }
                     RowLayout {
                         anchors.fill: parent; anchors.margins: 20
-                        ColumnLayout { Layout.fillWidth: true; Label { text: qsTr("Drop videos here"); color: root.ink; font.bold: true; font.pixelSize: 17 } Copy { text: qsTr("MP4 · MKV · MOV · M4V / Files convert automatically in queue order"); font.pixelSize: 12 } }
+                        ColumnLayout { Layout.fillWidth: true; Label { text: qsTr("Drop videos here"); color: root.ink; font.weight: Font.DemiBold; font.pixelSize: 17 } Copy { text: qsTr("MP4 · MKV · MOV · M4V / Files convert automatically in queue order"); font.pixelSize: 12 } }
                         Action { objectName: "addFiles"; text: qsTr("Add files"); enabled: !desktop.busy; onClicked: desktop.chooseFiles() }
                     }
                 }
@@ -326,20 +326,20 @@ ApplicationWindow {
                         onActivated: i18n.setLanguage(currentValue)
                         Accessible.name: qsTr("Language")
                     }
-                    Label { text: qsTr("Portable data"); color: root.ink; font.bold: true }
+                    Label { text: qsTr("Portable data"); color: root.ink; font.weight: Font.DemiBold }
                     Copy { text: desktop.dataManager.path; font.pixelSize: 12 }
                     RowLayout {
                         Action { text: qsTr("Open data folder"); onClicked: desktop.dataManager.openFolder() }
                         Action { objectName: "managePortableData"; text: qsTr("Import existing data…"); enabled: !desktop.busy; onClicked: desktop.dataManager.open() }
                     }
-                    Label { text: qsTr("Check installation"); color: root.ink; font.bold: true }
+                    Label { text: qsTr("Check installation"); color: root.ink; font.weight: Font.DemiBold }
                     Picker { id: setupTarget; objectName: "setupTarget"; enabled: !desktop.busy; model: [qsTr("Live 3D"), qsTr("File conversion")]; Accessible.name: qsTr("Installation check target") }
                     Copy { objectName: "setupModel"; text: qsTr("Model to check · ") + (setupTarget.currentIndex === 0 ? live.liveModelLabel : desktop.models.filter(function(m) { return m.key === desktop.settings.model })[0].label); font.pixelSize: 14 }
                     RowLayout {
                         Action { objectName: "checkSetup"; text: qsTr("Check selected setup"); enabled: !desktop.busy; onClicked: desktop.checkSetupFor(setupTarget.currentIndex === 0 ? "live" : "file") }
                     }
                     Copy { objectName: "setupStatus"; text: desktop.setup; font.pixelSize: 12 }
-                    Label { text: qsTr("Live 3D · Diagnostics"); color: root.ink; font.bold: true }
+                    Label { text: qsTr("Live 3D · Diagnostics"); color: root.ink; font.weight: Font.DemiBold }
                     Picker { objectName: "liveProcessingPath"; enabled: !live.active; model: live.nativeCapable ? [qsTr("GPU host output · Diagnostic"), qsTr("Legacy processing · Diagnostic"), qsTr("Direct GPU output · Default")] : [qsTr("GPU host output · Diagnostic"), qsTr("Legacy processing · Diagnostic")]; currentIndex: ["gpu", "reference", "gpu-texture"].indexOf(live.processingPath); onActivated: live.setProcessingPath(["gpu", "reference", "gpu-texture"][currentIndex]); Accessible.name: qsTr("Output processing path") }
                     CheckOption { id: diagnostics; text: qsTr("Show detailed status") }
                     Copy { visible: diagnostics.checked; text: live.policyDescription + "\n" + live.supportStatus + "\n" + live.metrics; font.pixelSize: 12 }

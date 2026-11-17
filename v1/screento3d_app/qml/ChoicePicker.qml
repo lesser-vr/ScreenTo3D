@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 ComboBox {
     id: control
+    font.weight: Font.Medium
     readonly property Theme theme: Theme {}
     implicitHeight: 44
     Layout.fillWidth: true

@@ -862,6 +862,8 @@ def create_app(preferences=None):
     QSurfaceFormat.setDefaultFormat(surface)
     QQuickWindow.setGraphicsApi(QSGRendererInterface.Direct3D11)
     app = QApplication.instance() or QApplication(sys.argv)
+    from .typography import install as install_typography
+    install_typography(app)
     app.setApplicationName("ScreenTo3D")
     app.setOrganizationName("ScreenTo3D")
     # Display branding is independent of the migrated internal data namespace.

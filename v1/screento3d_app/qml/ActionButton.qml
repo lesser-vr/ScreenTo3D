@@ -7,7 +7,7 @@ Button {
     property bool primary: false
     property string symbol: ""
     implicitHeight: 40
-    font.weight: primary ? Font.DemiBold : Font.Normal
+    font.weight: primary ? Font.DemiBold : Font.Medium
     leftPadding: 16
     rightPadding: 16
     background: Rectangle {
