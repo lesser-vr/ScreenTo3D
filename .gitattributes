@@ -1,0 +1,4 @@
+# Preserve pinned upstream font bytes across Windows and CI checkouts.
+v1/screento3d_app/assets/fonts/PretendardVariable.ttf -text
+# Keep the upstream OFL notice verbatim, including its original line-end space.
+v1/screento3d_app/assets/fonts/OFL.txt -text whitespace=-blank-at-eol
