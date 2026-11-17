@@ -71,6 +71,8 @@ def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None
     sys.path.insert(0, str(ROOT/'v1'))
     from screento3d_app.portable_cuda import PINS
     from screento3d_app import __version__
+    from screento3d_app.typography import validate_assets as validate_typography
+    validate_typography()
     from screento3d_app.portable_package import validate_qt_source,QT_PROFILE,runtime_exclusion
     validate_qt_source(ROOT/'out/gui-python-deps/PySide6')
     import importlib.util
@@ -150,6 +152,7 @@ def build(dest, python_zip, origin=None, *, full_runtime=False,cuda_runtime=None
         for name in ('THIRD_PARTY_NOTICES.txt', 'TENSORRT-LICENSE.txt', 'CUDA-EULA.txt'):
             copy(ROOT/PREVIEW/name, stage/'licenses'/name)
         copy(ROOT/'distribution/THIRD_PARTY_NOTICES.txt',stage/'licenses/THIRD_PARTY_NOTICES.txt')
+        copy(ROOT/'v1/screento3d_app/assets/fonts/OFL.txt',stage/'licenses/Pretendard-OFL-1.1.txt')
         copy(ROOT/'out/da2-base-source/LICENSE', stage/'licenses/Apache-2.0.txt')
         copy(ROOT/'models/da2-small/model-manifest.json',stage/'licenses/da2-small-model-manifest.json')
         copy(ROOT/'out/vda-oracle-env/Lib/site-packages/torch-2.7.1+cu128.dist-info/LICENSE',stage/'licenses/PyTorch-LICENSE.txt')
