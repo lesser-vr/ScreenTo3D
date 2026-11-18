@@ -118,12 +118,16 @@ class DesktopController(QObject):
         self.values.update(self.preferences.selection('file', MODES))
         self.values['engine'] = self.engine_paths.get(self.values['model'], '')
         self.downloads = ModelDownloads(self)
-        from .data_manager import DataManager
-        self.storage=DataManager(self)
         self.active = None
 
-    @Property(QObject,constant=True)
-    def dataManager(self):return self.storage
+    @Property(str, constant=True)
+    def dataPath(self):
+        from .user_data import data_root
+        return str(data_root())
+
+    @Slot()
+    def openDataFolder(self):
+        QDesktopServices.openUrl(QUrl.fromLocalFile(self.dataPath))
 
     @Property(bool,notify=changed)
     def fullscreenStats(self):
@@ -137,22 +141,6 @@ class DesktopController(QObject):
             self.preferences.store.setValue('SbsOutput/fullscreenStats',old)
             self.showLiveError(E('E_SETTINGS_WRITE_FAILED'))
         self.changed.emit()
-
-    def refreshImportedData(self):
-        for key in self.engine_paths.keys() & PACKS.keys():
-            path=installed_path(key)
-            if available(key,path):self.engine_paths[key]=str(path)
-        self.values.update(self.preferences.selection('file',MODES))
-        self.values['engine']=self.engine_paths.get(self.values['model'],'')
-        from .live_policy import LIVE_MODES
-        selection=self.preferences.selection('live',LIVE_MODES)
-        self.live.setMode(selection['mode']);self.live.setLiveModel(selection['model'])
-        self.live.setStereoLayout(selection['stereo_layout'])
-        from .output_placement import OutputPlacement
-        from .user_data import data_root
-        self.live.output_placement=OutputPlacement(data_root()/'window-state.json')
-        self.language.setLanguage(self.preferences.store.value('ui/language','system'))
-        self.live.changed.emit();self.downloads.changed.emit();self.changed.emit()
 
     @Property(QObject, constant=True)
     def modelDownloads(self):
@@ -798,8 +786,6 @@ class DesktopController(QObject):
             self.closing = True
             if self.lease.owner == "model-install":
                 self.downloads.cancel()
-            elif self.lease.owner == 'data-import':
-                self.storage.cancel()
             elif self.lease.owner == "live":
                 self.live.stop()
             elif not self.checking:
@@ -921,7 +907,6 @@ def create_app(preferences=None):
     for target in (window, window.findChild(QQuickWindow, "toolsWindow"),
                    window.findChild(QQuickWindow, "sbsOutput"),
                    window.findChild(QQuickWindow, "patternWindow"),
-                   window.findChild(QQuickWindow, "portableDataWindow"),
                    controller.error_dialog.windowHandle()):
         attach(target)
     controller.live.errorOccurred.connect(controller.showLiveError)
@@ -953,9 +938,6 @@ def create_app(preferences=None):
 
     controller.live.excluded = exclude_preview(window.winId())
     controller.protectWindow(window.findChild(QQuickWindow, "toolsWindow"))
-    controller.protectWindow(window.findChild(QQuickWindow, "portableDataWindow"))
-    from PySide6.QtCore import QTimer
-    QTimer.singleShot(0,controller.storage.offer)
     controller.exitReady.connect(app.quit)
     from .vfg_hotkey import VfgHotkey
     controller.vfg_hotkey = VfgHotkey(app, controller.live)

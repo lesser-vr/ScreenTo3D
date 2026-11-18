@@ -1,5 +1,15 @@
 # Current implementation status
 
+Legacy data-import UI/backend removed locally (2026-11-18).
+Settings retains only the application-relative data path and **Open data folder**.
+There is no startup discovery/import prompt, AppData inventory, old-registry
+settings adoption, import worker/lease or verified-original deletion option.
+Current portable settings, model/runtime downloads and cache/path protections
+remain in place. The 596 CPU/Qt contracts pass without skips; an actual owned
+QML check in Korean and English verifies the folder button, absence of the old
+window/menu, preserved live/file selections and untouched prior-location fixtures.
+Evidence: local `out/remove-portable-import-20261118/`.
+
 Packaged DA2 Small 30-minute live runtime evidence added (2026-11-18), using
 release commit `0de8d9d` on RTX 5090: actual 4K60 local-video input, native Half TB,
 60 FPS limit, strength 0.5, VFG OFF, and existing Owl3D running. The full

@@ -6,7 +6,6 @@ from PySide6.QtCore import QSettings
 from .config import DEFAULT_MODE_MODELS, MODE_MODEL_CHOICES
 from .stereo_layout import LAYOUTS
 from .user_data import settings_file
-from .portable_settings import migrate_settings
 
 
 class DesktopPreferences:

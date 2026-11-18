@@ -6,7 +6,6 @@ from unittest.mock import Mock,patch
 
 from PySide6.QtCore import QSettings
 from screento3d_app.environment import get,required
-from screento3d_app.desktop_preferences import migrate_settings
 
 
 class NameMigrationTests(unittest.TestCase):
@@ -44,15 +43,10 @@ class NameMigrationTests(unittest.TestCase):
         from screento3d_app.desktop import main as current_desktop
         self.assertIs(old_desktop,current_desktop)
 
-    def stores(self):
-        folder=tempfile.TemporaryDirectory();self.addCleanup(folder.cleanup)
-        return tuple(QSettings(str(Path(folder.name)/name),QSettings.IniFormat) for name in ('new.ini','old.ini'))
-
     def test_default_settings_use_only_explicit_ini_and_survive_reopen(self):
         from screento3d_app.desktop_preferences import DesktopPreferences
         from screento3d_app import user_data
-        with tempfile.TemporaryDirectory() as folder,patch.object(user_data,'APP_ROOT',Path(folder)),\
-             patch('screento3d_app.portable_settings.read_legacy_settings') as legacy:
+        with tempfile.TemporaryDirectory() as folder,patch.object(user_data,'APP_ROOT',Path(folder)):
             current=DesktopPreferences()
             self.assertEqual(current.store.format(),QSettings.IniFormat)
             self.assertEqual(Path(current.store.fileName()),Path(folder)/'data/settings.ini')
@@ -62,7 +56,6 @@ class NameMigrationTests(unittest.TestCase):
             self.assertEqual(reopened.selection('live',{'balanced','performance'}),
                              dict(mode='balanced',model='da2-base',stereo_layout='half-sbs'))
             self.assertEqual(reopened.store.value('ui/language'),'ko')
-            legacy.assert_not_called()
 
     def test_malformed_ini_fails_with_stable_error_instead_of_resetting(self):
         from screento3d_app.desktop_preferences import DesktopPreferences
@@ -72,41 +65,6 @@ class NameMigrationTests(unittest.TestCase):
             with self.assertRaises(OSError) as result:DesktopPreferences()
             self.assertEqual(result.exception.args[0].error_id,'E_SETTINGS_FILE_INVALID')
             self.assertEqual(path.read_text(),'[broken\nvalue=1\n')
-
-    def test_settings_adopt_owned_values_and_retain_the_legacy_store(self):
-        current,legacy=self.stores()
-        values={'ui/language':'ko','live/model':'da2-base','live/mode':'balanced',
-                'live/stereoLayout':'half-sbs','file/mode':'video-quality','file/model':'vda-small','file/stereoLayout':'sbs'}
-        for key,value in values.items():legacy.setValue(key,value)
-        legacy.setValue('unowned/privatePath','not migrated')
-        migrate_settings(current,legacy)
-        for key,value in values.items():
-            self.assertEqual(current.value(key),value);self.assertEqual(legacy.value(key),value)
-        self.assertFalse(current.contains('unowned/privatePath'))
-        migrate_settings(current,legacy)
-
-    def test_settings_never_override_new_values_on_repeated_migration(self):
-        current,legacy=self.stores();legacy.setValue('ui/language','ko');current.setValue('ui/language','system')
-        migrate_settings(current,legacy);legacy.setValue('ui/language','en');migrate_settings(current,legacy)
-        self.assertEqual(current.value('ui/language'),'system')
-
-    def test_settings_adopt_interim_before_original_without_overwriting_current(self):
-        current,interim=self.stores()
-        legacy=QSettings(current.fileName()+'.legacy',QSettings.IniFormat)
-        current.setValue('ui/language','en');interim.setValue('ui/language','ko')
-        interim.setValue('live/model','da2-base');legacy.setValue('live/model','da2-small')
-        legacy.setValue('file/model','vda-small')
-        migrate_settings(current,interim,legacy)
-        self.assertEqual(current.value('ui/language'),'en')
-        self.assertEqual(current.value('live/model'),'da2-base')
-        self.assertEqual(current.value('file/model'),'vda-small')
-
-    def test_unreadable_settings_stop_before_mutation_with_an_error_id(self):
-        current,legacy=self.stores();legacy.setValue('ui/language','ko')
-        with patch.object(current,'status',return_value=QSettings.AccessError):
-            with self.assertRaises(OSError) as result:migrate_settings(current,legacy)
-        self.assertEqual(result.exception.args[0].error_id,'E_SETTINGS_MIGRATION')
-        self.assertFalse(current.contains('ui/language'));self.assertEqual(legacy.value('ui/language'),'ko')
 
     def test_outputs_from_both_versions_are_recognized(self):
         from screento3d_app import capture_sources as sources

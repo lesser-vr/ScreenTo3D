@@ -16,7 +16,7 @@ class RegisteredVfg:
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
-    with patch('screento3d_app.vfg_hotkey.VfgHotkey',RegisteredVfg), patch('screento3d_app.data_manager.DataManager.offer'):
+    with patch('screento3d_app.vfg_hotkey.VfgHotkey',RegisteredVfg):
         app,engine,c=create_app(DesktopPreferences(QSettings(str(args.output/'preferences.ini'),QSettings.IniFormat)))
     main=c.main_window;guide=main.findChild(QObject,'mainShortcutGuide')
     errors=[];engine.warnings.connect(lambda values:errors.extend(str(v.toString()) for v in values))

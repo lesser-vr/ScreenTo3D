@@ -94,7 +94,6 @@ ApplicationWindow {
     ShortcutGuide { id: mainShortcutGuide; groups: shortcutHelp.groups; onActionRequested: action => shortcutHelp.activate(action); objectName: "mainShortcutGuide"; parent: root.contentItem }
     LivePage { id: livePage; anchors.fill: parent; visible: root.page !== 1; onHelpRequested: opener => mainShortcutGuide.showFor(opener) }
     RuntimeSetup { mainWindow: root }
-    PortableData { mainWindow: root }
         Item {
             objectName: "filesPage"; anchors.fill: parent; visible: root.page === 1
             ColumnLayout {
@@ -326,11 +325,10 @@ ApplicationWindow {
                         onActivated: i18n.setLanguage(currentValue)
                         Accessible.name: qsTr("Language")
                     }
-                    Label { text: qsTr("Portable data"); color: root.ink; font.weight: Font.DemiBold }
-                    Copy { text: desktop.dataManager.path; font.pixelSize: 12 }
+                    Label { text: qsTr("Data storage"); color: root.ink; font.weight: Font.DemiBold }
+                    Copy { objectName: "dataPath"; text: desktop.dataPath; font.pixelSize: 12 }
                     RowLayout {
-                        Action { text: qsTr("Open data folder"); onClicked: desktop.dataManager.openFolder() }
-                        Action { objectName: "managePortableData"; text: qsTr("Import existing data…"); enabled: !desktop.busy; onClicked: desktop.dataManager.open() }
+                        Action { objectName: "openDataFolder"; text: qsTr("Open data folder"); onClicked: desktop.openDataFolder() }
                     }
                     Label { text: qsTr("Check installation"); color: root.ink; font.weight: Font.DemiBold }
                     Picker { id: setupTarget; objectName: "setupTarget"; enabled: !desktop.busy; model: [qsTr("Live 3D"), qsTr("File conversion")]; Accessible.name: qsTr("Installation check target") }

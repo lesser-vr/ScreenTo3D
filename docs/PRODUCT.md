@@ -35,15 +35,11 @@ settings registry. Qt/CUDA/application caches and job temporary files use `data`
 A nonwritable or linked data location produces an actionable error rather than
 silently falling back to AppData.
 
-On first launch, existing AppData model locations open a separate **Portable
-data** window. Settings also offers this window and **Open data folder**. Only
-the explicit **Import** action copies models, runtimes, download/engine caches
-and, if selected, previous registry settings. Current files/settings win; source
-priority is ScreenTo3D, StereoTo3D, then DepthSBS. Copying verifies SHA-256 and
-supports cancellation. Original removal is a separate, initially unchecked option:
-only unchanged, verified copies are eligible, and conflicts/unrelated files stay.
-The old settings registry is never modified. Previous source output placement can
-also be imported when no current placement exists.
+Settings shows **Data storage**, its application-relative path and **Open data
+folder**. Startup uses only the current app's `data/`; previous AppData locations
+and registry settings are not scanned or imported. Missing models/runtimes use
+the normal download and preparation flow. Existing data outside the app folder
+is left untouched.
 
 Moving the whole app folder carries its settings and prepared files. Base/VDA
 engines require valid user/GPU-bound receipts; Small's cache is keyed by model,
@@ -51,7 +47,7 @@ GPU and runtime identity. Another user/GPU may need compatible engines prepared.
 source packs are retained for rebuilding. Release ZIPs always contain the fixed
 `ScreenTo3D/` root and exclude `data/`. Close the app before updating its program
 files in the same folder, preserving `data/`. Removing that folder removes this
-copy's app-managed data; originals retained during import remain separately.
+copy's app-managed data; files in older external locations remain separately.
 
 The desktop supports Korean and English. **Settings and diagnostics → Language**
 offers System default, 한국어 and English; the default follows the system UI

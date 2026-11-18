@@ -1,7 +1,6 @@
 """Owned synthetic host output, inspecting unchanged 8px/14px stereo overlays."""
 import argparse,json,time
 from pathlib import Path
-from unittest.mock import patch
 from PySide6.QtCore import QObject,QSettings
 from PySide6.QtGui import QImage,QColor
 from screento3d_app.desktop import create_app
@@ -15,8 +14,7 @@ import shiboken6
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
-    with patch('screento3d_app.data_manager.DataManager.offer'):
-        app,engine,c=create_app(DesktopPreferences(QSettings(str(args.output/'preferences.ini'),QSettings.IniFormat)))
+    app,engine,c=create_app(DesktopPreferences(QSettings(str(args.output/'preferences.ini'),QSettings.IniFormat)))
     live=c.live;output=live.output_window;live.output_placement.path=args.output/'placement.json'
     report=dict(passed=False,scope='Synthetic image, forced visible performance overlay in an owned window; no inference, capture or actual stereo/device acceptance',cases=[])
     def pump():

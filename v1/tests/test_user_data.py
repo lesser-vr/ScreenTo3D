@@ -30,7 +30,7 @@ class UserDataTests(unittest.TestCase):
             spec.loader.exec_module(module)
         self.assertEqual(module.data_root(),self.app.resolve()/'data')
 
-    def test_preparation_redirects_caches_and_temp_without_automatic_import(self):
+    def test_preparation_redirects_caches_and_temp_preserving_previous_data(self):
         source=self.local/'ScreenTo3D/models/old.plan';source.parent.mkdir(parents=True);source.write_bytes(b'owned source')
         root=paths.prepare_environment()
         self.assertTrue((root/'temp').is_dir());self.assertEqual(tempfile.gettempdir(),str(root/'temp'))
@@ -49,11 +49,6 @@ class UserDataTests(unittest.TestCase):
         with patch.object(Path,'is_symlink',lambda path:path==self.app/'data'):
             with self.assertRaises(OSError) as result:paths.prepare_environment()
         self.assertEqual(result.exception.args[0].error_id,'E_PORTABLE_PATH')
-
-    def test_legacy_discovery_preserves_priority_without_copying(self):
-        for name in paths.LEGACY_DIRECTORIES:(self.local/name).mkdir(parents=True)
-        self.assertEqual([p.name for p in paths.legacy_roots()],list(paths.LEGACY_DIRECTORIES))
-        self.assertFalse(paths.data_root().exists())
 
     def test_model_runtime_and_cache_consumers_use_portable_layout(self):
         from screento3d_app.optional_models import model_root,PACKS
