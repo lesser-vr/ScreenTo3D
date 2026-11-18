@@ -543,6 +543,10 @@ Applied only when stable bar boundaries and a suitable uniform background are de
       <source>Data storage</source>
       <translation>데이터 저장소</translation>
     </message>
+    <message>
+      <source>Recent errors</source>
+      <translation>최근 오류</translation>
+    </message>
   </context>
   <context>
     <name>ModelInstall</name>
@@ -2153,6 +2157,122 @@ Previously downloaded files are reused.</source>
     <message>
       <source>{keys} Fullscreen</source>
       <translation>{keys} 전체화면</translation>
+    </message>
+    <message>
+      <source>Activity</source>
+      <translation>작업</translation>
+    </message>
+    <message>
+      <source>App version</source>
+      <translation>앱 버전</translation>
+    </message>
+    <message>
+      <source>Application</source>
+      <translation>앱</translation>
+    </message>
+    <message>
+      <source>Build</source>
+      <translation>빌드</translation>
+    </message>
+    <message>
+      <source>Could not open the report window.</source>
+      <translation>보고서 창을 열 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>Could not save the report. Choose another location and try again.</source>
+      <translation>보고서를 저장할 수 없습니다. 다른 위치를 선택해 다시 시도하세요.</translation>
+    </message>
+    <message>
+      <source>FPS limit</source>
+      <translation>FPS 제한</translation>
+    </message>
+    <message>
+      <source>Include diagnostics from the last 60 seconds</source>
+      <translation>직전 60초 진단 포함</translation>
+    </message>
+    <message>
+      <source>Last 60 seconds of diagnostics</source>
+      <translation>직전 60초 진단</translation>
+    </message>
+    <message>
+      <source>Model installation</source>
+      <translation>모델 설치</translation>
+    </message>
+    <message>
+      <source>No recent errors.</source>
+      <translation>최근 오류가 없습니다.</translation>
+    </message>
+    <message>
+      <source>Off</source>
+      <translation>끔</translation>
+    </message>
+    <message>
+      <source>On</source>
+      <translation>켬</translation>
+    </message>
+    <message>
+      <source>Prepare report…</source>
+      <translation>보고서 준비…</translation>
+    </message>
+    <message>
+      <source>Processing mode</source>
+      <translation>처리 모드</translation>
+    </message>
+    <message>
+      <source>Recent errors</source>
+      <translation>최근 오류</translation>
+    </message>
+    <message>
+      <source>Report preview</source>
+      <translation>보고서 미리보기</translation>
+    </message>
+    <message>
+      <source>Report saved.</source>
+      <translation>보고서를 저장했습니다.</translation>
+    </message>
+    <message>
+      <source>Review the contents before sharing.</source>
+      <translation>공유하기 전에 보고서 내용을 확인하세요.</translation>
+    </message>
+    <message>
+      <source>Save report…</source>
+      <translation>보고서 저장…</translation>
+    </message>
+    <message>
+      <source>ScreenTo3D error report</source>
+      <translation>ScreenTo3D 오류 보고서</translation>
+    </message>
+    <message>
+      <source>Some error records could not be read.</source>
+      <translation>일부 오류 기록을 읽을 수 없습니다.</translation>
+    </message>
+    <message>
+      <source>Stereo format</source>
+      <translation>입체 출력 형식</translation>
+    </message>
+    <message>
+      <source>Text files (*.txt)</source>
+      <translation>텍스트 파일 (*.txt)</translation>
+    </message>
+    <message>
+      <source>Time</source>
+      <translation>발생 시각</translation>
+    </message>
+    <message>
+      <source>Times are relative to the error, in milliseconds.</source>
+      <translation>시간은 오류 발생 시점을 기준으로 하며 단위는 밀리초입니다.</translation>
+    </message>
+    <message>
+      <source>VFG</source>
+      <translation>VFG</translation>
+    </message>
+    <message>
+      <source>What happened just before the error?</source>
+      <translation>오류 직전에 어떤 작업을 했나요?</translation>
+    </message>
+    <message>
+      <source>Worker exit code</source>
+      <translation>작업 프로세스 종료 코드</translation>
     </message>
   </context>
   <context>

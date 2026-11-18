@@ -94,6 +94,15 @@ failure cannot suppress the original error window. These local diagnostics are
 not uploaded and are excluded with the rest of `data/` from application packages.
 This does not change the default file-worker stream redaction policy above.
 
+The error window offers **Prepare report…**. **Settings → Recent errors** opens
+reports from either local journal file, newest first. The list keeps repeated
+occurrences separately. The preview shows the selected error's ID, time, app
+version and available build, processing and exit-code fields. The user can add a
+short note and opt into the last 60 seconds of shareable diagnostic metadata.
+The saved UTF-8 text matches the preview. Reports pick explicit fields from the
+local journal so raw exception text, file paths, process IDs and window handles
+stay local. Report preparation and saving require no account or network access.
+
 The Qt/QML desktop opens a compact 420x260 logical-pixel control window (minimum
 380x260). Its primary controls are an explicit source picker and SBS start/stop.
 The main window switches between 실시간 3D (Live 3D) and 파일 변환. Opening the capture

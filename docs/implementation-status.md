@@ -1,5 +1,10 @@
 # Current implementation status
 
+Shareable error reports added (2026-11-18). The error window and Settings
+open a preview for one selected occurrence. The UTF-8 text export supports an
+optional note and shareable live diagnostics. Local paths and raw exceptions
+stay in the journal. CPU/Qt checks and bilingual desktop save flows pass.
+
 Live error flight history added (2026-11-18).
 A 1 Hz, bounded 60-second metadata ring and transition events freeze before live
 abort/worker cleanup and attach to the existing local error journal. Source titles

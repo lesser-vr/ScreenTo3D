@@ -2,10 +2,11 @@
 
 from .messages import Message as M, ErrorMessage, as_error
 from .localization import render
-from .error_journal import record_error
+from .error_journal import make_error_record, record_error
+from .error_report import prepare_report
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QKeySequence
-from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QPlainTextEdit, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QLabel, QPlainTextEdit, QVBoxLayout
 
 
 class LiveErrorDialog(QDialog):
@@ -15,6 +16,8 @@ class LiveErrorDialog(QDialog):
         self.title_source = M('3D error')
         self.message_source = ''
         self.diagnostic_context = None
+        self.report_entry = None
+        self._report_dialog = None
         self.setWindowTitle(render(self.title_source))
         self.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint)
         self.setWindowModality(Qt.WindowModal)
@@ -37,6 +40,10 @@ class LiveErrorDialog(QDialog):
         self.text.setObjectName("liveErrorText")
         self.text.setReadOnly(True)
         buttons = QDialogButtonBox(parent=self)
+        self.report_button = buttons.addButton(render(M('Prepare report…')), QDialogButtonBox.ActionRole)
+        self.report_button.setObjectName('prepareErrorReport')
+        self.report_button.setAutoDefault(False)
+        self.report_button.clicked.connect(self.open_report)
         self.close_button = buttons.addButton(render(M('Close')), QDialogButtonBox.RejectRole)
         self.close_button.setObjectName("closeLiveError")
         self.close_button.setText(render(M('Close')))
@@ -44,26 +51,35 @@ class LiveErrorDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout = QVBoxLayout(self)
         layout.addWidget(self.text)
+        self.report_status = QLabel(wordWrap=True)
+        self.report_status.hide()
+        layout.addWidget(self.report_status)
         layout.addWidget(buttons)
-        for target in (self, self.text, self.text.viewport(), self.close_button):
+        for target in (self, self.text, self.text.viewport(), self.report_button, self.close_button):
             target.installEventFilter(self)
 
-    def showError(self, message, title=M('3D error')):
+    def showError(self, message, title=M('3D error'), *, activity=None):
         from .capture_sources import exclude_preview
 
         self.title_source = title
+        self.report_status.hide()
         self.message_source = as_error(message)
         self.retranslate()
         # Preserve the report even if capture protection prevents showing it.
         # Language changes only retranslate the window and never add records.
         diagnostic_context = self.diagnostic_context
         self.diagnostic_context = None
+        self.report_entry = None
         try:
-            record_error(self.message_source, title=render(title),
-                         message=render(self.message_source), displayed_text=self.text.toPlainText(),
-                         **({"diagnostics": diagnostic_context} if diagnostic_context is not None else {}))
+            entry = make_error_record(
+                self.message_source, title=render(title), message=render(self.message_source),
+                displayed_text=self.text.toPlainText(), diagnostics=diagnostic_context, activity=activity,
+            )
+            self.report_entry = prepare_report(entry)
+            record_error(self.message_source, entry=entry)
         except Exception:
             pass  # Error-history failures must not suppress the original window.
+        self.report_button.setEnabled(self.report_entry is not None)
         if not exclude_preview(self.winId()):
             self.hide()
             return False
@@ -74,8 +90,28 @@ class LiveErrorDialog(QDialog):
         self.close_button.setFocus()
         return True
 
+    def report_dialog(self):
+        if self._report_dialog is None:
+            from .error_report_dialog import ErrorReportDialog
+            self._report_dialog = ErrorReportDialog()
+            self._report_dialog.setStyleSheet(self.styleSheet())
+            self.destroyed.connect(self._report_dialog.deleteLater)
+        return self._report_dialog
+
+    def open_report(self):
+        if self.report_dialog().open_report(self.windowHandle(), self.report_entry):
+            self.report_status.hide()
+        else:
+            self.report_status.setText(render(M('Could not open the report window.')))
+            self.report_status.show()
+
     def retranslate(self):
         self.setWindowTitle(render(self.title_source))
+        self.report_button.setText(render(M('Prepare report…')))
+        if not self.report_status.isHidden():
+            self.report_status.setText(render(M('Could not open the report window.')))
+        if self._report_dialog is not None:
+            self._report_dialog.retranslate()
         self.close_button.setText(render(M('Close')))
         error=self.message_source
         if not error:

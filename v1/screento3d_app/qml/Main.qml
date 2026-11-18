@@ -329,6 +329,7 @@ ApplicationWindow {
                     Copy { objectName: "dataPath"; text: desktop.dataPath; font.pixelSize: 12 }
                     RowLayout {
                         Action { objectName: "openDataFolder"; text: qsTr("Open data folder"); onClicked: desktop.openDataFolder() }
+                        Action { objectName: "openRecentErrors"; text: qsTr("Recent errors"); onClicked: desktop.openRecentErrors(tools) }
                     }
                     Label { text: qsTr("Check installation"); color: root.ink; font.weight: Font.DemiBold }
                     Picker { id: setupTarget; objectName: "setupTarget"; enabled: !desktop.busy; model: [qsTr("Live 3D"), qsTr("File conversion")]; Accessible.name: qsTr("Installation check target") }

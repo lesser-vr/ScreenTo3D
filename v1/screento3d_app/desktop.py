@@ -129,6 +129,11 @@ class DesktopController(QObject):
     def openDataFolder(self):
         QDesktopServices.openUrl(QUrl.fromLocalFile(self.dataPath))
 
+    @Slot(QObject)
+    def openRecentErrors(self, owner):
+        if not self.error_dialog.report_dialog().open_history(owner):
+            self.inform(M('Could not open the report window.'))
+
     @Property(bool,notify=changed)
     def fullscreenStats(self):
         return self.preferences.store.value('SbsOutput/fullscreenStats',False) in (True,'true','1',1)
@@ -826,7 +831,7 @@ class DesktopController(QObject):
             self.live.changed.emit()
 
     def showModelError(self, message):
-        if not self.error_dialog.showError(message, M('Model installation error')):
+        if not self.error_dialog.showError(message, M('Model installation error'), activity='model'):
             self.inform(message)
 
 
