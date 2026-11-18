@@ -1,5 +1,18 @@
 # Current implementation status
 
+Packaged DA2 Small 30-minute live runtime evidence added (2026-11-18), using
+release commit `0de8d9d` on RTX 5090: actual 4K60 local-video input, native Half TB,
+60 FPS limit, strength 0.5, VFG OFF, and existing Owl3D running. The full
+1,800.002-second interval had no unexpected errors/stops; stop plus three restarts
+reclaimed native pools/nodes and left no owned processes. Private-memory early/late
+median changed only +3.1 MiB. Performance remains below 4K60 acceptance: SBS
+submission averaged 50.92 FPS and the native window's OS display averaged
+48.89 FPS (P99 37.53 ms). Whole-GPU mean 80.8% includes Owl3D/player load.
+Fullscreen hotkey-message dispatch passed separately; automated F11/source-focus
+acceptance remained partial because Windows refused foreground activation while
+another app retained focus. See [30-minute evidence](evidence/live-30min-20261118.md)
+for timing scopes, source drops, cleanup and unverified physical/device behavior.
+
 Portable storage included in the v1.0.0 distribution refresh (2026-11-13), superseding
 the automatic AppData/registry migration described in earlier entries below.
 The EXE uses application-relative `data/`, explicit INI preferences and window
