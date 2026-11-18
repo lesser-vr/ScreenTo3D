@@ -37,6 +37,24 @@ class LiveDiagnosticStateTests(unittest.TestCase):
   row=saved['samples'][-1]['state'];self.assertTrue(row['active']);self.assertEqual(row['processing']['frames'],42);self.assertEqual(row['output']['pools'],1)
   self.assertNotIn('PRIVATE WINDOW TITLE',json.dumps(saved))
 
+ def test_display_notification_aborts_and_freezes_before_cleanup(self):
+  window=Mock()
+  window.isVisible.return_value=True
+  self.live.output_window=window
+
+  def stop():
+   self.live.process=None
+   self.live.native=None
+
+  with patch.object(self.live,'stop',side_effect=stop):
+   self.live.screensChanged()
+
+  self.assertEqual(self.live.message.error_id,'E_OUTPUT_DISPLAY_CHANGED')
+  saved=self.live.diagnostics.take_error(self.live.message)
+  self.assertEqual(saved['samples'][-1]['state']['output']['pools'],1)
+  self.assertIn('displays_changed',[event['name'] for event in saved['events']])
+  window.hide.assert_called_once()
+
  def test_failed_native_probe_keeps_other_state_and_original_error(self):
   self.live.native=SimpleNamespace(report=Mock(side_effect=RuntimeError('failed device')))
   self.live.diagnostics.freeze('failed_device');saved=self.live.diagnostics.take_error(E('E_UNKNOWN'))

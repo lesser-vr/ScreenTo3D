@@ -9,7 +9,13 @@ delay. Existing error display, GPU work and file-worker redaction are preserved.
 612 CPU/Qt contracts pass without skips. A real Small GPU/native run verified 61
 samples spanning 59.057 seconds, a 56,027-byte tagged test report and native pools/
 nodes zero after stop, with no sampler failures. This verifies logging, not the old
-Veyra failures.
+Veyra failures. A test-only Python input substitution and real BGRA8 D3D11
+source now exercise the capture path. The owned D3D11 run recovered from 30 pauses,
+30 input resizes, 10 same-size buffer rebuilds, 20 output mode changes and 10
+restarts, with zero unexpected errors. Intentional source close and worker exit
+produced the expected journal entries and released all resources. The current CPU/Qt
+suite passes all 617 checks. [Mocking review and results](evidence/veyra-mocking-review-20261118.md)
+contains the repeat command and scope. The old Veyra errors remain unidentified.
 
 Legacy data-import UI/backend removed locally (2026-11-18).
 Settings retains only the application-relative data path and **Open data folder**.
