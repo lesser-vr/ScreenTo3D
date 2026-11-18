@@ -69,6 +69,23 @@ Errors reported to the native error window are also saved locally in
 `data/logs/errors.jsonl`, including an offset-aware timestamp, error ID, localized
 message, available diagnostics, displayed text and language-independent payload.
 The per-launch log filename and process ID correlate reports with a session.
+Live 3D errors additionally carry a bounded in-memory history of the last up to
+60 seconds (approximately 1 Hz, at most 61 samples) and up to 64 transition events.
+The history includes numeric source identity/visibility/client size, capture and
+processing progress, output geometry/pool/generation, existing whole-device GPU
+observations, and worker accepted-input gap/resize/clock counters. It freezes
+before abort/worker cleanup. Worker Python exception type/message/stack survives
+through an independently owned, nonblocking shared-memory observation; accepted
+capture intervals include processing delay and are not independent WGC arrivals.
+Each report identifies the executable/app folder, run ID and current source hashes;
+portable build revision metadata is included when available. Original window titles,
+pixels, audio and keystrokes are not collected. App/source paths and opaque error
+stacks remain local diagnostics. No success-path log writes, GPU readbacks, added
+GPU synchronization or extra GPU-utilization polling are introduced. Sampling
+stops when idle, and failed probes cannot replace the original error. A native GUI
+crash or power loss may prevent an in-memory snapshot from being flushed.
+Diagnostic context is byte-bounded with explicit omission counters; entries are
+capped at 128 KiB while the existing two-file 1 MiB rotation remains unchanged.
 Dismissal and language changes do not erase or duplicate a report. Reports are
 written even when capture protection prevents showing the error window. The
 history rotates at 1 MiB to one `errors.1.jsonl` backup; unusually large records

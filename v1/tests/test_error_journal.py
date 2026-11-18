@@ -102,6 +102,19 @@ class ErrorJournalTests(unittest.TestCase):
         self.assertEqual(value['error']['error_id'],error_id)
         self.assertTrue(value['truncated'])
 
+    def test_full_recent_history_survives_with_large_original_error(self):
+        from screento3d_app.live_diagnostics import FlightRecorder
+        recorder=FlightRecorder()
+        for index in range(61):
+            recorder.sample(dict(frames=index,worker=dict(sequence=index,source_ns=index*16_666_667),output=dict(pools=1,nodes=1)),now=index*1_000_000_000)
+        context=recorder.snapshot(now=60_000_000_000)
+        self.assertTrue(self.record(E('E_UNKNOWN',details='driver '+('한글'*10000)),
+            title='error',message='shown',displayed_text='shown',diagnostics=context))
+        value=self.entries()[0]
+        self.assertEqual(len(value['diagnostics']['samples']),61)
+        self.assertEqual(value['diagnostics']['samples'][-1]['state']['frames'],60)
+        self.assertEqual(value['error_id'],'E_UNKNOWN')
+
     def test_nonfinite_parameters_and_legacy_errors_are_recordable(self):
         self.assertTrue(self.save(E('E_UNKNOWN',v0=float('nan'))))
         self.assertTrue(self.record(ValueError('opaque native error'),title='error',message='shown',displayed_text='shown'))

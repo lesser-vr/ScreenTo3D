@@ -11,16 +11,17 @@ from . import __version__
 from .messages import as_error, payload
 
 MAX_LOG_BYTES = 1024 * 1024
-MAX_RECORD_BYTES = 64 * 1024
+MAX_RECORD_BYTES = 128 * 1024
 _lock = Lock()
 
 
-def _encoded_record(error, title, message, displayed_text):
+def _encoded_record(error, title, message, displayed_text, diagnostics=None):
     original = dict(schema=1, timestamp=datetime.now(timezone.utc).astimezone().isoformat(timespec='milliseconds'),
                     pid=os.getpid(), app_version=__version__, error_id=error.error_id,
                     title=str(title), message=str(message), details=error.details,
                     displayed_text=str(displayed_text), error=payload(error),
                     launch_log=Path(os.environ.get('SCREENTO3D_LAUNCH_LOG', '')).name)
+    if diagnostics is not None:original['diagnostics'] = diagnostics
     for limit in (8192, 4096, 1024, 256, 64):
         truncated = [False]
         def bounded(value, depth=0):
@@ -50,12 +51,12 @@ def _encoded_record(error, title, message, displayed_text):
     return (json.dumps(record, ensure_ascii=False) + '\n').encode('utf-8', 'backslashreplace')
 
 
-def record_error(error, *, title, message, displayed_text):
+def record_error(error, *, title, message, displayed_text, diagnostics=None):
     """Record one report, never raise into error handling; no files on import."""
     try:
         from .user_data import data_root, _check
         error = as_error(error)
-        encoded = _encoded_record(error, title, message, displayed_text)
+        encoded = _encoded_record(error, title, message, displayed_text, diagnostics)
         root = data_root()
         directory = root / 'logs'
         current = directory / 'errors.jsonl'

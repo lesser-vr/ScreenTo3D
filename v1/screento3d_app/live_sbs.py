@@ -174,6 +174,7 @@ def sbs_worker(
     vfg_enabled=False,
     output_hz=0,
     stereo_layout="full-sbs",
+    worker_diagnostics=None,
 ):
     from .capture_worker import capture_worker
 
@@ -399,6 +400,9 @@ def sbs_worker(
                         stats[INPUT_COPY_NS] = 0 if fused else time.perf_counter_ns() - copy_start
                         if fused:
                             stats[INPUT_COLOR_NS] = time.perf_counter_ns() - copy_start
+                if worker_diagnostics is not None:
+                    try:worker_diagnostics.observe(width,height,m[SEQ],m[SOURCE_NS],m[CALLBACK_NS],m[RESIZES])
+                    except Exception:pass
                 started = time.perf_counter_ns()
                 work_cadence.emitted(started)
                 if not fused:
@@ -668,8 +672,10 @@ def sbs_worker(
                     stats[TOTAL_NS] = time.perf_counter_ns() - copy_start
     except InterruptedError as error:
         if not output.stop.is_set():
+            if worker_diagnostics is not None:worker_diagnostics.failure(error)
             output.fail(error)
     except BaseException as error:
+        if worker_diagnostics is not None:worker_diagnostics.failure(error)
         output.fail(error)
     finally:
         output.stop.set()

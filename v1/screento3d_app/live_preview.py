@@ -72,6 +72,8 @@ class LivePreview(QObject):
     vfgNotification = Signal(str, bool)  # Message and whether preparation is pending.
 
     def reportError(self, message):
+        if isinstance(message,BaseException) and self.diagnostics.pending is None:
+            self.diagnostics.freeze('reported_exception',error=message)
         self.stop_message_pending = False
         self.message = as_error(message)
         self.changed.emit()
@@ -154,6 +156,9 @@ class LivePreview(QObject):
         self.delivery_timer.setSingleShot(True)
         self.delivery_timer.timeout.connect(self.poll)
         self.poll_count = 0
+        self.diagnostic_worker = None
+        from .live_diagnostic_state import LiveDiagnosticRecorder
+        self.diagnostics = LiveDiagnosticRecorder(self)
         self.refresh()
 
     @Property("QVariantList", notify=changed)
@@ -402,6 +407,7 @@ class LivePreview(QObject):
             return
         if self.stopping or self.desktop.closing or (self.desktop.busy and not self.active):
             return
+        self.diagnostics.note('vfg_requested', enabled=enabled)
         if enabled and self.vfgUnavailableReason:
             self.reportError(self._vfg_reason())
             return
@@ -648,6 +654,7 @@ class LivePreview(QObject):
                 E('E_OUTPUT_CAPTURE_POLICY')
             )
             return
+        self.diagnostics.note('output_requested', screen_index=index, fullscreen=fullscreen)
         window.showFullScreen() if fullscreen else window.showNormal()
         if not self.configureOutputCapture(window):
             window.hide()
@@ -669,6 +676,7 @@ class LivePreview(QObject):
         if window is not None and window.visibility() == QWindow.Windowed:
             self.output_placement.rect = window.geometry()
             self.output_placement.screen_name = window.screen().name()
+            self.diagnostics.note('output_geometry', rect=[window.x(),window.y(),window.width(),window.height()])
 
     @Slot()
     def startMinimal(self):
@@ -766,6 +774,7 @@ class LivePreview(QObject):
 
     @Slot()
     def screensChanged(self):
+        self.diagnostics.note('displays_changed', screens=self.diagnostics._attempt(self.diagnostics.screens))
         # Capture/GPU topology still needs a new validated session. Restore a
         # visible control window rather than leaving the user on a lost display.
         if self.output_window is not None and self.output_window.isVisible():
@@ -881,6 +890,8 @@ class LivePreview(QObject):
     def start(self):
         if self.active or self.desktop.busy:
             return
+        self.diagnostic_worker = None
+        self.diagnostics.begin(restart=self.vfg_switch is not None)
         try:
             if self.desktop.gpuRuntimeKey and self.desktop.downloads.needed(self.desktop.gpuRuntimeKey):
                 raise ValueError(E('E_GPU_RUNTIME_REQUIRED'))
@@ -914,6 +925,8 @@ class LivePreview(QObject):
                 )
             self.desktop.lease.acquire("live")
             context = mp.get_context("spawn")
+            from .live_diagnostics import WorkerDiagnostics
+            self.diagnostic_worker = WorkerDiagnostics.create(context) if self.sbs else None
             telemetry_setting = app_env("SCREENTO3D_CAPTURE_TELEMETRY", "0")
             if telemetry_setting not in ("0", "1"):
                 raise ValueError("SCREENTO3D_CAPTURE_TELEMETRY must be 0 or 1")
@@ -987,7 +1000,7 @@ class LivePreview(QObject):
                     **({"backend_snapshot": backend_snapshot, "gpu_capture_snapshot": self.gpu_capture_selected,
                         "renderer_snapshot": self.stereo_renderer,"preparation": self.preparation,
                         "vfg_enabled": self.vfg_enabled,"output_hz": self.cadence.hz,
-                        "stereo_layout": self.stereo_layout} if self.sbs else {}),
+                        "stereo_layout": self.stereo_layout,"worker_diagnostics": self.diagnostic_worker} if self.sbs else {}),
                 },
                 daemon=True,
             )
@@ -1015,6 +1028,7 @@ class LivePreview(QObject):
             self.timer.setInterval(self.native_wakeup.health_interval_ms if self.native_wakeup else self.cadence.poll_ms)
             self.timer.start()
         except Exception as error:
+            self.diagnostics.freeze('start_failed',error=error)
             self.closeNativeWakeup()
             if self.nativeEnabled and self.native is not None:
                 self.native.end()
@@ -1040,6 +1054,8 @@ class LivePreview(QObject):
                 self.frameChanged.emit()
                 self.changed.emit()
         if self.active and not self.stopping:
+            self.diagnostics.note('stop_requested', switching=switching)
+            self.diagnostics.sample()
             self.delivery_timer.stop()
             self.rememberOutput()
             self.output_placement.save()
@@ -1060,6 +1076,8 @@ class LivePreview(QObject):
             self.changed.emit()
 
     def abort(self, message):
+        self.diagnostics.note('abort', error_id=getattr(as_error(message), 'error_id', 'E_UNKNOWN'))
+        self.diagnostics.freeze('before_abort_cleanup',error=message)
         self.stop()
         self.reportError(message)
 
@@ -1070,6 +1088,9 @@ class LivePreview(QObject):
         self.delivery_timer.stop()
         now = time.perf_counter()
         if not self.process.is_alive():
+            self.diagnostics.note('worker_exit', exit_code=self.process.exitcode,
+                                   was_stopping=self.stopping, worker_pid=self.process.pid)
+            if not self.stopping:self.diagnostics.freeze('before_worker_cleanup')
             if self.nativeEnabled:
                 self.native.end()
             # Child has exited: metadata is stable even if a crash held its lock.

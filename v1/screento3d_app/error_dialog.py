@@ -14,6 +14,7 @@ class LiveErrorDialog(QDialog):
         self.setObjectName("liveErrorDialog")
         self.title_source = M('3D error')
         self.message_source = ''
+        self.diagnostic_context = None
         self.setWindowTitle(render(self.title_source))
         self.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.WindowSystemMenuHint | Qt.WindowCloseButtonHint)
         self.setWindowModality(Qt.WindowModal)
@@ -55,9 +56,12 @@ class LiveErrorDialog(QDialog):
         self.retranslate()
         # Preserve the report even if capture protection prevents showing it.
         # Language changes only retranslate the window and never add records.
+        diagnostic_context = self.diagnostic_context
+        self.diagnostic_context = None
         try:
             record_error(self.message_source, title=render(title),
-                         message=render(self.message_source), displayed_text=self.text.toPlainText())
+                         message=render(self.message_source), displayed_text=self.text.toPlainText(),
+                         **({"diagnostics": diagnostic_context} if diagnostic_context is not None else {}))
         except Exception:
             pass  # Error-history failures must not suppress the original window.
         if not exclude_preview(self.winId()):

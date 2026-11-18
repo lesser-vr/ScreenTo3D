@@ -138,6 +138,8 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
     def toggle_fullscreen(self):
         if not self.live.active or self.live.stoppingNow or not self.window.isVisible():
             return
+        diagnostics = getattr(self.live, 'diagnostics', None)
+        if diagnostics is not None:diagnostics.note('fullscreen_requested', was_fullscreen=self.window.visibility()==QWindow.FullScreen)
         self.live.rememberOutput()
         if self.window.visibility() == QWindow.FullScreen:
             self.window.showNormal()

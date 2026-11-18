@@ -1,5 +1,16 @@
 # Current implementation status
 
+Live error flight history added (2026-11-18).
+A 1 Hz, bounded 60-second metadata ring and transition events freeze before live
+abort/worker cleanup and attach to the existing local error journal. Source titles
+and pixels are excluded. Worker accepted-input counters and Python failures survive
+process exit without waiting on a peer lock; their timing scope includes processing
+delay. Existing error display, GPU work and file-worker redaction are preserved.
+612 CPU/Qt contracts pass without skips. A real Small GPU/native run verified 61
+samples spanning 59.057 seconds, a 56,027-byte tagged test report and native pools/
+nodes zero after stop, with no sampler failures. This verifies logging, not the old
+Veyra failures.
+
 Legacy data-import UI/backend removed locally (2026-11-18).
 Settings retains only the application-relative data path and **Open data folder**.
 There is no startup discovery/import prompt, AppData inventory, old-registry

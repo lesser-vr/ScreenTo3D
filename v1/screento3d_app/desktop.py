@@ -816,6 +816,8 @@ class DesktopController(QObject):
 
     @Slot(object)
     def showLiveError(self, message):
+        try:self.error_dialog.diagnostic_context = self.live.diagnostics.take_error(message)
+        except Exception:self.error_dialog.diagnostic_context = None
         if not self.error_dialog.showError(message):
             self.live.stop()
             self.live.stop_message_pending = False
