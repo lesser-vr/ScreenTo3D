@@ -17,7 +17,7 @@ current loader, not permanent restrictions on future implementations.
   an isolated child process, and compare tensor outputs against packaged reference
   samples before publishing. The per-user Windows DPAPI record binds engine
   hashes to the source revision and GPU/runtime identity. Workers verify those
-  hashes before deserialization. Explicit legacy plan imports retain their own checks.
+  hashes before deserialization.
 - Load native code only from explicitly trusted sources with provenance,
   containment and integrity checks; do not accept arbitrary ambient DLL search
   paths or construct shell commands from media names. Current engine/DLL pins
