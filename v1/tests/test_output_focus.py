@@ -113,14 +113,19 @@ class OutputWindowBridgeTests(unittest.TestCase):
         from PySide6.QtGui import QWindow
         class Window(QObject):
             visibleChanged = Signal(bool)
+            visibilityChanged = Signal()
             def __init__(self, hwnd):
                 super().__init__(); self.hwnd = hwnd; self.shown = True; self.fullscreen = False; self.rect = QRect(0,0,400,200)
             def winId(self): return self.hwnd
             def geometry(self): return self.rect
             def isVisible(self): return self.shown
             def visibility(self): return QWindow.FullScreen if self.fullscreen else QWindow.Windowed
-            def showNormal(self): self.fullscreen = False
-            def showFullScreen(self): self.fullscreen = True
+            def showNormal(self):
+                self.fullscreen = False
+                self.visibilityChanged.emit()
+            def showFullScreen(self):
+                self.fullscreen = True
+                self.visibilityChanged.emit()
         class Live(QObject):
             changed = Signal()
             frameChanged = Signal()
@@ -159,6 +164,120 @@ class OutputWindowBridgeTests(unittest.TestCase):
         self.assertFalse(self.policy.focus.managing)
         self.assertEqual(self.api.activated,[(20,2)])
         self.api.noactivate.assert_called_with(11,True)
+
+    def test_caption_click_activates_output_when_windows_left_source_foreground(self):
+        self.api.current = 20
+        self.message(0x0021, (0x0201 << 16) | 2)
+        self.message(0x0006, lparam=20, wparam=1)
+        self.assertEqual(self.api.current, 20)
+        self.message(0x00A1, wparam=2)
+        self.assertEqual(self.api.current, 11)
+
+        self.policy.toggle_fullscreen()
+        self.app.processEvents()
+        self.assertTrue(self.live.output_window.fullscreen)
+        self.assertEqual(self.api.activated, [(11, 1), (20, 2)])
+
+    def test_already_active_caption_click_keeps_focus_for_f11(self):
+        self.api.current = 11
+        self.message(0x0006, wparam=1, lparam=20)  # Already active via taskbar.
+        self.message(0x00A1, wparam=2)  # WM_NCLBUTTONDOWN, HTCAPTION, no WM_MOUSEACTIVATE.
+        self.message(0x0231)
+        self.message(0x0232)
+        self.message(0x00A2, wparam=2)
+        self.app.processEvents()
+        self.assertTrue(self.policy.focus.managing)
+        self.assertEqual(self.api.current, 11)
+        self.policy.toggle_fullscreen()
+        self.app.processEvents()
+        self.assertTrue(self.live.output_window.fullscreen)
+        self.assertEqual(self.api.activated, [(20, 2)])
+
+    def test_native_f11_toggles_once_without_waiting_for_qt_item_focus(self):
+        self.api.current = 20
+        self.message(0x0021, (0x0201 << 16) | 2)
+        self.message(0x00A1, wparam=2)
+        self.assertEqual(self.message(0x0100, wparam=0x7A), (True, 0))
+        self.assertEqual(self.message(0x0100, lparam=1 << 30, wparam=0x7A), (True, 0))
+        self.app.processEvents()
+        self.assertFalse(self.live.output_window.fullscreen)
+        self.assertEqual(self.message(0x0101, wparam=0x7A), (True, 0))
+        self.app.processEvents()
+        self.app.processEvents()  # Complete the deferred visibility transition.
+        self.assertTrue(self.live.output_window.fullscreen)
+        self.assertEqual(self.api.current, 20)
+        self.assertEqual(self.message(0x0100, wparam=0x7A, hwnd=20), (False, 0))
+        self.assertEqual(self.message(0x0100, wparam=0x7A), (False, 0))
+        self.app.processEvents()
+        self.assertTrue(self.live.output_window.fullscreen)
+
+    def test_second_f11_returns_to_windowed_with_source_foreground(self):
+        self.api.current = 20
+        self.message(0x0021, (0x0201 << 16) | 2)
+        self.message(0x00A1, wparam=2)
+        self.message(0x0100, wparam=0x7A)
+        self.message(0x0101, wparam=0x7A)
+        self.app.processEvents()
+        self.app.processEvents()
+        self.assertTrue(self.live.output_window.fullscreen)
+        self.assertEqual(self.api.current, 20)
+        self.assertTrue(self.policy.exit_registered)
+        self.assertTrue(self.policy.exit_scope_timer.isActive())
+
+        self.assertEqual(self.message(0x0312, wparam=0x5312, hwnd=0), (True, 0))
+        self.app.processEvents()
+        self.assertFalse(self.live.output_window.fullscreen)
+        self.assertEqual(self.api.current, 20)
+        self.assertFalse(self.policy.exit_registered)
+        self.assertFalse(self.policy.exit_scope_timer.isActive())
+        self.api.user.UnregisterHotKey.assert_called_with(None, 0x5312)
+
+    def test_fullscreen_exit_releases_f11_when_switching_away_or_stopping(self):
+        self.api.current = 20
+        self.policy.toggle_fullscreen()
+        self.app.processEvents()
+        self.assertTrue(self.policy.exit_registered)
+
+        # Reject an event queued just before an unrelated window took focus.
+        self.message(0x0312, wparam=0x5312, hwnd=0)
+        self.api.current = 30
+        self.app.processEvents()
+        self.assertTrue(self.live.output_window.fullscreen)
+        self.policy.reorder()
+        self.assertFalse(self.policy.exit_registered)
+
+        self.api.current = 20
+        self.policy.reorder()
+        self.assertTrue(self.policy.exit_registered)
+        self.live.stoppingNow = True
+        self.policy.sync()
+        self.assertFalse(self.policy.exit_registered)
+        self.assertFalse(self.policy.exit_scope_timer.isActive())
+
+    def test_fullscreen_exit_works_with_previous_playback_control_target(self):
+        self.api.current = 30
+        self.message(0x0021, (0x0201 << 16) | 2)
+        self.message(0x00A1, wparam=2)
+        self.policy.toggle_fullscreen()
+        self.app.processEvents()
+        self.assertEqual(self.api.current, 30)
+        self.assertTrue(self.policy.exit_registered)
+
+    def test_leaving_management_reinstates_native_noactivate_style(self):
+        import ctypes as C
+        from screento3d_app.output_window import StyleChange
+        from screento3d_app.output_focus import NOACTIVATE
+        style = StyleChange(0, 0)
+
+        def change_style(hwnd, enabled):
+            style.new = NOACTIVATE if enabled else 0
+            self.message(0x007C, C.addressof(style), -20, hwnd)
+
+        self.api.noactivate.side_effect = change_style
+        self.policy.begin('menu')
+        self.assertFalse(style.new & NOACTIVATE)
+        self.policy.end('menu')
+        self.assertTrue(style.new & NOACTIVATE)
 
     def test_fullscreen_completion_does_not_override_a_new_foreground_app(self):
         self.api.current=20; self.policy.begin('caption'); self.api.current=11

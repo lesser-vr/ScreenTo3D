@@ -6,7 +6,7 @@ import sys
 from PySide6.QtCore import QAbstractNativeEventFilter, QTimer
 from PySide6.QtGui import QWindow
 
-from .shortcut_keys import FULLSCREEN
+from .shortcut_keys import FULLSCREEN, FULLSCREEN_EXIT
 from .messages import Message as M
 from .output_focus import FocusSession, NOACTIVATE, Win32Windows
 
@@ -27,8 +27,12 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
         self.focus = FocusSession(self.api, main=int(main.winId()), output=self.hwnd) if self.api else None
         self.reasons = set()
         self.move_geometry = None
-        self.registered = self.closed = False
+        self.registered = self.exit_registered = self.closed = False
+        self.exit_registration_attempted = False
         self.state = None
+        self.playing = False
+        self.fullscreen_target = None
+        self.local_f11_pressed = False
         self.hooks, self.event_callback = [], None
         self.order_timer = QTimer(live)
         self.order_timer.setSingleShot(True)
@@ -39,10 +43,14 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
         self.transition_timer = QTimer(live)
         self.transition_timer.setSingleShot(True)
         self.transition_timer.timeout.connect(self.finish_transition)
+        self.exit_scope_timer = QTimer(live)
+        self.exit_scope_timer.setInterval(100)
+        self.exit_scope_timer.timeout.connect(self.sync_exit_hotkey)
         if self.api:
             self.api.noactivate(self.hwnd, True)
             app.installNativeEventFilter(self)
         self.window.visibleChanged.connect(self.sync)
+        self.window.visibilityChanged.connect(self.sync_exit_hotkey)
         live.changed.connect(self.sync)
         live.frameChanged.connect(self.first_frame)
         app.aboutToQuit.connect(self.close)
@@ -60,8 +68,13 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
     def sync(self, *_):
         if self.closed or not self.api:
             return
+        playing = self.live.active and not self.live.stoppingNow
+        playing_changed = playing != self.playing
+        self.playing = playing
         shown = bool((self.live.active or self.live.vfgSwitching) and self.window.isVisible())
         if shown == self.state:
+            if playing_changed:
+                self.sync_exit_hotkey()
             return
         self.state = shown
         if shown:
@@ -92,9 +105,52 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
             self.order_timer.start(0)
 
     def reorder(self):
-        if not self.closed and self.state and not self.focus.managing:
-            self.refresh_handle()
-            self.api.order(self.hwnd)
+        if not self.closed and self.state:
+            self.sync_exit_hotkey()
+            if not self.focus.managing:
+                self.refresh_handle()
+                self.api.order(self.hwnd)
+
+    def fullscreen_exit_allowed(self):
+        if not (self.state and self.playing and self.window.visibility() == QWindow.FullScreen):
+            return False
+        foreground = self.api.foreground()
+        if foreground == self.focus.main:
+            return True
+        target = self.api.identity(foreground)
+        return target is not None and target in (self.focus.source, self.fullscreen_target)
+
+    def sync_exit_hotkey(self, *_):
+        if self.closed or not self.api:
+            return
+        if self.window.visibility() != QWindow.FullScreen:
+            self.fullscreen_target = None
+        # Some programmatic foreground changes are visible before a
+        # WinEvent arrives. Recheck the scope only during fullscreen playback.
+        if self.state and self.playing and self.window.visibility() == QWindow.FullScreen:
+            if not self.exit_scope_timer.isActive():
+                self.exit_scope_timer.start()
+        else:
+            self.exit_scope_timer.stop()
+        if not self.fullscreen_exit_allowed():
+            self.release_exit_hotkey()
+        elif not self.exit_registration_attempted:
+            self.exit_registration_attempted = True
+            self.exit_registered = bool(self.api.user.RegisterHotKey(
+                None, FULLSCREEN_EXIT.identifier, FULLSCREEN_EXIT.modifiers, FULLSCREEN_EXIT.key
+            ))
+
+    def release_exit_hotkey(self):
+        self.exit_registration_attempted = False
+        if self.exit_registered:
+            self.api.user.UnregisterHotKey(None, FULLSCREEN_EXIT.identifier)
+            self.exit_registered = False
+
+    def exit_fullscreen(self):
+        # Recheck after dispatch so stale hotkey messages cannot re-enter
+        # fullscreen or act after another application takes foreground.
+        if self.exit_registered and self.fullscreen_exit_allowed():
+            self.toggle_fullscreen()
 
     def begin(self, reason='menu', previous=None):
         if self.closed or not self.state:
@@ -119,6 +175,7 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
     def finish_transition(self):
         self.end('caption')
         self.end('click')
+        self.sync_exit_hotkey()
 
     def stop_session(self):
         if self.focus:
@@ -126,6 +183,10 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
         self.cancel()
 
     def cancel(self):
+        self.exit_scope_timer.stop()
+        self.release_exit_hotkey()
+        self.fullscreen_target = None
+        self.local_f11_pressed = False
         self.finish_timer.stop()
         self.transition_timer.stop()
         self.move_geometry = None
@@ -144,6 +205,7 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
         if self.window.visibility() == QWindow.FullScreen:
             self.window.showNormal()
         else:
+            self.fullscreen_target = self.focus.target if self.focus else None
             self.window.showFullScreen()
         # Let Qt finish the visibility/style change before returning input.
         # A still-open context menu holds its own management reason.
@@ -158,22 +220,40 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
         if code == 0x0312 and self.registered and msg.wParam == self.identifier:
             QTimer.singleShot(0, self.toggle_fullscreen)
             return True, 0
+        if code == 0x0312 and self.exit_registered and msg.wParam == FULLSCREEN_EXIT.identifier:
+            QTimer.singleShot(0, self.exit_fullscreen)
+            return True, 0
         if hwnd != self.hwnd:
             if self.state and code in (0x0006, 0x001C):  # Controls/dialog activation.
                 self.queue_order()
             return False, 0
         if code == 0x007C and C.c_int(msg.wParam & 0xffffffff).value == -20 and msg.lParam:
             style = StyleChange.from_address(msg.lParam)
-            style.new = style.new & ~NOACTIVATE if self.focus.managing else style.new | NOACTIVATE
+            style.new = style.new & ~NOACTIVATE if self.reasons else style.new | NOACTIVATE
         if not self.state:
             return False, 0
+        if code in (0x0100, 0x0101) and msg.wParam == FULLSCREEN_EXIT.key and self.api.foreground() == hwnd:
+            # Handle F11 in the native window even before Qt item focus settles.
+            # Use key-up so a held F11 cannot become the first registered exit press.
+            if code == 0x0100 and not msg.lParam & (1 << 30):
+                self.local_f11_pressed = True
+            elif code == 0x0101 and self.local_f11_pressed:
+                self.local_f11_pressed = False
+                QTimer.singleShot(0, self.toggle_fullscreen)
+            return True, 0
         if code == 0x0021:  # WM_MOUSEACTIVATE: permit frame/context menu only.
             hit, mouse = msg.lParam & 0xffff, (msg.lParam >> 16) & 0xffff
             if hit != 1 or mouse in (0x0204, 0x00A4):
                 self.begin('caption' if hit == 2 else 'click')
                 return True, 1  # MA_ACTIVATE, mouse message is preserved.
             return True, 3  # MA_NOACTIVATE, not MA_NOACTIVATEANDEAT.
-        if code == 0x0231:
+        if code == 0x00A1 and msg.wParam == 2:  # WM_NCLBUTTONDOWN, HTCAPTION.
+            self.begin('caption')
+            # A passive window can become active on its own thread while the
+            # input queue of another process still owns keyboard foreground.
+            if self.api.foreground() != hwnd:
+                self.api.activate(self.api.identity(hwnd))
+        elif code == 0x0231:
             self.move_geometry = self.window.geometry()
             self.begin('move')
         elif code == 0x0232:
@@ -196,6 +276,7 @@ class OutputWindowPolicy(QAbstractNativeEventFilter):
             if msg.wParam & 0xffff and self.api.foreground() == self.hwnd:
                 self.begin('click', int(msg.lParam or 0))
             elif not msg.wParam & 0xffff and not self.api.belongs(int(msg.lParam or 0), self.hwnd):
+                self.local_f11_pressed = False
                 self.reasons.clear()
                 self.api.noactivate(self.hwnd, True)
                 self.focus.managing = False

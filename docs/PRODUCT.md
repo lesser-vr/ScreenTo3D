@@ -171,8 +171,8 @@ are respected without retries or injected input.
 
 A small **?** beside the main live settings icon opens **조작·단축키 안내**
 (Controls and shortcuts). Live output settings offers the same guide at its top.
-It separates shortcuts usable while controlling the original window from F11/Esc,
-which require output keyboard focus. The nonmodal, app-contained popover preserves
+It explains which shortcuts work while controlling the original window and how
+F11 enters and exits fullscreen. The nonmodal, app-contained popover preserves
 the control window size. It starts at the top on every opening, keeps its heading
 and Close button fixed, and scrolls within small windows with room reserved for
 the scrollbar. Mouse click or keyboard activation opens it; Escape, Close and
@@ -186,9 +186,12 @@ Repeated statistics do not rebuild the guide or introduce frame-rate polling.
 Guide text, states and output-menu labels follow the selected app language.
 
 Ctrl+Alt+Enter toggles fullscreen globally during visible playback. Live output
-settings provide a fallback button and shortcut-conflict help. F11/Esc remain
-local to an active output window; the right-click menu also controls fullscreen
-and stopping. VFG Ctrl+Alt+S remains unchanged. Playback is nonactivating and
+settings provide a fallback button and shortcut-conflict help. Click the 3D title
+bar and press F11 to enter fullscreen. Press F11 again from the playback input
+window to return to windowed mode. The F11 exit registration follows foreground
+changes and is released on windowed mode or stop. Esc exits fullscreen when the
+output has keyboard focus. The right-click menu also controls fullscreen and
+stopping. VFG Ctrl+Alt+S remains unchanged. Playback is nonactivating and
 normally topmost, but its ordering stays below overlapping Owl3D display-mirror
 surfaces and active app controls/error dialogs. Window/foreground notifications
 handle changes without frame-rate focus polling. The main application remains

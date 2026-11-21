@@ -72,7 +72,7 @@ Popup {
                     }
                 }
                 Label {
-                    text: qsTr("Use the original window for keyboard and mouse input. Click the 3D title bar, then press F11 to enter fullscreen and return to the original window.")
+                    text: qsTr("Click the 3D title bar and press F11 to enter fullscreen. Press F11 again while using the original window to return to windowed mode.")
                     color: root.theme.muted; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true
                 }
                 Label { text: qsTr("Shortcut buttons are also available in Live output settings."); color: root.theme.muted; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }

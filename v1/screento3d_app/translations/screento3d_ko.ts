@@ -3957,8 +3957,8 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
       <translation>실시간 출력 설정에서도 버튼으로 조작할 수 있습니다.</translation>
     </message>
     <message>
-      <source>Use the original window for keyboard and mouse input. Click the 3D title bar, then press F11 to enter fullscreen and return to the original window.</source>
-      <translation>키보드와 마우스는 원본 창에서 조작하세요. 3D 제목표시줄을 클릭한 뒤 F11을 누르면 전체화면으로 전환하고 원본으로 돌아갑니다.</translation>
+      <source>Click the 3D title bar and press F11 to enter fullscreen. Press F11 again while using the original window to return to windowed mode.</source>
+      <translation>3D 창 제목 표시줄을 클릭하고 F11을 눌러 전체화면을 켜세요. 원본 창을 조작하다가 F11을 다시 누르면 창 모드로 돌아갑니다.</translation>
     </message>
   </context>
 </TS>
