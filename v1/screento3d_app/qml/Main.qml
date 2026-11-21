@@ -51,7 +51,7 @@ ApplicationWindow {
                 fileWorkspace ? fileSize.width : liveSize.width, fileWorkspace ? fileSize.height : liveSize.height)
         }
         if (page > 1) {
-            if (!desktop.protectWindow(tools)) return
+            if (!desktop.configureSettingsCapture(tools)) return
             tools.showNormal(); tools.raise(); tools.requestActivate()
             desktop.fitControlWindow(tools, page === 3 ? 460 : 760, page === 3 ? 430 : 620,
                 page === 3 ? 480 : 860, page === 3 ? 460 : 740)
@@ -303,7 +303,7 @@ ApplicationWindow {
         font: root.font; palette: root.palette
         title: root.page === 3 ? qsTr("ScreenTo3D · Live output settings") : qsTr("ScreenTo3D · Settings and diagnostics")
         onClosing: function(close) { close.accepted = false; root.page = 0 }
-        onVisibleChanged: { if (visible) desktop.protectWindow(tools) }
+        onVisibleChanged: { if (visible) desktop.configureSettingsCapture(tools) }
         ShortcutGuide { id: settingsShortcutGuide; groups: shortcutHelp.groups; onActionRequested: action => shortcutHelp.activate(action); objectName: "settingsShortcutGuide"; parent: tools.contentItem }
         StackLayout {
             anchors.fill: parent

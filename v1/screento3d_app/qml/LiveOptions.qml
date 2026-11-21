@@ -86,6 +86,16 @@ FocusScrollView {
             Label { text: qsTr("Stereo layout"); color: options.theme.ink }
             StereoLayoutPicker { objectName: "liveStereoLayout"; enabled: !live.active; currentIndex: keys.indexOf(live.stereoLayout); onActivated: { live.setStereoLayout(keys[currentIndex]); live.rememberSelection() } }
             Copy { text: qsTr("Select the same layout on your 3D playback device. Half layouts halve resolution along one axis.") }
+            CheckOption {
+                objectName: "excludeControlWindows"
+                text: qsTr("Exclude app controls from screen capture")
+                enabled: !desktop.busy && !live.active && !live.vfgSwitching
+                checked: desktop.excludeControlWindows
+                onClicked: desktop.setExcludeControlWindows(checked)
+            }
+            Copy {
+                text: qsTr("Turn this off to record the main and settings windows with OBS. Use a window as the 3D source while recording.")
+            }
             CheckOption { objectName: "fullscreenStatsToggle"; text: qsTr("Show performance information in fullscreen"); checked: options.fullscreenStats; onClicked: options.fullscreenStatsRequested(checked) }
             Copy { text: qsTr("Use the original window for keyboard and mouse input. Drag the 3D title bar or right-click the 3D window to manage it.") }
             RowLayout {

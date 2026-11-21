@@ -204,9 +204,7 @@ def exclude_preview(hwnd):
     return bool(user32.SetWindowDisplayAffinity(int(hwnd), 0x11))
 
 
-def set_output_affinity(hwnd, excluded):
-    if not mark_sbs_output(hwnd):
-        return False
+def set_window_capture_affinity(hwnd, excluded):
     expected = 0x11 if excluded else 0
     actual = W.DWORD()
     user32.SetWindowDisplayAffinity.argtypes = [W.HWND, W.DWORD]
@@ -214,3 +212,7 @@ def set_output_affinity(hwnd, excluded):
     return (bool(user32.SetWindowDisplayAffinity(int(hwnd), expected))
             and bool(user32.GetWindowDisplayAffinity(int(hwnd), C.byref(actual)))
             and actual.value == expected)
+
+
+def set_output_affinity(hwnd, excluded):
+    return mark_sbs_output(hwnd) and set_window_capture_affinity(hwnd, excluded)

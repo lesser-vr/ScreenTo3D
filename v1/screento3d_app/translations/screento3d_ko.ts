@@ -22,6 +22,14 @@
   <context>
     <name>LiveOptions</name>
     <message>
+      <source>Exclude app controls from screen capture</source>
+      <translation>앱 조작 창을 화면 캡처에서 제외</translation>
+    </message>
+    <message>
+      <source>Turn this off to record the main and settings windows with OBS. Use a window as the 3D source while recording.</source>
+      <translation>OBS로 메인 창과 설정 창을 녹화하려면 체크를 해제하세요. 이 상태에서는 개별 창만 3D 입력으로 사용할 수 있습니다.</translation>
+    </message>
+    <message>
       <source>
 
 Switching VFG…</source>
@@ -132,6 +140,10 @@ VFG 전환 중…</translation>
   </context>
   <context>
     <name>LivePage</name>
+    <message>
+      <source>To capture an entire monitor, turn on app capture exclusion in Live output settings.</source>
+      <translation>모니터 전체를 선택하려면 실시간 출력 설정에서 앱 조작 창의 캡처 제외를 켜세요.</translation>
+    </message>
     <message>
       <source>Cancel</source>
       <translation>취소</translation>
@@ -2314,6 +2326,11 @@ Previously downloaded files are reused.</source>
   <context>
     <name>Errors</name>
     <message>
+      <source>E_CONTROL_CAPTURE_AFFINITY</source>
+      <extracomment>Could not apply the capture setting to the ScreenTo3D controls.</extracomment>
+      <translation>ScreenTo3D 조작 창에 화면 캡처 설정을 적용하지 못했습니다.</translation>
+    </message>
+    <message>
       <source>E_MEDIA_PROCESS</source>
       <extracomment>A media tool failed or stopped responding. Check the input and retry.</extracomment>
       <translation>미디어 도구 실행에 실패했거나 응답하지 않습니다. 입력 파일을 확인하고 다시 시도하세요.</translation>
@@ -3115,6 +3132,11 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
   </context>
   <context>
     <name>PublicErrors</name>
+    <message>
+      <source>E_CONTROL_CAPTURE_AFFINITY</source>
+      <extracomment>Could not apply the capture setting to the ScreenTo3D controls.</extracomment>
+      <translation>ScreenTo3D 조작 창에 화면 캡처 설정을 적용하지 못했습니다.</translation>
+    </message>
     <message>
       <source>E_MEDIA_PROCESS</source>
       <extracomment>A media tool failed or stopped responding. Check the input and retry.</extracomment>

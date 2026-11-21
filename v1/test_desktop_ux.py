@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from PySide6.QtCore import QObject, QPointF, Qt, QMimeData, QSettings, qInstallMessageHandler
-from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QImage
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtTest import QTest
@@ -164,7 +163,7 @@ def main():
             live.reportError('선택한 창이 종료되었습니다. 다시 선택하세요.'); pump()
             dialog = desktop.error_dialog
             assert dialog.isVisible() and dialog.isWindow() and dialog.isModal()
-            assert [b.text() for b in dialog.findChildren(QPushButton)] == ['닫기']
+            assert dialog.close_button.text() == '닫기'
             for target in (dialog.close_button, dialog.text):
                 target.setFocus(); clipboard.setText('not the error')
                 QTest.keyClick(target, Qt.Key_C, Qt.ControlModifier); pump()
@@ -191,10 +190,44 @@ def main():
             from screento3d_app.capture_sources import user32
             user32.GetWindowDisplayAffinity.argtypes = [W.HWND, C.POINTER(W.DWORD)]
             window.setProperty('page', 2); pump()
-            for target in (window, tools):
-                affinity = W.DWORD()
-                assert user32.GetWindowDisplayAffinity(int(target.winId()), C.byref(affinity))
-                assert affinity.value == 0x11, (target.objectName(), target.isVisible(), affinity.value)
+            def assert_controls_affinity(expected):
+                for target in (window, tools):
+                    affinity = W.DWORD()
+                    assert user32.GetWindowDisplayAffinity(int(target.winId()), C.byref(affinity))
+                    assert affinity.value == expected, (target.objectName(), affinity.value)
+
+            assert_controls_affinity(0x11)
+            live.setKind('monitor')
+            window.setProperty('page', 3); pump()
+            exclude_capture = control('excludeControlWindows')
+            tools.resize(620, 1100); pump()
+            assert exclude_capture.property('checked')
+            click('excludeControlWindows')
+            assert not exclude_capture.property('checked')
+            assert not desktop.excludeControlWindows and not live.excluded
+            assert live.sourceKind == 'window' and live.selectedIndex == -1
+            assert_controls_affinity(0)
+            tools.close(); pump()
+            click('captureSource')
+            assert not control('monitorInputs').property('enabled')
+            live.setKind('monitor')
+            assert live.sourceKind == 'window'
+            click('dismissSource')
+            click('openLiveOptions')
+            assert_controls_affinity(0)
+            exclude_capture.forceActiveFocus(); pump()
+            live.process = Mock()
+            live.changed.emit(); pump()
+            assert not exclude_capture.property('enabled')
+            desktop.setExcludeControlWindows(True)
+            assert not desktop.excludeControlWindows
+            live.process = None
+            live.changed.emit(); pump()
+            tools.resize(620, 1100); pump()
+            click('excludeControlWindows')
+            assert exclude_capture.property('checked')
+            assert desktop.excludeControlWindows and live.excluded
+            assert_controls_affinity(0x11)
             assert not warnings, warnings
             (args.output/'report.json').write_text(json.dumps(dict(
                 passed=True, qt_warnings=warnings, device_pixel_ratio=window.devicePixelRatio(),
@@ -203,7 +236,8 @@ def main():
                         'menu opens options', 'utility close', 'identity loss', 'minimum/long title',
                         'keyboard focus', 'start signal', 'preparing cancel', 'running stop',
                         'separate error copy/close/Esc', 'utility capture exclusion',
-                        'minimized utility reopen', 'error exclusion failure stops capture']
+                        'minimized utility reopen', 'error exclusion failure stops capture',
+                        'recordable controls with window-only 3D input', 'capture exclusion locked during playback']
                     + ['unlimited default', 'keyboard 30/60/unlimited selection', 'active FPS control locked']
             ), indent=2), encoding='utf-8')
         finally:

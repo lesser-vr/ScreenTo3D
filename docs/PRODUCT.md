@@ -185,6 +185,11 @@ failed key per session, without opening an error dialog or stealing playback foc
 Repeated statistics do not rebuild the guide or introduce frame-rate polling.
 Guide text, states and output-menu labels follow the selected app language.
 
+Live output settings exclude app controls from screen capture by default.
+Clear the checkbox while 3D is stopped to record the main and settings windows
+with OBS. In that session only individual windows can be selected as input.
+The checkbox resets when the app restarts.
+
 Ctrl+Alt+Enter toggles fullscreen globally during visible playback. Live output
 settings provide a fallback button and shortcut-conflict help. Click the 3D title
 bar and press F11 to enter fullscreen. Press F11 again from the playback input

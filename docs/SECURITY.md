@@ -48,10 +48,11 @@ In normal application launch, the main UI, utility window and error window use
 capture exclusion. The marked SBS output allows external capture for window input,
 including by other recording software. Monitor input requires capture exclusion
 on that output to prevent feedback.
-Utility/error exclusion is checked before showing them; an error-dialog exclusion
-failure keeps the dialog hidden and stops live capture while retaining its error
-in status. The application
-does not offer a normal GUI option to clear SBS capture protection for external applications.
+Before starting live 3D, the user can allow external recording of the main and
+settings windows for the current app session. Whole-monitor input is disabled
+while that setting is off. Error and download setup windows keep their own
+capture exclusion. An error-dialog exclusion failure keeps the dialog hidden
+and stops live capture while retaining its error in status.
 
 The user-requested Owl3D trial (`Run-Compare-A.cmd` / `Run-Compare-B-VFG.cmd` /
 `Run-Compare-Small.cmd` / `Run-Compare-Small-VFG.cmd`)

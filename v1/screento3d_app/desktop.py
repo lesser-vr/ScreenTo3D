@@ -59,6 +59,7 @@ class DesktopController(QObject):
     changed = Signal()
     exitReady = Signal()
     workAreaChanged = Signal()
+    captureExclusionChanged = Signal()
 
     def __init__(self, preferences=None):
         super().__init__()
@@ -81,6 +82,7 @@ class DesktopController(QObject):
         self.complete = False
         self.cancelling = False
         self.closing = False
+        self.exclude_control_windows = True
         self.checking = False
         self.check_target = ""
         self.status_text = M('Add videos and select one to convert.')
@@ -128,6 +130,35 @@ class DesktopController(QObject):
     @Slot()
     def openDataFolder(self):
         QDesktopServices.openUrl(QUrl.fromLocalFile(self.dataPath))
+
+    @Property(bool, notify=captureExclusionChanged)
+    def excludeControlWindows(self):
+        return self.exclude_control_windows
+
+    @Slot(bool)
+    def setExcludeControlWindows(self, excluded):
+        from .capture_sources import set_window_capture_affinity
+
+        previous = self.exclude_control_windows
+        if excluded == previous or self.busy or self.live.active or self.live.vfgSwitching:
+            return
+        windows = (self.main_window, self.settings_window)
+
+        def apply(value):
+            results = [set_window_capture_affinity(window.winId(), value) for window in windows]
+            return all(results)
+
+        if not apply(excluded):
+            self.live.excluded = apply(previous) and previous
+            self.captureExclusionChanged.emit()
+            self.showLiveError(E('E_CONTROL_CAPTURE_AFFINITY'))
+            return
+
+        self.exclude_control_windows = excluded
+        self.live.excluded = excluded
+        if not excluded and self.live.kind == 'monitor':
+            self.live.setKind('window')
+        self.captureExclusionChanged.emit()
 
     @Slot(QObject)
     def openRecentErrors(self, owner):
@@ -798,6 +829,16 @@ class DesktopController(QObject):
         return False
 
     @Slot(QObject, result=bool)
+    def configureSettingsCapture(self, window):
+        from .capture_sources import set_window_capture_affinity
+
+        if not set_window_capture_affinity(window.winId(), self.exclude_control_windows):
+            window.hide()
+            self.live.reportError(E('E_CONTROL_CAPTURE_AFFINITY'))
+            return False
+        return True
+
+    @Slot(QObject, result=bool)
     def protectWindow(self, window):
         from .capture_sources import exclude_preview
 
@@ -943,8 +984,9 @@ def create_app(preferences=None):
     controller.live.frameChanged.connect(controller.live.updateFrameWindows)
     from .capture_sources import exclude_preview
 
+    controller.settings_window = window.findChild(QQuickWindow, "toolsWindow")
     controller.live.excluded = exclude_preview(window.winId())
-    controller.protectWindow(window.findChild(QQuickWindow, "toolsWindow"))
+    controller.configureSettingsCapture(controller.settings_window)
     controller.exitReady.connect(app.quit)
     from .vfg_hotkey import VfgHotkey
     controller.vfg_hotkey = VfgHotkey(app, controller.live)

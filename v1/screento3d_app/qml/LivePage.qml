@@ -23,7 +23,7 @@ Item {
             border.color: kind.activeFocus ? page.theme.blue : "transparent"
         }
         contentItem: Label {
-            text: kind.text; color: kind.selected ? page.theme.ink : page.theme.muted
+            text: kind.text; color: !kind.enabled ? page.theme.disabledInk : kind.selected ? page.theme.ink : page.theme.muted
             font.weight: kind.selected ? Font.DemiBold : Font.Normal
             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
         }
@@ -74,11 +74,20 @@ Item {
                             Row {
                                 id: tabs; anchors.centerIn: parent
                                 KindButton { objectName: "windowInputs"; width: Math.max(48, implicitWidth); text: qsTr("Windows"); sourceKind: "window" }
-                                KindButton { objectName: "monitorInputs"; text: qsTr("Entire monitor"); sourceKind: "monitor" }
+                                KindButton {
+                                    objectName: "monitorInputs"; text: qsTr("Entire monitor"); sourceKind: "monitor"
+                                    enabled: desktop.excludeControlWindows
+                                }
                             }
                         }
                         Item { Layout.fillWidth: true }
                         ToolButton { objectName: "dismissSource"; text: qsTr("Close"); Accessible.name: qsTr("Close source picker"); onClicked: page.dismissSourcePicker() }
+                    }
+                    Label {
+                        visible: !desktop.excludeControlWindows
+                        Layout.fillWidth: true
+                        wrapMode: Text.WordWrap; font.pixelSize: 12; color: page.theme.muted
+                        text: qsTr("To capture an entire monitor, turn on app capture exclusion in Live output settings.")
                     }
                     ListView {
                         id: sourceList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true

@@ -136,6 +136,11 @@
       "public": "Install the selected model first. Open the model settings in the file workspace.",
       "category": "backend"
     },
+    "E_CONTROL_CAPTURE_AFFINITY": {
+      "source": "Could not apply the capture setting to the ScreenTo3D controls.",
+      "public": "Could not apply the capture setting to the ScreenTo3D controls.",
+      "category": "conversion"
+    },
     "E_UTILITY_CAPTURE_PROTECTION": {
       "source": "The utility window was closed because capture protection failed.",
       "public": "The utility window was closed because capture protection failed.",

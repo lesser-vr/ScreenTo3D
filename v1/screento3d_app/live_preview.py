@@ -790,6 +790,8 @@ class LivePreview(QObject):
 
     @Slot(str)
     def setKind(self, kind):
+        if kind == 'monitor' and not self.desktop.excludeControlWindows:
+            return
         if not self.active and kind in ("window", "monitor"):
             if kind != self.kind:
                 self.items, self.selected = [], -1
