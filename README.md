@@ -2,6 +2,15 @@
 
 **English** | [한국어](README.ko.md)
 
+> [!IMPORTANT]
+> **System requirements for Live 3D and file conversion**
+>
+> - **OS:** Windows 11 (64-bit)
+> - **GPU:** A supported NVIDIA GPU with CUDA Compute Capability **7.5 or later**. Examples include **GeForce RTX 20, 30, 40, and 50 Series** and the **GeForce GTX 1650 and 1660 families**. [NVIDIA GPU list](https://developer.nvidia.com/cuda/gpus)
+> - **Driver:** An NVIDIA graphics driver that supports **CUDA 13.1 or later**.
+>
+> **First-use downloads:** In addition to the app ZIP, a fresh setup downloads about **2 GB** the first time you start Live 3D. If you start with file conversion using the default DA2 Base model, expect about **2.45 GB**, including FFmpeg and the model. The app guides you through setup and reuses installed runtimes.
+
 **[Download Windows app ZIP](https://github.com/lesser-vr/ScreenTo3D/releases/download/v1.0.0/ScreenTo3D-1.0.0-windows-x64.zip)** ·
 [Runtime packs and release](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0) ·
 [Installation instructions](docs/releases/1.0.0.md)

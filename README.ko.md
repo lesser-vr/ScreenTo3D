@@ -2,6 +2,15 @@
 
 [English](README.md) | **한국어**
 
+> [!IMPORTANT]
+> **실시간 3D 및 파일 변환 요구사항**
+>
+> - **운영체제** Windows 11(64비트)
+> - **GPU** CUDA Compute Capability **7.5 이상**을 지원하는 NVIDIA GPU. 대표 제품군은 **GeForce RTX 20·30·40·50 시리즈**와 **GeForce GTX 1650·1660 계열**입니다. [NVIDIA GPU 목록](https://developer.nvidia.com/cuda/gpus)
+> - **드라이버** **CUDA 13.1 이상**을 지원하는 NVIDIA 그래픽 드라이버
+>
+> **첫 사용 시 추가 다운로드** 앱 ZIP을 받은 뒤, 새 설치 환경에서 실시간 3D를 처음 시작하면 약 **2 GB**를 추가로 받습니다. 기본 모델인 DA2 Base로 파일 변환부터 시작하면 FFmpeg와 모델을 포함해 약 **2.45 GB**가 필요합니다. 설치는 앱에서 안내하며, 이미 준비된 런타임은 재사용합니다.
+
 **[Windows 앱 ZIP 다운로드](https://github.com/lesser-vr/ScreenTo3D/releases/download/v1.0.0/ScreenTo3D-1.0.0-windows-x64.zip)** ·
 [런타임 팩과 릴리스](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0) ·
 [설치 안내](docs/releases/1.0.0.md)
