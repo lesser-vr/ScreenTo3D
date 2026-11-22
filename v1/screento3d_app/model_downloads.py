@@ -13,6 +13,7 @@ from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer, QStandardPat
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog
 
+from .engine_cache import require_runtime_device
 from .optional_models import PACKS, available, install, installed_path, source_for
 from .vfg_runtime import BRIDGE, runtime_path
 
@@ -153,13 +154,28 @@ class ModelDownloads(QObject):
         except ValueError:return ''  # A malformed configured origin remains an error.
         return ''
 
+    def _prepare_gpu_install(self, key, resume):
+        from .builder_resources import PACKS as resources, required_key
+        from .optional_models import GRAPH_HASHES
+
+        if key != 'trt-core' and key not in resources and key not in GRAPH_HASHES:
+            return True
+        try:
+            device = require_runtime_device()
+        except RuntimeError as error:
+            self.dismissSetup()
+            self.desktop.showModelError(error)
+            return False
+        if key in GRAPH_HASHES:
+            return self.ensure(['trt-core', required_key(device=device)], resume)
+        return True
+
     @Slot(str)
     def downloadInBrowser(self,key):
         if self.desktop.busy or self.waiting_key or key not in PACKS or not self.needed(key):return
         if self.setup_visible and self.setup_key!=key:return
-        from .optional_models import GRAPH_HASHES
-        if key in GRAPH_HASHES:
-            if not self.ensure(['trt-core',self.desktop.gpuRuntimeKey],lambda:self.downloadInBrowser(key)):return
+        if not self._prepare_gpu_install(key, lambda: self.downloadInBrowser(key)):
+            return
         from .browser_download import DownloadHandoff,release_url
         directory=QStandardPaths.writableLocation(QStandardPaths.DownloadLocation)
         if not directory:
@@ -198,10 +214,8 @@ class ModelDownloads(QObject):
             return
         if self.setup_visible and self.setup_key!=key:return
         if self.waiting_key and self.waiting_key!=key:return
-        from .optional_models import GRAPH_HASHES
-        if key in GRAPH_HASHES:
-            keys=['trt-core',self.desktop.gpuRuntimeKey]
-            if not self.ensure(keys,lambda:self.begin(key,choose_file)):return
+        if not self._prepare_gpu_install(key, lambda: self.begin(key, choose_file)):
+            return
         if key == 'vfg' and not BRIDGE.is_file():
             self.desktop.showModelError(E('E_VFG_MODULE_MISSING'))
             return

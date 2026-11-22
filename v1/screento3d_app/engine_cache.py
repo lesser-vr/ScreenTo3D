@@ -9,6 +9,8 @@ from functools import lru_cache
 from pathlib import Path
 
 TRT_VERSION = '11.2.1.2'
+MIN_CUDA_DRIVER_API = 13000  # Allow CUDA 13.x minor-version compatibility.
+MIN_TRT_COMPUTE_CAPABILITY = (7, 5)
 VDA_FP32_PACK = '691bc8c7795004d9f5ee8229391af28781301c8cdd7a7dc38c508a7c7a2d5f44'
 VDA_ENCODER_PACK = 'd99ad9d3a3e40454b1726ccd304701dd9815ce3e846a9cdd400f25cf8d979f0d'
 
@@ -17,7 +19,10 @@ VDA_ENCODER_PACK = 'd99ad9d3a3e40454b1726ccd304701dd9815ce3e846a9cdd400f25cf8d97
 def device_identity(index=0):
     # The desktop selects the first visible CUDA device; workers check their active ordinal.
     # No CUDA context, Torch import, or GPU allocation in the desktop process.
-    drv = ct.WinDLL(str(Path(os.environ['SystemRoot'])/'System32/nvcuda.dll'))
+    try:
+        drv = ct.WinDLL(str(Path(os.environ['SystemRoot'])/'System32/nvcuda.dll'))
+    except OSError as error:
+        raise RuntimeError(E('E_CUDA_DRIVER_LOAD', details=error)) from error
     ordinal, driver, major, minor = (ct.c_int() for _ in range(4))
     uuid, name = (ct.c_ubyte * 16)(), ct.create_string_buffer(256)
     for func, args in [
@@ -27,10 +32,23 @@ def device_identity(index=0):
         ('cuDeviceGetAttribute', (ct.byref(major), 75, ordinal)),
         ('cuDeviceGetAttribute', (ct.byref(minor), 76, ordinal)),
     ]:
-        if getattr(drv, func)(*args):
-            raise RuntimeError(E('E_CUDA_UNAVAILABLE'))
+        status = getattr(drv, func)(*args)
+        if status:
+            raise RuntimeError(E('E_CUDA_UNAVAILABLE', details=f'{func} returned {status}'))
     return dict(uuid=bytes(uuid).hex(), gpu=name.value.decode(), compute_capability=[major.value, minor.value],
                 cuda_driver=driver.value, tensorrt=TRT_VERSION)
+
+
+def require_runtime_device():
+    device = device_identity()
+    if device['cuda_driver'] < MIN_CUDA_DRIVER_API:
+        detected = device['cuda_driver']
+        version = f'{detected // 1000}.{detected % 1000 // 10}'
+        raise RuntimeError(E('E_CUDA_DRIVER_TOO_OLD', version=version))
+    major, minor = device['compute_capability']
+    if (major, minor) < MIN_TRT_COMPUTE_CAPABILITY:
+        raise RuntimeError(E('E_CUDA_GPU_UNSUPPORTED', gpu=device['gpu'], capability=f'{major}.{minor}'))
+    return device
 
 
 def device_key(identity):

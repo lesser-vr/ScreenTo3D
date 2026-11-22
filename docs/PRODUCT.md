@@ -556,7 +556,9 @@ New default portable builds retain Small and the UI in the app. Base/VDA packs a
 separate, fixed-version public downloads without a GitHub account or token.
 `--bundle-models` remains an explicit offline-distribution choice. An explicit Start 3D
 routes missing common TensorRT components, GPU resources, the selected optional
-model and enabled VFG to setup before building/using the local engine. File Start
+model and enabled VFG to setup before building/using the local engine. Live and
+file starts check for a compatible NVIDIA GPU and driver before offering
+downloads. TensorRT and locally built model installs use the same check. File Start
 also prepares missing FFmpeg/FFprobe. Missing files are a normal preparation state,
 not an error or a reason to disable Start when an input is selected. A separate protected
 setup window shows size, progress and Cancel; the requested task continues only

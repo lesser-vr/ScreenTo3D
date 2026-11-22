@@ -241,6 +241,21 @@
       "public": "The GPU or TensorRT configuration changed. Reinstall the model.",
       "category": "backend"
     },
+    "E_CUDA_DRIVER_LOAD": {
+      "source": "Could not load the NVIDIA CUDA driver. ScreenTo3D requires a supported NVIDIA GPU. If you have one, install or update its NVIDIA graphics driver and reopen the app.",
+      "public": "Could not load the NVIDIA CUDA driver. ScreenTo3D requires a supported NVIDIA GPU. If you have one, install or update its NVIDIA graphics driver and reopen the app.",
+      "category": "backend"
+    },
+    "E_CUDA_DRIVER_TOO_OLD": {
+      "source": "This NVIDIA driver reports CUDA {version}. Update it to a driver that supports CUDA 13, then reopen ScreenTo3D.",
+      "public": "Update the NVIDIA graphics driver to a version that supports CUDA 13, then reopen ScreenTo3D.",
+      "category": "backend"
+    },
+    "E_CUDA_GPU_UNSUPPORTED": {
+      "source": "{gpu} has CUDA compute capability {capability}. This ScreenTo3D release requires an NVIDIA GPU with compute capability 7.5 or later.",
+      "public": "This ScreenTo3D release requires an NVIDIA GPU with CUDA compute capability 7.5 or later.",
+      "category": "backend"
+    },
     "E_CUDA_UNAVAILABLE": {
       "source": "Check that an NVIDIA CUDA GPU and a working driver are available.",
       "public": "Check that an NVIDIA CUDA GPU and a working driver are available.",

@@ -198,10 +198,13 @@ class DesktopController(QObject):
     def gpuRuntimeKey(self):
         from .builder_resources import required_key
         try:return required_key()
-        except (OSError,RuntimeError):return ''  # Existing GPU diagnostics explain missing drivers on use.
+        except (OSError, RuntimeError): return ''  # Display binding only. Setup checks CUDA explicitly.
 
     def ensureRuntime(self,task,resume,*,model=None,vfg=None):
-        keys=['trt-core',self.gpuRuntimeKey]
+        from .builder_resources import required_key
+        from .engine_cache import require_runtime_device
+
+        keys = ['trt-core', required_key(device=require_runtime_device())]
         if task=='file':keys.append('media-tools')
         keys.append(model if model is not None else self.values['model'])
         if (vfg if vfg is not None else self.values['vfg']):keys.append('vfg')

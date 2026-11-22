@@ -2,6 +2,7 @@ import unittest
 import tempfile
 import hashlib
 import time
+from types import SimpleNamespace
 from pathlib import Path
 from zipfile import ZipFile
 from unittest.mock import Mock,patch
@@ -64,6 +65,82 @@ class ComponentSetupTests(unittest.TestCase):
         self.assertEqual(self.desktop.lease.owner,'live');resume.assert_called_once()
 
 
+class CudaSetupPreflightTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QCoreApplication.instance() or QCoreApplication([])
+
+    def setUp(self):
+        from screento3d_app.engine_cache import device_identity
+
+        device_identity.cache_clear()
+        self.addCleanup(device_identity.cache_clear)
+        self.desktop = Desktop()
+        self.downloads = ModelDownloads(self.desktop)
+
+    def test_missing_nvidia_driver_blocks_live_and_file_downloads(self):
+        from screento3d_app.desktop import DesktopController
+        from screento3d_app.messages import as_error
+
+        controller = SimpleNamespace(downloads=Mock())
+        with patch('screento3d_app.engine_cache.ct.WinDLL', side_effect=FileNotFoundError('nvcuda.dll')):
+            for task in ('live', 'file'):
+                with self.subTest(task=task), self.assertRaises(RuntimeError) as problem:
+                    DesktopController.ensureRuntime(controller, task, Mock())
+                self.assertEqual(as_error(problem.exception).error_id, 'E_CUDA_DRIVER_LOAD')
+        controller.downloads.ensure.assert_not_called()
+
+    def test_missing_driver_blocks_manual_install_before_any_file_or_network_work(self):
+        from screento3d_app.messages import as_error
+
+        with patch('screento3d_app.engine_cache.ct.WinDLL', side_effect=FileNotFoundError('nvcuda.dll')), \
+             patch.object(self.downloads, 'needed', return_value=True), \
+             patch.object(self.downloads, '_install') as install, \
+             patch('screento3d_app.model_downloads.QFileDialog.getOpenFileName') as picker, \
+             patch('screento3d_app.model_downloads.QDesktopServices.openUrl') as browser:
+            for action in (lambda: self.downloads.begin('trt-core', False),
+                           lambda: self.downloads.begin('trt-core', True),
+                           lambda: self.downloads.begin('da2-base', False),
+                           lambda: self.downloads.downloadInBrowser('trt-core')):
+                action()
+                error = self.desktop.showModelError.call_args.args[0]
+                self.assertEqual(as_error(error).error_id, 'E_CUDA_DRIVER_LOAD')
+            install.assert_not_called()
+            picker.assert_not_called()
+            browser.assert_not_called()
+            self.assertFalse(self.downloads.setupVisible)
+
+    def test_reports_unsupported_gpu_and_outdated_cuda_major_version(self):
+        from screento3d_app.engine_cache import require_runtime_device
+        from screento3d_app.messages import as_error
+
+        device = dict(cuda_driver=12090, compute_capability=[8, 9], gpu='Test GPU')
+        with patch('screento3d_app.engine_cache.device_identity', return_value=device):
+            with self.assertRaises(RuntimeError) as problem:
+                require_runtime_device()
+            error = as_error(problem.exception)
+            self.assertEqual((error.error_id, error.values['version']), ('E_CUDA_DRIVER_TOO_OLD', '12.9'))
+            device.update(cuda_driver=13000, compute_capability=[7, 0])
+            with self.assertRaises(RuntimeError) as problem:
+                require_runtime_device()
+            self.assertEqual(as_error(problem.exception).error_id, 'E_CUDA_GPU_UNSUPPORTED')
+            device['compute_capability'] = [7, 5]
+            self.assertIs(require_runtime_device(), device)
+
+    def test_supported_gpu_retains_ordered_setup(self):
+        from screento3d_app.desktop import DesktopController
+
+        controller = SimpleNamespace(downloads=Mock(), values={'model': 'da2-base', 'vfg': False})
+        device = dict(cuda_driver=13010, compute_capability=[8, 9], gpu='Test GPU')
+        resume = Mock()
+        with patch('screento3d_app.engine_cache.device_identity', return_value=device), \
+             patch('screento3d_app.builder_resources.required_key', return_value='trt-sm89') as pick:
+            DesktopController.ensureRuntime(controller, 'file', resume)
+        pick.assert_called_once_with(device=device)
+        controller.downloads.ensure.assert_called_once_with(
+            ['trt-core', 'trt-sm89', 'media-tools', 'da2-base'], resume)
+
+
 class BrowserSetupTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.app=QCoreApplication.instance() or QCoreApplication([])
@@ -74,6 +151,8 @@ class BrowserSetupTests(unittest.TestCase):
         self.missing={'trt-core'}
         self.enterContext(patch.object(self.downloads,'needed',side_effect=lambda key:key in self.missing))
         self.enterContext(patch('screento3d_app.model_downloads.source_for',side_effect=FileNotFoundError('No configured origin')))
+        self.enterContext(patch('screento3d_app.model_downloads.require_runtime_device',
+                                return_value={'compute_capability': [8, 9]}))
         self.resume=Mock()
 
     def test_missing_origin_opens_download_guidance_without_error_or_worker(self):

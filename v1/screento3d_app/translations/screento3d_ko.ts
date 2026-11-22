@@ -2326,6 +2326,21 @@ Previously downloaded files are reused.</source>
   <context>
     <name>Errors</name>
     <message>
+      <source>E_CUDA_DRIVER_LOAD</source>
+      <extracomment>Could not load the NVIDIA CUDA driver. ScreenTo3D requires a supported NVIDIA GPU. If you have one, install or update its NVIDIA graphics driver and reopen the app.</extracomment>
+      <translation>NVIDIA CUDA 드라이버를 불러오지 못했습니다. ScreenTo3D에는 지원되는 NVIDIA GPU가 필요합니다. 해당 GPU가 있다면 NVIDIA 그래픽 드라이버를 설치하거나 업데이트한 뒤 앱을 다시 여세요.</translation>
+    </message>
+    <message>
+      <source>E_CUDA_DRIVER_TOO_OLD</source>
+      <extracomment>This NVIDIA driver reports CUDA {version}. Update it to a driver that supports CUDA 13, then reopen ScreenTo3D.</extracomment>
+      <translation>현재 NVIDIA 드라이버가 CUDA {version}을 보고했습니다. CUDA 13을 지원하는 드라이버로 업데이트한 뒤 ScreenTo3D를 다시 여세요.</translation>
+    </message>
+    <message>
+      <source>E_CUDA_GPU_UNSUPPORTED</source>
+      <extracomment>{gpu} has CUDA compute capability {capability}. This ScreenTo3D release requires an NVIDIA GPU with compute capability 7.5 or later.</extracomment>
+      <translation>{gpu}의 CUDA 컴퓨팅 성능은 {capability}입니다. 이 버전에서 사용하려면 CUDA 컴퓨팅 성능 7.5 이상인 NVIDIA GPU가 필요합니다.</translation>
+    </message>
+    <message>
       <source>E_CONTROL_CAPTURE_AFFINITY</source>
       <extracomment>Could not apply the capture setting to the ScreenTo3D controls.</extracomment>
       <translation>ScreenTo3D 조작 창에 화면 캡처 설정을 적용하지 못했습니다.</translation>
@@ -3132,6 +3147,21 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
   </context>
   <context>
     <name>PublicErrors</name>
+    <message>
+      <source>E_CUDA_DRIVER_LOAD</source>
+      <extracomment>Could not load the NVIDIA CUDA driver. ScreenTo3D requires a supported NVIDIA GPU. If you have one, install or update its NVIDIA graphics driver and reopen the app.</extracomment>
+      <translation>NVIDIA CUDA 드라이버를 불러오지 못했습니다. ScreenTo3D에는 지원되는 NVIDIA GPU가 필요합니다. 해당 GPU가 있다면 NVIDIA 그래픽 드라이버를 설치하거나 업데이트한 뒤 앱을 다시 여세요.</translation>
+    </message>
+    <message>
+      <source>E_CUDA_DRIVER_TOO_OLD</source>
+      <extracomment>Update the NVIDIA graphics driver to a version that supports CUDA 13, then reopen ScreenTo3D.</extracomment>
+      <translation>CUDA 13을 지원하는 NVIDIA 그래픽 드라이버로 업데이트한 뒤 ScreenTo3D를 다시 여세요.</translation>
+    </message>
+    <message>
+      <source>E_CUDA_GPU_UNSUPPORTED</source>
+      <extracomment>This ScreenTo3D release requires an NVIDIA GPU with CUDA compute capability 7.5 or later.</extracomment>
+      <translation>이 버전에서 사용하려면 CUDA 컴퓨팅 성능 7.5 이상인 NVIDIA GPU가 필요합니다.</translation>
+    </message>
     <message>
       <source>E_CONTROL_CAPTURE_AFFINITY</source>
       <extracomment>Could not apply the capture setting to the ScreenTo3D controls.</extracomment>
