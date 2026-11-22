@@ -205,6 +205,7 @@ def install(key, source, target, progress, cancelled):
                 archive=fetch(pack.filename,source,pack.size,pack.sha,progress,cancelled)
             else:
                 _copy_verified_archive(source,archive,pack,progress,check)
+            progress(M('Installing verified files'), -1)
             _extract_archive(key,archive,payload,check)
             if key in GRAPH_HASHES and target.resolve().is_relative_to(model_root(key).resolve()):
                 retain_source(key,archive)
@@ -263,7 +264,6 @@ def _copy_verified_archive(source,archive,pack,progress,check):
             digest.update(chunk);output.write(chunk)
             progress(M('Verifying installation file'), read * 100 // pack.size)
     if read != pack.size or digest.hexdigest() != pack.sha:raise ValueError(E('E_MODEL_CHECKSUM_FAILED'))
-    progress(M('Installing verified files'), -1)
 
 
 def _extract_archive(key,archive,payload,check):

@@ -6,6 +6,8 @@ from .localization import localized, render
 import threading
 import time
 import http.client
+from collections import deque
+from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 
@@ -20,6 +22,8 @@ from .vfg_runtime import BRIDGE, runtime_path
 
 class ModelDownloads(QObject):
     changed = Signal()
+    logChanged = Signal()
+    logVisibilityChanged = Signal()
     updateProgress = Signal(object, int)
     finished = Signal(str, object, bool)
 
@@ -29,6 +33,9 @@ class ModelDownloads(QObject):
         self.active_key = ''
         self.last_key = ''
         self.message = ''
+        self._log = deque(maxlen=160)
+        self._log_visible = False
+        self._progress_bucket = None
         self.percent = -1
         self.stop_event = threading.Event()
         self.setup_visible=False
@@ -42,6 +49,40 @@ class ModelDownloads(QObject):
         self.download_timer.timeout.connect(self._downloadReady)
         self.updateProgress.connect(self._progress)
         self.finished.connect(self._finished)
+
+    @Property(bool, notify=logVisibilityChanged)
+    def logVisible(self):
+        return self._log_visible
+
+    @Property(str, notify=logChanged)
+    def logText(self):
+        lines = []
+        for stamp, key, message, percent in self._log:
+            line = f'{stamp}  {PACKS[key].name}  ·  {render(message)}'
+            if percent >= 0:
+                line += f'  ({percent}%)'
+            lines.append(line)
+        return '\n'.join(lines)
+
+    @Slot()
+    def showLog(self):
+        if not self._log_visible:
+            self._log_visible = True
+            self.logVisibilityChanged.emit()
+
+    @Slot()
+    def hideLog(self):
+        if self._log_visible:
+            self._log_visible = False
+            self.logVisibilityChanged.emit()
+
+    def _append_log(self, key, message, percent=-1):
+        self._log.append((datetime.now().strftime('%H:%M:%S'), key, message, percent))
+        self.logChanged.emit()
+
+    def _log_failure(self, key, error):
+        # Log the stable ID only. The error dialog owns the full message.
+        self._append_log(key, M('Installation failed ({id}).', id=as_error(error).error_id))
 
     @Property(bool,notify=changed)
     def setupVisible(self):return self.setup_visible
@@ -164,6 +205,7 @@ class ModelDownloads(QObject):
             device = require_runtime_device()
         except RuntimeError as error:
             self.dismissSetup()
+            self._log_failure(key, error)
             self.desktop.showModelError(error)
             return False
         if key in GRAPH_HASHES:
@@ -180,16 +222,21 @@ class ModelDownloads(QObject):
         directory=QStandardPaths.writableLocation(QStandardPaths.DownloadLocation)
         if not directory:
             self.message=M('Choose the downloaded file with Install from file.')
-            self.last_key=key;self.changed.emit();return
+            self.last_key=key
+            self._append_log(key, self.message)
+            self.changed.emit();return
         pack=PACKS[key]
         handoff=DownloadHandoff(directory,pack.filename,pack.size,time.monotonic())
         if not QDesktopServices.openUrl(QUrl(release_url(pack.filename))):
             self.sequence=[];self.resume=None;self.changed.emit()
-            self.desktop.showModelError(E('E_DOWNLOAD_BROWSER'));return
+            error = E('E_DOWNLOAD_BROWSER')
+            self._log_failure(key, error)
+            self.desktop.showModelError(error);return
         if not self.setup_visible:self.setup_key=key;self.setup_visible=True
         self.waiting_key=key;self.handoff=handoff
         self.last_key=key;self.percent=-1
         self.message=M('Waiting for the download to finish. Keep this window open.')
+        self._append_log(key, self.message)
         self.download_timer.start();self.changed.emit()
 
     def _stopWaiting(self):
@@ -201,8 +248,10 @@ class ModelDownloads(QObject):
             self.dismissSetup();return
         try:path=self.handoff.ready(time.monotonic())
         except TimeoutError:
+            key = self.waiting_key
             self._stopWaiting();self.sequence=[];self.resume=None
             self.message=M('Download not detected. Use Install from file to choose it, then start your task again.')
+            self._append_log(key, self.message)
             self.changed.emit();return
         if path is not None and not self.desktop.busy:
             key=self.waiting_key;self._stopWaiting()
@@ -217,7 +266,9 @@ class ModelDownloads(QObject):
         if not self._prepare_gpu_install(key, lambda: self.begin(key, choose_file)):
             return
         if key == 'vfg' and not BRIDGE.is_file():
-            self.desktop.showModelError(E('E_VFG_MODULE_MISSING'))
+            error = E('E_VFG_MODULE_MISSING')
+            self._log_failure(key, error)
+            self.desktop.showModelError(error)
             return
         try:
             if choose_file:
@@ -236,6 +287,7 @@ class ModelDownloads(QObject):
                     self.changed.emit();return
         except Exception as exc:
             self.sequence=[];self.resume=None;self.changed.emit()
+            self._log_failure(key, exc)
             self.desktop.showModelError(exc)
             return
         self._stopWaiting()
@@ -243,7 +295,10 @@ class ModelDownloads(QObject):
 
     def _install(self,key,source):
         self.desktop.lease.acquire('model-install')
-        self.active_key, self.message, self.percent = key, M('Connecting…'), -1
+        start = M('Preparing the installation file…') if isinstance(source, Path) else M('Connecting…')
+        self.active_key, self.message, self.percent = key, start, -1
+        self._progress_bucket = None
+        self._append_log(key, start)
         self.last_key = key
         self.stop_event.clear()
         self.changed.emit()
@@ -274,17 +329,26 @@ class ModelDownloads(QObject):
     def cancel(self):
         self.sequence=[];self.resume=None
         if self.waiting_key:
+            key = self.waiting_key
             self._stopWaiting()
             self.message=M('Setup cancelled. A browser download may still finish.')
+            self._append_log(key, self.message)
             self.changed.emit();return
+        if not self.active_key or self.stop_event.is_set():
+            return
         self.stop_event.set()
         self.message = M('Cancelling installation…')
+        self._append_log(self.active_key, self.message)
         self.changed.emit()
 
     @Slot(object, int)
     def _progress(self, message, percent):
-        if not self.stop_event.is_set():
+        if self.active_key and not self.stop_event.is_set():
             self.message, self.percent = message, percent
+            bucket = (message, percent // 10)
+            if bucket != self._progress_bucket:
+                self._progress_bucket = bucket
+                self._append_log(self.active_key, message, percent)
             self.changed.emit()
 
     @Slot(str, object, bool)
@@ -297,6 +361,12 @@ class ModelDownloads(QObject):
                 self.desktop.values['engine'] = path
         self.active_key = ''
         self.message = message or M('{v0} installed', v0=PACKS[key].name)
+        if failed:
+            self._log_failure(key, message)
+        elif message:
+            self._append_log(key, E('E_INSTALL_CANCELLED', public=True))
+        else:
+            self._append_log(key, M('Installation complete.'))
         self.desktop.lease.release('model-install')
         self.changed.emit()
         self.desktop.changed.emit()

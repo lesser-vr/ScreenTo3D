@@ -34,11 +34,23 @@ Window {
             color: setup.theme.muted; font.pixelSize: 14
             wrapMode: Text.WordWrap; Layout.fillWidth: true
         }
-        ModelInstall { objectName: "requiredComponentInstall"; feature: setup.installer.setupKey }
+        ModelInstall {
+            objectName: "requiredComponentInstall"
+            feature: setup.installer.setupKey
+            showLogAction: false
+        }
         Item { Layout.fillHeight: true }
-        ActionButton {
-            objectName: "closeRuntimeSetup"; text: qsTr("Close"); Layout.alignment: Qt.AlignRight
-            onClicked: setup.close()
+        RowLayout {
+            Layout.fillWidth: true
+            ActionButton {
+                objectName: "showSetupLog"; text: qsTr("Progress log")
+                onClicked: setup.installer.showLog()
+            }
+            Item { Layout.fillWidth: true }
+            ActionButton {
+                objectName: "closeRuntimeSetup"; text: qsTr("Close")
+                onClicked: setup.close()
+            }
         }
     }
 }

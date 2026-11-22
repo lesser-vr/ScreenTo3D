@@ -561,9 +561,12 @@ file starts check for a compatible NVIDIA GPU and driver before offering
 downloads. TensorRT and locally built model installs use the same check. File Start
 also prepares missing FFmpeg/FFprobe. Missing files are a normal preparation state,
 not an error or a reason to disable Start when an input is selected. A separate protected
-setup window shows size, progress and Cancel; the requested task continues only
-after successful setup. Cancellation, failure or closing setup keeps the task
-stopped. After a failure, explicit installation may be retried, then Start is
+setup window shows size, progress and Cancel. **Progress log** opens a
+separate, selectable view of timestamped download, cache, verification,
+installation and engine preparation stages, including retries and outcomes.
+It also works from the manual installer and keeps the recent entries for the
+current app session. The requested task continues only after successful setup.
+Cancellation, failure or closing setup keeps the task stopped. After a failure, explicit installation may be retried, then Start is
 pressed again. A changed live source or processing selection requires a new Start.
 App launch and merely selecting a model never initiate network downloads.
 The app selects an engine-builder resource by the detected GPU architecture.

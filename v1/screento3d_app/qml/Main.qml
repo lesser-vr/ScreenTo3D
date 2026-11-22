@@ -94,6 +94,7 @@ ApplicationWindow {
     ShortcutGuide { id: mainShortcutGuide; groups: shortcutHelp.groups; onActionRequested: action => shortcutHelp.activate(action); objectName: "mainShortcutGuide"; parent: root.contentItem }
     LivePage { id: livePage; anchors.fill: parent; visible: root.page !== 1; onHelpRequested: opener => mainShortcutGuide.showFor(opener) }
     RuntimeSetup { mainWindow: root }
+    InstallationLog { mainWindow: root }
         Item {
             objectName: "filesPage"; anchors.fill: parent; visible: root.page === 1
             ColumnLayout {

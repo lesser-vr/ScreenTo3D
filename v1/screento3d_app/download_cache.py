@@ -92,6 +92,8 @@ def fetch(filename, url, size, sha, progress, cancelled, *, root=None, attempts=
     target=directory/filename;partial=directory/(filename+'.part')
     if target.is_symlink() or partial.is_symlink():raise ValueError(E('E_MODEL_ARCHIVE_PATH_INVALID'))
     with cache_lock(directory/'download.lock',cancelled):
+        if target.is_file():
+            progress(M('Verifying cached {filename}…', filename=filename), -1)
         if verified(target,size,sha,cancelled):
             progress(M('Using verified download cache'),100);return target
         # Only this pinned cache entry is removed; user-supplied files are untouched.
@@ -101,6 +103,7 @@ def fetch(filename, url, size, sha, progress, cancelled, *, root=None, attempts=
             offset=partial.stat().st_size if partial.exists() else 0
             if offset>size:partial.unlink();offset=0
             if offset==size:
+                progress(M('Verifying downloaded {filename}…', filename=filename), -1)
                 if verified(partial,size,sha,cancelled):partial.replace(target);return target
                 partial.unlink();raise ValueError(E('E_MODEL_CHECKSUM_FAILED'))
             if shutil.disk_usage(directory).free<size-offset+16*1024**2:
@@ -133,6 +136,7 @@ def fetch(filename, url, size, sha, progress, cancelled, *, root=None, attempts=
                             output.write(chunk)
                             progress(M('Resuming download') if offset else M('Downloading files'),read*100//size)
                 if read!=size:raise http.client.IncompleteRead(b'',size-read)
+                progress(M('Verifying downloaded {filename}…', filename=filename), -1)
                 if not verified(partial,size,sha,cancelled):
                     partial.unlink();raise ValueError(E('E_MODEL_CHECKSUM_FAILED'))
                 partial.replace(target);return target

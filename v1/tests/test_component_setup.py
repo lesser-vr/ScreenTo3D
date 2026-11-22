@@ -9,6 +9,7 @@ from unittest.mock import Mock,patch
 from PySide6.QtCore import QObject,QCoreApplication
 from screento3d_app.model_downloads import ModelDownloads
 from screento3d_app.desktop_jobs import ProcessingLease
+from screento3d_app.messages import ErrorMessage, Message
 
 
 class Desktop(QObject):
@@ -30,6 +31,23 @@ class ComponentSetupTests(unittest.TestCase):
         self.downloads.active_key=key;self.desktop.lease.acquire('model-install')
         if not message:self.missing.discard(key)
         self.downloads._finished(key,message,failed);self.app.processEvents()
+    def test_progress_log_records_stages_with_bounded_detail_and_safe_failure(self):
+        setup = self.downloads
+        setup.active_key = 'trt-core'
+        for percent in range(101):
+            setup._progress(Message('Downloading files'), percent)
+        setup._progress(Message('Verifying installation file'), 100)
+        self.assertEqual(setup.percentage, 100)
+        self.assertEqual(setup.logText.count('Downloading files'), 11)
+        setup.showLog()
+        self.assertTrue(setup.logVisible)
+        self.finish('trt-core', ErrorMessage('E_UNKNOWN', details='PRIVATE_URL'), True)
+        self.assertIn('Installation failed (E_UNKNOWN).', setup.logText)
+        self.assertNotIn('PRIVATE_URL', setup.logText)
+        setup.hideLog()
+        self.assertFalse(setup.logVisible)
+        self.assertIn('Verifying installation file', setup.logText)
+
     def test_ordered_first_use_resumes_only_after_all_components_finish(self):
         resume=Mock();self.assertFalse(self.downloads.ensure(['trt-core','','trt-core','media-tools'],resume))
         self.begin.assert_called_once_with('trt-core',False)

@@ -46,8 +46,12 @@ class DownloadCacheTests(unittest.TestCase):
         with patch.object(cache,'open_https',return_value=Response(self.data)) as opened:
             path=self.fetch();self.assertEqual(path.read_bytes(),self.data)
             self.assertIsNone(opened.call_args.args[0].get_header('Authorization'))
+            self.assertEqual(self.progress.call_args.args, ('Verifying downloaded owned.zip…', -1))
+        self.progress.reset_mock()
         with patch.object(cache,'open_https',side_effect=AssertionError('Cached download must not use network')):
             self.assertEqual(self.fetch(),path)
+        self.assertEqual([call.args for call in self.progress.call_args_list],
+                         [('Verifying cached owned.zip…', -1), ('Using verified download cache', 100)])
         path.write_bytes(b'x'*len(self.data))
         with patch.object(cache,'open_https',return_value=Response(self.data)) as opened:
             self.assertEqual(self.fetch().read_bytes(),self.data);opened.assert_called_once()

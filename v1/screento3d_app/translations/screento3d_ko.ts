@@ -563,6 +563,10 @@ Applied only when stable bar boundaries and a suitable uniform background are de
   <context>
     <name>ModelInstall</name>
     <message>
+      <source>Progress log</source>
+      <translation>진행 로그</translation>
+    </message>
+    <message>
       <source>Cancel installation</source>
       <translation>설치 취소</translation>
     </message>
@@ -584,6 +588,26 @@ Applied only when stable bar boundaries and a suitable uniform background are de
   </context>
   <context>
     <name>ScreenTo3D</name>
+    <message>
+      <source>Verifying cached {filename}…</source>
+      <translation>캐시 파일 {filename} 검증 중…</translation>
+    </message>
+    <message>
+      <source>Verifying downloaded {filename}…</source>
+      <translation>다운로드한 {filename} 검증 중…</translation>
+    </message>
+    <message>
+      <source>Installation failed ({id}).</source>
+      <translation>설치에 실패했습니다 ({id}).</translation>
+    </message>
+    <message>
+      <source>Preparing the installation file…</source>
+      <translation>설치 파일 준비 중…</translation>
+    </message>
+    <message>
+      <source>Installation complete.</source>
+      <translation>설치가 완료되었습니다.</translation>
+    </message>
     <message>
       <source>
 
@@ -3966,6 +3990,10 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
   <context>
     <name>RuntimeSetup</name>
     <message>
+      <source>Progress log</source>
+      <translation>진행 로그</translation>
+    </message>
+    <message>
       <source>Close</source>
       <translation>닫기</translation>
     </message>
@@ -4011,6 +4039,21 @@ You can try GPU host output in Settings and diagnostics.</extracomment>
     <message>
       <source>Click the 3D title bar and press F11 to enter fullscreen. Press F11 again while using the original window to return to windowed mode.</source>
       <translation>3D 창 제목 표시줄을 클릭하고 F11을 눌러 전체화면을 켜세요. 원본 창을 조작하다가 F11을 다시 누르면 창 모드로 돌아갑니다.</translation>
+    </message>
+  </context>
+  <context>
+    <name>InstallationLog</name>
+    <message>
+      <source>Installation progress</source>
+      <translation>설치 진행 로그</translation>
+    </message>
+    <message>
+      <source>Installation activity will appear here.</source>
+      <translation>설치가 시작되면 여기에 진행 상황이 표시됩니다.</translation>
+    </message>
+    <message>
+      <source>Close</source>
+      <translation>닫기</translation>
     </message>
   </context>
 </TS>

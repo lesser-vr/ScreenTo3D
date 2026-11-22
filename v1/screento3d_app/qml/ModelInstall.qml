@@ -5,6 +5,7 @@ import QtQuick.Layouts
 ColumnLayout {
     id: box
     required property string feature
+    property bool showLogAction: true
     readonly property Theme theme: Theme {}
     readonly property var installer: desktop.modelDownloads
     readonly property bool missing: desktop.missingModels[feature] === true
@@ -40,6 +41,12 @@ ColumnLayout {
         from: 0; to: 100; value: box.installer.percentage
         indeterminate: box.waiting || box.installer.percentage < 0
         Accessible.name: qsTr("Model installation progress")
+    }
+    ActionButton {
+        objectName: "showModelInstallLog"
+        text: qsTr("Progress log")
+        visible: box.showLogAction && (box.working || box.waiting || box.recent)
+        onClicked: box.installer.showLog()
     }
     ColumnLayout {
         visible: box.missing || box.working
