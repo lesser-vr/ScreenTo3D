@@ -1,7 +1,8 @@
 """Review and save a single sanitized error report from the desktop."""
 from pathlib import Path
+from threading import Thread
 
-from PySide6.QtCore import QIODevice, QSaveFile, QStandardPaths, Qt
+from PySide6.QtCore import QIODevice, QSaveFile, QStandardPaths, Qt, Signal, Slot
 from PySide6.QtWidgets import (
     QCheckBox, QDialog, QDialogButtonBox, QFileDialog, QLabel, QLineEdit,
     QListWidget, QPlainTextEdit, QVBoxLayout,
@@ -11,9 +12,12 @@ from .error_journal import read_recent_reports
 from .error_report import ACTIVITIES, report_text
 from .localization import render
 from .messages import Message as M
+from .report_pc import collect_pc_info
 
 
 class ErrorReportDialog(QDialog):
+    pcInfoReady = Signal(object)
+
     def __init__(self):
         super().__init__()
         self.setObjectName('errorReportDialog')
@@ -22,6 +26,8 @@ class ErrorReportDialog(QDialog):
         self.entries = []
         self.history_mode = False
         self.partial = False
+        self._pc_info = None
+        self._collecting_pc = False
 
         self.history = QListWidget()
         self.history.setObjectName('errorReportHistory')
@@ -35,6 +41,9 @@ class ErrorReportDialog(QDialog):
         self.note_label.setBuddy(self.note)
         self.diagnostics = QCheckBox()
         self.diagnostics.setObjectName('includeErrorDiagnostics')
+        self.include_pc = QCheckBox()
+        self.include_pc.setObjectName('includeReportPcInfo')
+        self.include_pc.setChecked(True)
         self.preview = QPlainTextEdit(readOnly=True)
         self.preview.setObjectName('errorReportPreview')
         self.status = QLabel()
@@ -52,12 +61,35 @@ class ErrorReportDialog(QDialog):
 
         layout = QVBoxLayout(self)
         for widget in (self.history, self.intro, self.note_label, self.note, self.diagnostics,
-                       self.preview, self.status, buttons):
+                       self.include_pc, self.preview, self.status, buttons):
             layout.addWidget(widget)
         layout.setStretchFactor(self.preview, 1)
         self.history.currentRowChanged.connect(self.select)
         self.note.textChanged.connect(self.refresh_preview)
         self.diagnostics.toggled.connect(self.refresh_preview)
+        self.include_pc.toggled.connect(self.refresh_preview)
+        self.pcInfoReady.connect(self._receive_pc_info, Qt.QueuedConnection)
+
+    def _request_pc_info(self):
+        if self._collecting_pc:
+            return
+        self._collecting_pc = True
+
+        def work():
+            info = collect_pc_info()
+            try:
+                self.pcInfoReady.emit(info)
+            except RuntimeError:
+                pass  # The application closed while Windows was queried.
+
+        Thread(target=work, name='ScreenTo3D report PC info', daemon=True).start()
+
+    @Slot(object)
+    def _receive_pc_info(self, info):
+        self._pc_info = info
+        self._collecting_pc = False
+        if self.include_pc.isChecked():
+            self.refresh_preview()
 
     @property
     def selected(self):
@@ -81,6 +113,8 @@ class ErrorReportDialog(QDialog):
         if not exclude_preview(self.winId()):
             self.hide()
             return False
+        if not self._collecting_pc:
+            self._pc_info = None
         self.entries = entries
         self.history_mode = history
         self.partial = partial
@@ -114,6 +148,7 @@ class ErrorReportDialog(QDialog):
         self.note_label.setText(render(M('What happened just before the error?')))
         self.note.setAccessibleName(self.note_label.text())
         self.diagnostics.setText(render(M('Include diagnostics from the last 60 seconds')))
+        self.include_pc.setText(render(M('Include PC information')))
         self.preview.setAccessibleName(render(M('Report preview')))
         self.save_button.setText(render(M('Save report…')))
         self.close_button.setText(render(M('Close')))
@@ -130,11 +165,20 @@ class ErrorReportDialog(QDialog):
         report = self.selected
         has_diagnostics = bool(report and (report['samples'] or report['events']))
         self.diagnostics.setVisible(has_diagnostics)
-        for widget in (self.intro, self.note_label, self.note):
+        for widget in (self.intro, self.note_label, self.note, self.include_pc):
             widget.setVisible(report is not None)
-        self.save_button.setEnabled(report is not None)
+        include_pc = report is not None and self.include_pc.isChecked()
+        waiting_for_pc = include_pc and self._pc_info is None
+        self.save_button.setEnabled(report is not None and not waiting_for_pc)
         if report:
-            text = report_text(report, render, note=self.note.text(), include_diagnostics=self.diagnostics.isChecked())
+            text = report_text(
+                report, render, note=self.note.text(),
+                include_diagnostics=self.diagnostics.isChecked(),
+                pc_info=self._pc_info if include_pc else None,
+            )
+            if waiting_for_pc:
+                self._request_pc_info()
+                text += '\n' + render(M('Collecting PC information…')) + '\n'
         else:
             text = render(M('No recent errors.')) if not self.partial else ''
         self.preview.setPlainText(text)
@@ -153,7 +197,7 @@ class ErrorReportDialog(QDialog):
 
     def save(self):
         report = self.selected
-        if report is None:
+        if report is None or not self.save_button.isEnabled():
             return
         text = self.preview.toPlainText()
         stamp = report['time'].strftime('%Y%m%d-%H%M%S')

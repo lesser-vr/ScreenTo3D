@@ -158,7 +158,7 @@ def prepare_report(record):
     return report
 
 
-def report_text(report, translate, *, note='', include_diagnostics=False):
+def report_text(report, translate, *, note='', include_diagnostics=False, pc_info=None):
     error_id = report['error_id']
     lines = [
         translate(M('ScreenTo3D error report')),
@@ -188,6 +188,19 @@ def report_text(report, translate, *, note='', include_diagnostics=False):
             lines.append(f'{translate(label)}: {value}')
     if 'exit_code' in report:
         lines.append(f"{translate(M('Worker exit code'))}: {report['exit_code']}")
+    if pc_info is not None:
+        lines.extend(('', translate(M('PC information at report preparation'))))
+        for key, label in (('windows', M('Windows version')), ('cpu', M('Processor'))):
+            if key in pc_info:
+                lines.append(f'{translate(label)}: {pc_info[key]}')
+        if 'memory_gib' in pc_info:
+            lines.append(f"{translate(M('Physical memory'))}: {pc_info['memory_gib']:.1f} GiB")
+        for name, driver in pc_info.get('gpu', ()):
+            lines.append(f"{translate(M('Graphics adapter'))}: {name}")
+            if driver:
+                lines.append(f"  {translate(M('Graphics driver'))}: {driver}")
+        if not pc_info or 'gpu' not in pc_info:
+            lines.append(translate(M('Graphics adapter details are unavailable.')))
     if note.strip():
         lines.extend(('', translate(M('What happened just before the error?')), note.strip()[:500]))
     if include_diagnostics and (report['samples'] or report['events']):

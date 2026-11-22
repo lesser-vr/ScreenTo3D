@@ -609,6 +609,42 @@ Applied only when stable bar boundaries and a suitable uniform background are de
       <translation>설치가 완료되었습니다.</translation>
     </message>
     <message>
+      <source>Include PC information</source>
+      <translation>PC 정보 포함</translation>
+    </message>
+    <message>
+      <source>Collecting PC information…</source>
+      <translation>PC 정보 수집 중…</translation>
+    </message>
+    <message>
+      <source>PC information at report preparation</source>
+      <translation>보고서 준비 시점의 PC 정보</translation>
+    </message>
+    <message>
+      <source>Windows version</source>
+      <translation>Windows 버전</translation>
+    </message>
+    <message>
+      <source>Processor</source>
+      <translation>프로세서</translation>
+    </message>
+    <message>
+      <source>Physical memory</source>
+      <translation>물리 메모리</translation>
+    </message>
+    <message>
+      <source>Graphics adapter</source>
+      <translation>그래픽 어댑터</translation>
+    </message>
+    <message>
+      <source>Graphics driver</source>
+      <translation>그래픽 드라이버</translation>
+    </message>
+    <message>
+      <source>Graphics adapter details are unavailable.</source>
+      <translation>그래픽 어댑터 정보를 가져오지 못했습니다.</translation>
+    </message>
+    <message>
       <source>
 
 Switching VFG…</source>

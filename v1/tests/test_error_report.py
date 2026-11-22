@@ -3,9 +3,13 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
+from threading import Event
+from time import monotonic
 from unittest.mock import patch
 
 from PySide6.QtQuick import QQuickWindow
+from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 
 from screento3d_app.error_dialog import LiveErrorDialog
@@ -13,6 +17,13 @@ from screento3d_app.error_journal import read_recent_reports
 from screento3d_app.error_report import prepare_report, report_text
 from screento3d_app.error_report_dialog import ErrorReportDialog
 from screento3d_app.messages import ErrorMessage
+from screento3d_app.report_pc import collect_pc_info
+
+
+PC_INFO = {
+    "windows": "10.0.26100 (AMD64)", "cpu": "Test Processor", "memory_gib": 16,
+    "gpu": [("Intel(R) Arc(TM) Graphics", "32.0.101.1234")],
+}
 
 
 def error_record(second):
@@ -56,6 +67,60 @@ class ErrorReportTests(unittest.TestCase):
         self.logs.mkdir()
         self.enterContext(patch('screento3d_app.user_data.data_root', return_value=self.root))
         self.enterContext(patch('screento3d_app.capture_sources.exclude_preview', return_value=True))
+        self.enterContext(patch('screento3d_app.error_report_dialog.collect_pc_info', return_value=PC_INFO))
+
+    def wait_for_pc_info(self, dialog):
+        deadline = monotonic() + 2
+        while 'Collecting PC information' in dialog.preview.toPlainText() and monotonic() < deadline:
+            QTest.qWait(10)
+        self.assertTrue(dialog.save_button.isEnabled())
+
+    def test_gpu_collection_includes_intel_and_filters_private_fields(self):
+        values = {
+            'gpu': [
+                {'Name': 'Intel(R) Arc(TM) Graphics', 'DriverVersion': '32.0.101.1234',
+                 'DeviceID': 'PRIVATE_ID'},
+                {'Name': 'PRIVATE\\PATH', 'DriverVersion': '32.0.0.0'},
+                {'Name': 'Driver pending', 'DriverVersion': 'PRIVATE_DRIVER_PATH'},
+            ],
+            'cpu': 'Test Processor', 'memory': 16 * 2**30,
+            'pc_name': 'PRIVATE_HOST', 'user': 'PRIVATE_USER',
+        }
+        with patch('screento3d_app.report_pc.subprocess.run',
+                   return_value=SimpleNamespace(stdout=json.dumps(values))) as query:
+            info = collect_pc_info()
+        self.assertEqual(query.call_args.kwargs['timeout'], 5)
+        self.assertEqual(info['gpu'], [('Intel(R) Arc(TM) Graphics', '32.0.101.1234'), ('Driver pending', '')])
+        shared = report_text(prepare_report(error_record(1)), str, pc_info=info)
+        self.assertIn('Physical memory: 16.0 GiB', shared)
+        self.assertIn('Graphics driver: 32.0.101.1234', shared)
+        self.assertNotIn('PRIVATE_', shared)
+
+    def test_save_with_pc_info_disabled_does_not_wait_for_query(self):
+        release = Event()
+        self.addCleanup(release.set)
+        owner = QQuickWindow()
+        dialog = ErrorReportDialog()
+        self.addCleanup(owner.deleteLater)
+        self.addCleanup(dialog.deleteLater)
+        self.addCleanup(dialog.close)
+
+        def collect():
+            release.wait(2)
+            return PC_INFO
+
+        with patch('screento3d_app.error_report_dialog.collect_pc_info', side_effect=collect):
+            self.assertTrue(dialog.open_report(owner, prepare_report(error_record(1))))
+            self.assertIn('Collecting PC information', dialog.preview.toPlainText())
+            self.assertFalse(dialog.save_button.isEnabled())
+            dialog.include_pc.setChecked(False)
+            self.assertTrue(dialog.save_button.isEnabled())
+            self.assertNotIn('PC information', dialog.preview.toPlainText())
+            self.assertNotIn('Arc', dialog.preview.toPlainText())
+            dialog.include_pc.setChecked(True)
+            release.set()
+            self.wait_for_pc_info(dialog)
+            self.assertIn('Intel(R) Arc(TM) Graphics', dialog.preview.toPlainText())
 
     def test_public_text_excludes_paths_ids_and_raw_events_by_construction(self):
         entry = prepare_report(error_record(1))
@@ -95,6 +160,7 @@ class ErrorReportTests(unittest.TestCase):
         report = dialog.report_dialog()
         self.addCleanup(report.close)
         self.assertTrue(report.isVisible())
+        self.wait_for_pc_info(report)
         self.assertIn('E_CAPTURE_SOURCE_CLOSED', report.preview.toPlainText())
         self.assertNotIn('PRIVATE_DIAGNOSTIC', report.preview.toPlainText())
 
@@ -108,6 +174,7 @@ class ErrorReportTests(unittest.TestCase):
         self.addCleanup(dialog.close)
         self.assertTrue(dialog.open_history(owner))
         self.assertEqual(dialog.history.count(), 2)
+        self.wait_for_pc_info(dialog)
         dialog.note.setText('Note for the second occurrence')
         dialog.diagnostics.setChecked(True)
         dialog.history.setCurrentRow(1)
@@ -119,6 +186,8 @@ class ErrorReportTests(unittest.TestCase):
         self.assertIn('16:03:01', preview)
         self.assertIn('1920×1080', preview)
         self.assertIn('Veyra에서 메뉴 열기', preview)
+        self.assertIn('Intel(R) Arc(TM) Graphics', preview)
+        self.assertIn('32.0.101.1234', preview)
         self.assertNotIn('16:03:02', preview)
         with patch('screento3d_app.error_report_dialog.QFileDialog.getSaveFileName', return_value=('', '')):
             dialog.save_button.click()

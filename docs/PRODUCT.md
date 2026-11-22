@@ -99,9 +99,14 @@ reports from either local journal file, newest first. The list keeps repeated
 occurrences separately. The preview shows the selected error's ID, time, app
 version and available build, processing and exit-code fields. The user can add a
 short note and opt into the last 60 seconds of shareable diagnostic metadata.
-The saved UTF-8 text matches the preview. Reports pick explicit fields from the
-local journal so raw exception text, file paths, process IDs and window handles
-stay local. Report preparation and saving require no account or network access.
+The report also offers PC information, checked by default. Opening a report
+queries Windows for the OS build and architecture, processor model, physical
+memory, and graphics adapter names and driver versions. These describe the PC
+when the report is prepared and are included in the preview and export only
+while the option is checked. The saved UTF-8 text matches the preview. Reports
+pick explicit fields from the local journal so raw exception text, file paths,
+process IDs and window handles stay local. Report preparation and saving require
+no account or network access.
 
 The Qt/QML desktop opens a compact 420x260 logical-pixel control window (minimum
 380x260). Its primary controls are an explicit source picker and SBS start/stop.
