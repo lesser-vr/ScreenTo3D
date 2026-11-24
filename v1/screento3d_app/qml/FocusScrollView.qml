@@ -6,10 +6,13 @@ ScrollView {
     id: control
     clip: true
     contentWidth: availableWidth
-    function revealFocus() {
+    function revealFocus(onFocusChange) {
         const item = control.Window.window ? control.Window.window.activeFocusItem : null
         const flick = control.contentItem
         if (!item || !flick || !flick.contentItem)
+            return
+        // Moving the viewport on a pointer press can move the button out from under it.
+        if (onFocusChange && item.focusReason === Qt.MouseFocusReason)
             return
         let ancestor = item
         while (ancestor && ancestor !== flick.contentItem)
@@ -25,9 +28,10 @@ ScrollView {
             offset = bottom - flick.height + 8
         flick.contentY = Math.max(0, Math.min(offset, flick.contentHeight - flick.height))
     }
+    function revealAfterFocusChange() { revealFocus(true) }
     Connections {
         target: control.Window.window
-        function onActiveFocusItemChanged() { Qt.callLater(control.revealFocus) }
+        function onActiveFocusItemChanged() { Qt.callLater(control.revealAfterFocusChange) }
     }
     onHeightChanged: Qt.callLater(revealFocus)
 }

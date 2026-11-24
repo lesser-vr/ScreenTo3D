@@ -134,7 +134,9 @@ lookup reads only OS icon metadata, is bounded and never captures a thumbnail.
 Control windows retain their preferred sizes when space permits; file/settings
 minimum sizes shrink to the screen work area, accounting for native window frames,
 so bottom actions remain reachable at smaller logical resolutions. Screen/DPI or
-work-area changes refit those controls. The file settings remain scrollable.
+work-area changes refit those controls. Tab and Shift+Tab reveal focused controls
+in settings and file conversion. Buttons keep their position when clicked near a
+scroll edge.
 The quality, file, settings and separate error windows share the light treatment;
 the SBS video surface itself remains black. QML color tokens live in Theme.qml. The portable Qt app loads the unmodified
 Pretendard Variable 1.3.9 asset before creating any windows. Korean, Latin and
