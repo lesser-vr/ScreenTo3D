@@ -11,9 +11,9 @@
 >
 > **First-use downloads:** In addition to the app ZIP, a fresh setup downloads about **2 GB** the first time you start Live 3D. If you start with file conversion using the default DA2 Base model, expect about **2.45 GB**, including FFmpeg and the model. The app guides you through setup and reuses installed runtimes.
 
-**[Download Windows app ZIP](https://github.com/lesser-vr/ScreenTo3D/releases/download/v1.0.0/ScreenTo3D-1.0.0-windows-x64.zip)** ·
-[Runtime packs and release](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0) ·
-[Installation instructions](docs/releases/1.0.0.md)
+**[Download Windows app ZIP](https://github.com/lesser-vr/ScreenTo3D/releases/download/v1.0.1/ScreenTo3D-1.0.1-windows-x64.zip)** ·
+[Release notes and downloads](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.1) ·
+[Installation instructions](docs/releases/1.0.1.md)
 
 Extract the ZIP and run `ScreenTo3D.exe`. The app identifies the additional packs needed for first 3D use.
 
@@ -49,7 +49,7 @@ The [current desktop portable build](docs/models/desktop-distribution.md) bundle
 DA2 Small and installs Base, VDA Small and optional NVIDIA VFG on demand.
 Small, Base and VDA build their TensorRT engines on the user's NVIDIA GPU.
 
-The refreshed 1.0.0 portable build keeps preferences in `data/settings.ini` and models,
+The 1.0.1 portable build keeps preferences in `data/settings.ini` and models,
 runtimes, caches and logs under `data/` beside the EXE. Settings shows the data
 location and opens its folder. Previous AppData files are not imported or removed.
 Move the whole app folder and preserve `data/` when updating.

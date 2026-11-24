@@ -11,9 +11,9 @@
 >
 > **첫 사용 시 추가 다운로드** 앱 ZIP을 받은 뒤, 새 설치 환경에서 실시간 3D를 처음 시작하면 약 **2 GB**를 추가로 받습니다. 기본 모델인 DA2 Base로 파일 변환부터 시작하면 FFmpeg와 모델을 포함해 약 **2.45 GB**가 필요합니다. 설치는 앱에서 안내하며, 이미 준비된 런타임은 재사용합니다.
 
-**[Windows 앱 ZIP 다운로드](https://github.com/lesser-vr/ScreenTo3D/releases/download/v1.0.0/ScreenTo3D-1.0.0-windows-x64.zip)** ·
-[런타임 팩과 릴리스](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.0) ·
-[설치 안내](docs/releases/1.0.0.md)
+**[Windows 앱 ZIP 다운로드](https://github.com/lesser-vr/ScreenTo3D/releases/download/v1.0.1/ScreenTo3D-1.0.1-windows-x64.zip)** ·
+[릴리스 안내와 다운로드](https://github.com/lesser-vr/ScreenTo3D/releases/tag/v1.0.1) ·
+[설치 안내](docs/releases/1.0.1.md)
 
 ZIP을 풀고 `ScreenTo3D.exe`를 실행하세요. 첫 3D 실행에 필요한 추가 팩은 앱에서 안내합니다.
 
@@ -48,7 +48,7 @@ Windows 종료는 기본으로 꺼져 있습니다.
 기본 동봉하고, Base·VDA Small·선택 기능인 NVIDIA VFG는 필요할 때 설치합니다.
 Small·Base·VDA의 TensorRT 엔진은 사용자의 NVIDIA GPU에서 생성합니다.
 
-갱신된 1.0.0 포터블은 EXE 옆 `data/settings.ini`에 설정을, `data/` 아래에 모델·런타임·
+1.0.1 포터블은 EXE 옆 `data/settings.ini`에 설정을, `data/` 아래에 모델·런타임·
 캐시·로그를 저장합니다. 설정에서 저장 위치를 확인하고 데이터 폴더를 열 수 있습니다.
 이전 AppData 파일은 가져오거나 삭제하지 않습니다. 앱 폴더 전체를 옮기고 업데이트할 때
 `data/`를 보존하세요.
